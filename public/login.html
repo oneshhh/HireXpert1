@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>TalentFlow Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
+  <style type="text/tailwindcss">
+    :root { --primary-color: #1173d4; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+<div class="relative flex size-full min-h-screen flex-col overflow-x-hidden">
+  <div class="flex flex-1 items-center justify-center p-6">
+    <div class="w-full max-w-md">
+      <div class="flex items-center justify-center gap-3 mb-8">
+        <svg class="h-8 w-8 text-[var(--primary-color)]" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8.578 8.578c-3.05 3.05-5.127 6.936-5.969 11.167-.842 4.231-.41 8.616 1.24 12.602 1.65 3.985 4.445 7.391 8.032 9.788 3.587 2.397 7.803 3.676 12.117 3.676s8.53-1.279 12.117-3.676c3.587-2.397 6.382-5.803 8.032-9.788 1.65-3.986 2.082-8.371 1.24-12.602-.842-4.231-2.919-8.117-5.969-11.167L24 24 8.578 8.578Z" fill="currentColor"></path>
+        </svg>
+        <h1 class="text-2xl font-bold text-gray-800">HireXpert</h1>
+      </div>
+
+      <div class="bg-white rounded-md shadow-sm p-8">
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">Secure Login</h2>
+          <p class="text-gray-500 mt-1">Access your department dashboard</p>
+        </div>
+
+        <!-- Real form posting to backend -->
+        <form id="loginForm" action="/login" method="POST" class="space-y-6">
+          <div>
+            <label class="sr-only" for="email">Email</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
+              <input name="email" id="email" placeholder="Email" type="email" required
+                class="form-input w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
+                       placeholder:text-gray-400 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"/>
+            </div>
+          </div>
+
+          <div>
+            <label class="sr-only" for="password">Password</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+              <input name="password" id="password" placeholder="Password" type="password" required
+                class="form-input w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
+                       placeholder:text-gray-400 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"/>
+            </div>
+          </div>
+
+          <div>
+            <label class="sr-only" for="department">Department</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">business_center</span>
+              <select name="department" id="department" required
+                class="form-select w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
+                       focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                <option value="">Select Department</option>
+                <option value="HR">Human Resources (HR)</option>
+                <option value="PMO">Project Management Office (PMO)</option>
+                <option value="GTA">Global Talent Acquisition (GTA)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <button type="submit"
+              class="flex w-full justify-center rounded-md bg-[var(--primary-color)] px-4 py-3 text-sm font-semibold text-white 
+                     shadow-sm hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 
+                     focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+              Login
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-6 text-center">
+          <a class="text-sm text-gray-500 hover:text-[var(--primary-color)] hover:underline" href="#">Forgot Password?</a>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-sm text-gray-500">© 2024 TalentFlow. All rights reserved.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const loginForm = document.getElementById("loginForm");
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault(); // Prevent default form submission
+
+    const formData = new FormData(loginForm);
+    const formProps = Object.fromEntries(formData);
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        // Correctly set the headers to send JSON
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // Stringify the data to send it as a JSON string
+        body: JSON.stringify(formProps),
+      });
+
+      if (response.ok) {
+        // Successful login, redirect to the dashboard
+        window.location.href = response.url;
+      } else {
+        // Failed login, get the JSON error message
+        const errorData = await response.json();
+        alert(errorData.message);
+      }
+    } catch (error) {
+      // Handle network errors
+      console.error("Error:", error);
+      alert("The Password or Email is incorrect, Make sure to select the correct department");
+    }
+  });
+</script>
+
+</body>
+</html>

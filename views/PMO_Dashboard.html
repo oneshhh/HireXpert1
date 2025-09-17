@@ -1,0 +1,221 @@
+<html><head>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<meta charset="utf-8"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style type="text/tailwindcss">
+      :root {
+        --primary-color: #1173d4;
+        --secondary-color: #f0f7ff;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+      }
+    </style>
+</head>
+<body class="bg-gray-50">
+<div class="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1">
+<aside class="flex flex-col w-64 bg-white border-r border-gray-200 p-4">
+<div class="flex items-center gap-2 mb-8">
+<div class="p-2 bg-[var(--primary-color)] rounded-lg text-white">
+<span class="material-symbols-outlined"> all_inbox </span>
+</div>
+<h1 class="text-xl font-bold text-[var(--text-primary)]">OnboardFlow</h1>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-[var(--secondary-color)] text-[var(--primary-color)]" href="#">
+<span class="material-symbols-outlined"> dashboard </span>
+<p class="text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
+<span class="material-symbols-outlined"> business_center </span>
+<p class="text-sm font-medium">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
+<span class="material-symbols-outlined"> group </span>
+<p class="text-sm font-medium">Resources</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
+<span class="material-symbols-outlined"> monitoring </span>
+<p class="text-sm font-medium">Reports</p>
+</a>
+</nav>
+<div class="mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
+<span class="material-symbols-outlined"> settings </span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+<div class="flex items-center gap-3 p-3 mt-4 border-t border-gray-200">
+<img alt="Admin" class="rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqi5rXLtbDZdTs8ccuqIIjdfCyF-nKnXLvgkSzniBycWZAjwk_1hn1WpuM8CO0LdTAl4zievIycggAMdoainB2SI-ovXiMALGMf2Tf6WOTonZP_aUNcQR69YwF7ckqt_hMuYzxfwBw_vw9OJzvk-jQ6S0D624KJjWPFDBdO7yqX6iBWlOTuBPmmR7xzwJGk8jrPFRt2WuQJcYMXJmLPiRDj_izZSvT9DacU5W8z0dC06BaiHScjvuWeaig2SryLRyWHTILFFyc2_8"/>
+<div>
+<p class="text-sm font-semibold text-[var(--text-primary)]">Admin User</p>
+<p class="text-xs text-[var(--text-secondary)]">admin.user@example.com</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 p-8">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h1 class="text-3xl font-bold text-[var(--text-primary)]">PMO Dashboard</h1>
+<p class="text-[var(--text-secondary)]">Overview of project management activities and team performance</p>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-opacity-90 transition-colors">
+<span class="material-symbols-outlined"> add </span>
+                Create Project
+              </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="bg-white p-6 rounded-lg border border-gray-200">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-base font-medium text-[var(--text-secondary)]">Active Projects</h3>
+<span class="material-symbols-outlined text-green-500"> trending_up </span>
+</div>
+<p class="text-4xl font-bold text-[var(--text-primary)]">12</p>
+<p class="text-sm text-green-500">+10% from last month</p>
+</div>
+<div class="bg-white p-6 rounded-lg border border-gray-200">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-base font-medium text-[var(--text-secondary)]">Completed Projects</h3>
+<span class="material-symbols-outlined text-green-500"> trending_up </span>
+</div>
+<p class="text-4xl font-bold text-[var(--text-primary)]">35</p>
+<p class="text-sm text-green-500">+5% from last month</p>
+</div>
+<div class="bg-white p-6 rounded-lg border border-gray-200">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-base font-medium text-[var(--text-secondary)]">Total Team Members</h3>
+<span class="material-symbols-outlined text-green-500"> trending_up </span>
+</div>
+<p class="text-4xl font-bold text-[var(--text-primary)]">20</p>
+<p class="text-sm text-green-500">+2 new members</p>
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg border border-gray-200 mb-8">
+<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Ongoing Projects</h2>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-gray-200">
+<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Project Name</th>
+<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Status</th>
+<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Progress</th>
+<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Due Date</th>
+<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Team Lead</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-gray-200 hover:bg-gray-50">
+<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Alpha</td>
+<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">In Progress</span></td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-blue-500 h-1.5 rounded-full" style="width: 60%"></div>
+</div>
+<span class="text-sm font-medium text-[var(--text-secondary)]">60%</span>
+</div>
+</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-08-15</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Ethan Harper</td>
+</tr>
+<tr class="border-b border-gray-200 hover:bg-gray-50">
+<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Beta</td>
+<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Planning</span></td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-yellow-500 h-1.5 rounded-full" style="width: 20%"></div>
+</div>
+<span class="text-sm font-medium text-[var(--text-secondary)]">20%</span>
+</div>
+</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-09-30</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Olivia Bennett</td>
+</tr>
+<tr class="border-b border-gray-200 hover:bg-gray-50">
+<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Gamma</td>
+<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Completed</span></td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-green-500 h-1.5 rounded-full" style="width: 100%"></div>
+</div>
+<span class="text-sm font-medium text-[var(--text-secondary)]">100%</span>
+</div>
+</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-07-20</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Noah Carter</td>
+</tr>
+<tr class="border-b border-gray-200 hover:bg-gray-50">
+<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Delta</td>
+<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">On Hold</span></td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-gray-400 h-1.5 rounded-full" style="width: 0%"></div>
+</div>
+<span class="text-sm font-medium text-[var(--text-secondary)]">0%</span>
+</div>
+</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-10-01</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Ava Thompson</td>
+</tr>
+<tr class="hover:bg-gray-50">
+<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Epsilon</td>
+<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">In Progress</span></td>
+<td class="py-3 px-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-blue-500 h-1.5 rounded-full" style="width: 80%"></div>
+</div>
+<span class="text-sm font-medium text-[var(--text-secondary)]">80%</span>
+</div>
+</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-08-30</td>
+<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Liam Foster</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg border border-gray-200">
+<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Team Performance</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<h3 class="text-base font-medium text-[var(--text-secondary)]">Project Completion Rate</h3>
+<p class="text-4xl font-bold text-[var(--text-primary)]">85%</p>
+<p class="text-sm text-green-500">+5% from last quarter</p>
+</div>
+<div class="h-48">
+<div class="flex h-full items-end gap-4">
+<div class="flex-1 text-center">
+<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 50%; width: 50%;"></div>
+<p class="text-xs text-[var(--text-secondary)] mt-1">Q1</p>
+</div>
+<div class="flex-1 text-center">
+<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 70%; width: 50%;"></div>
+<p class="text-xs text-[var(--text-secondary)] mt-1">Q2</p>
+</div>
+<div class="flex-1 text-center">
+<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 60%; width: 50%;"></div>
+<p class="text-xs text-[var(--text-secondary)] mt-1">Q3</p>
+</div>
+<div class="flex-1 text-center">
+<div class="bg-[var(--primary-color)] rounded-t-md mx-auto" style="height: 85%; width: 50%;"></div>
+<p class="text-xs font-bold text-[var(--primary-color)] mt-1">Q4</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+
+</body></html>

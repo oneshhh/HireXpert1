@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Create Interview</title>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+  :root {
+    --primary-color: #1173d4;
+    --secondary-color: #f0f2f4;
+    --text-primary: #111418;
+    --text-secondary: #617589;
+  }
+</style>
+</head>
+<body class="bg-gray-50 text-[var(--text-primary)]" style='font-family: "Inter", "Noto Sans", sans-serif;'>
+
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+  <!-- Header -->
+  <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
+    <h1 class="text-xl font-bold text-[var(--primary-color)]">TalentTrack</h1>
+  </header>
+
+  <!-- Main -->
+  <main class="flex flex-1 justify-center py-10">
+    <div class="w-full max-w-2xl space-y-8 px-4">
+      <div>
+        <h2 class="text-3xl font-bold">Create a New Interview</h2>
+        <p class="mt-2 text-base text-[var(--text-secondary)]">Fill in the details below to schedule a new interview.</p>
+      </div>
+
+      <form action="/schedule" method="POST" id="scheduleForm" class="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div class="space-y-6 p-6">
+          <!-- Title -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="interview-title">Title of the Interview</label>
+            <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-title" name="title" placeholder="e.g., Senior Product Designer" type="text" required>
+          </div>
+
+          <!-- Questions -->
+          <div>
+            <h3 class="mb-2 block text-sm font-medium text-[var(--text-primary)]">Questions</h3>
+            <div id="questions-container" class="space-y-4">
+              <div class="flex items-start gap-4">
+                <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
+                <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200">
+                  <span class="material-symbols-outlined text-xl">delete</span>
+                </button>
+              </div>
+            </div>
+            <button type="button" onclick="addQuestion()" class="mt-4 flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--secondary-color)] px-4 text-sm font-medium text-[var(--text-primary)] hover:bg-gray-200">
+              <span class="material-symbols-outlined">add</span>
+              <span>Add Question</span>
+            </button>
+          </div>
+
+          <!-- Date and Time -->
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="interview-date">Date</label>
+              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-date" name="date" type="date" required>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="interview-time">Time</label>
+              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-time" name="time" type="time" required>
+            </div>
+          </div>
+
+          <!-- Candidate Email -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="candidate-email">Candidate's Email</label>
+            <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="candidate-email" name="email" type="email" placeholder="Enter candidate's email" required>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex justify-end border-t border-gray-200 bg-gray-50 p-6">
+          <button type="submit" class="flex h-10 w-full sm:w-auto items-center justify-center rounded-md bg-[var(--primary-color)] px-4 text-sm font-medium text-white hover:bg-opacity-90">Schedule Interview</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+  function addQuestion() {
+    const container = document.getElementById("questions-container");
+    const div = document.createElement("div");
+    div.classList.add("flex", "items-start", "gap-4");
+    div.innerHTML = `
+      <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
+      <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200">
+        <span class="material-symbols-outlined text-xl">delete</span>
+      </button>
+    `;
+    container.appendChild(div);
+  }
+</script>
+
+<script src="js/schedule.js"></script>
+
+</body>
+</html>
