@@ -4,6 +4,8 @@ const session = require("express-session");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const db = require("./db");
+const path = require("path");
+
 
 const app = express();
 app.use(bodyParser.json());
