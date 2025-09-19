@@ -100,23 +100,38 @@ app.get("/GTA_Dashboard.html", (req, res) => {
 // Schedule interview (insert)
 // -----------------------------
 app.post("/schedule", async (req, res) => {
-  const { title, questions, date, time, email } = req.body;
-
-  if (!title || !questions || !date || !time || !email) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
-  const id = uuidv4();
-  const questionsStr = JSON.stringify(questions);
-
   try {
+    let { title, questions, date, time, email } = req.body;
+
+    if (!title || !questions || !date || !time || !email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const id = uuidv4();
+
+    // Ensure questions is a JS array
+    if (typeof questions === "string") {
+      try {
+        questions = JSON.parse(questions); // handle '["q1","q2"]'
+      } catch (e) {
+        questions = [questions]; // fallback for plain string
+      }
+    }
+
+    if (!Array.isArray(questions)) {
+      questions = [String(questions)];
+    }
+
+    // Convert JS array → Postgres array format {"q1","q2"}
+    const pgQuestions = `{${questions.map(q => `"${q}"`).join(",")}}`;
+
     await pool.query(
       `INSERT INTO interviews (id, title, questions, date, time, email)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, title, questionsStr, date, time, email]
+      [id, title, pgQuestions, date, time, email]
     );
 
-    console.log("Interview saved:", title);
+    console.log("✅ Interview saved:", title);
     sendInterviewEmail(email, id, title, date, time);
 
     res.json({
@@ -127,7 +142,7 @@ app.post("/schedule", async (req, res) => {
       link: `/interview/${id}`,
     });
   } catch (err) {
-    console.error("Error inserting interview:", err);
+    console.error("❌ Error inserting interview:", err);
     res.status(500).json({ message: "Error saving interview." });
   }
 });
