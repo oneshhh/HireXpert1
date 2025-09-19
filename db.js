@@ -1,24 +1,31 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+// db.js
+const { Pool } = require("pg");
 
-// DB file will live in project root
-const db = new sqlite3.Database(path.join(__dirname, "hirexpert.db"), (err) => {
-  if (err) console.error("❌ DB connection error:", err);
-  else console.log("✅ Connected to SQLite DB");
+// Use Render's DATABASE_URL (add in your Render Environment Variables)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // needed for Render
+  },
 });
 
 // Create table if it doesn’t exist
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS interviews (
-      id TEXT PRIMARY KEY,
-      title TEXT,
-      questions TEXT,
-      \`date\` TEXT,
-      \`time\` TEXT,
-      email TEXT
-    )
-  `);
-});
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS interviews (
+        id UUID PRIMARY KEY,
+        title TEXT,
+        questions TEXT[],
+        date DATE,
+        time TEXT,
+        email TEXT
+      )
+    `);
+    console.log("✅ Connected to PostgreSQL & ensured table exists");
+  } catch (err) {
+    console.error("❌ Error setting up database:", err);
+  }
+})();
 
-module.exports = db;
+module.exports = pool;
