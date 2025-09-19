@@ -26,9 +26,9 @@ function parsePgArray(pgArray) {
     .map((q) => q.replace(/^"|"$/g, "")); // strip quotes
 }
 
-// Root
+// Root -> login page
 app.get("/", (req, res) => {
-  res.send("Server is running!");
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 // 📌 Create interview (HR schedules it)
