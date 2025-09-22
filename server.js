@@ -108,8 +108,58 @@ app.get("/GTA_Dashboard.html", (req, res) => {
   res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
 });
 
+// ---------- Nodemailer ----------
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "vanshu2004sabharwal@gmail.com",
+          pass: "gbsksbtmkgqaldnq",
+        },
+      });
+
+      const link = `http://localhost:${PORT}/interview/${id}`;
+
+      const mailOptions = {
+        from: '"HireXpert" <yourgmail@gmail.com>',
+        to: email,
+        subject: `Interview Scheduled: ${title}`,
+        html: `
+          <p>Dear Candidate,</p>
+          <p>You have an interview scheduled for <b>${title}</b>.</p>
+          <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+          <p>Click <a href="${link}">here</a> to join your interview.</p>
+          <p>Regards,<br>HireXpert Team</p>
+        `,
+      };
+
+      transporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+          console.error("Error sending email:", err);
+        } else {
+          console.log("Email sent:", info.response);
+        }
+      });
+
+      res.json({
+        success: true,
+        message: "Interview scheduled successfully",
+        email,
+        id,
+        link: `/interview/${id}`,
+      });
+    } catch (err) {
+      console.error("❌ Error inserting interview:", err);
+      res.status(500).json({ message: "Error saving interview." });
+    }
+
+
+  });
+
 // ---------- Schedule interview (INSERT) ----------
 app.post("/schedule", async (req, res) => {
+
+  sendInterviewEmail(email, id, title, date, time);
+
   try {
     let { title, questions, timeLimits, date, time, email } = req.body;
 
@@ -142,50 +192,7 @@ app.post("/schedule", async (req, res) => {
 
     console.log("✅ Interview saved:", title);
 
-    // ---------- Nodemailer ----------
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "vanshu2004sabharwal@gmail.com",
-        pass: "gbsksbtmkgqaldnq",
-      },
-    });
-
-    const link = `http://localhost:${PORT}/interview/${id}`;
-
-    const mailOptions = {
-      from: '"HireXpert" <yourgmail@gmail.com>',
-      to: email,
-      subject: `Interview Scheduled: ${title}`,
-      html: `
-        <p>Dear Candidate,</p>
-        <p>You have an interview scheduled for <b>${title}</b>.</p>
-        <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-        <p>Click <a href="${link}">here</a> to join your interview.</p>
-        <p>Regards,<br>HireXpert Team</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error("Error sending email:", err);
-      } else {
-        console.log("Email sent:", info.response);
-      }
-    });
-
-    res.json({
-      success: true,
-      message: "Interview scheduled successfully",
-      email,
-      id,
-      link: `/interview/${id}`,
-    });
-  } catch (err) {
-    console.error("❌ Error inserting interview:", err);
-    res.status(500).json({ message: "Error saving interview." });
-  }
-});
+    
 
 // ---------- Fetch single interview by ID ----------
 app.get("/api/interview/:id", async (req, res) => {
@@ -336,8 +343,6 @@ app.get("/api/interviews/:id", async (req, res) => {
   }
 });
 
-// ---------- Email sender helper ----------
-sendInterviewEmail(email, id, title, date, time);
 
 // ---------- Start server ----------
 app.listen(PORT, () => {
