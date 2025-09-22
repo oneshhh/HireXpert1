@@ -184,7 +184,7 @@ app.post("/schedule", async (req, res) => {
 });
 
 // ---------- Fetch single interview ----------
-app.get("/api/interview/:id", async (req, res) => {
+async function fetchSingleInterview(req, res) {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
@@ -199,7 +199,9 @@ app.get("/api/interview/:id", async (req, res) => {
     console.error("DB error:", err);
     res.status(500).json({ message: "DB error" });
   }
-});
+}
+app.get("/api/interview/:id", fetchSingleInterview);
+app.get("/api/interviews/:id", fetchSingleInterview); // ✅ Added alias route
 
 // ---------- Update interview ----------
 app.post("/api/interview/:id/update", async (req, res) => {
@@ -263,7 +265,6 @@ app.get("/api/interviews", async (req, res) => {
 });
 
 // ---------- Candidate interview page ----------
-// ---------- Candidate interview page ----------
 app.get("/interview/:id", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
@@ -288,7 +289,6 @@ app.get("/interview/:id", async (req, res) => {
   }
 });
 
-
 // ---------- Serve interview view/edit pages ----------
 app.get("/interview-view.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-view.html"));
@@ -298,8 +298,8 @@ app.get("/interview-edit.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
 });
 
-
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+// ---------- End of server.js ----------
