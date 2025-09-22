@@ -288,6 +288,17 @@ app.get("/interview/:id", async (req, res) => {
   }
 });
 
+
+// ---------- Serve interview view/edit pages ----------
+app.get("/interview-view.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-view.html"));
+});
+
+app.get("/interview-edit.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
+});
+
+
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
