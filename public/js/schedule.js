@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = {
       title: formData.get("title"),
       questions: formData.getAll("questions[]"),
+      timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t) || 0), // <-- new
       date: formData.get("date"),
       time: formData.get("time"),
       email: formData.get("email"),
@@ -29,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.ok) {
         alert(`✅ Interview scheduled successfully!\nEmail sent to ${data.email}`);
         
-        // 👉 redirect back to the HR dashboard (or interviews page)
+        // Redirect back to the HR dashboard (or interviews page)
         window.location.href = "/HR_Dashboard.html";
       } else {
         alert(`❌ Error: ${result.message || "Something went wrong"}`);
