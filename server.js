@@ -1,18 +1,16 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-const path = require("path"); // <-- restored
+const path = require("path");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
-
-// Use your existing db.js which exports a Pool (ensure db.js exists)
 const pool = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// ---------- Middleware ----------
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static("public"));
@@ -25,7 +23,7 @@ app.use(
   })
 );
 
-// Fake user database (unchanged)
+// ---------- Fake user database ----------
 const users = [
   { email: "hr@company.com", password: "hr123", department: "HR" },
   { email: "pmo@company.com", password: "pmo123", department: "PMO" },
@@ -53,12 +51,45 @@ function parseQuestionsField(q) {
   return [];
 }
 
-// ---------- Root -> serve login page ----------
+// ---------- Email sender helper ----------
+function sendInterviewEmail(to, id, title, date, time) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "vanshu2004sabharwal@gmail.com",
+      pass: "gbsksbtmkgqaldnq",
+    },
+  });
+
+  const link = `http://localhost:${PORT}/interview/${id}`;
+
+  const mailOptions = {
+    from: '"HireXpert" <yourgmail@gmail.com>',
+    to,
+    subject: `Interview Scheduled: ${title}`,
+    html: `
+      <p>Dear Candidate,</p>
+      <p>You have an interview scheduled for <b>${title}</b>.</p>
+      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+      <p>Click <a href="${link}">here</a> to join your interview.</p>
+      <p>Regards,<br>HireXpert Team</p>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) console.error("Error sending email:", err);
+    else console.log("Email sent:", info.response);
+  });
+}
+
+// ---------- Routes ----------
+
+// Root -> Login page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ---------- Login route ----------
+// Login
 app.post("/login", (req, res) => {
   const { email, password, department } = req.body;
   const user = users.find(
@@ -69,145 +100,100 @@ app.post("/login", (req, res) => {
     req.session.user = user;
     switch (user.department) {
       case "HR":
-        res.redirect("/HR_Dashboard.html");
-        break;
+        return res.redirect("/HR_Dashboard.html");
       case "PMO":
-        res.redirect("/PMO_Dashboard.html");
-        break;
+        return res.redirect("/PMO_Dashboard.html");
       case "GTA":
-        res.redirect("/GTA_Dashboard.html");
-        break;
+        return res.redirect("/GTA_Dashboard.html");
       default:
-        res.status(401).json({ message: "Unauthorized department." });
-        break;
+        return res.status(401).json({ message: "Unauthorized department." });
     }
   } else {
     res.status(401).json({ message: "Invalid credentials or department." });
   }
 });
 
-// ---------- Dashboard routes ----------
+// Dashboards
 app.get("/HR_Dashboard.html", (req, res) => {
-  if (req.session.user && req.session.user.department === "HR") {
+  if (req.session.user?.department === "HR") {
     return res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
   }
   res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
 });
 
 app.get("/PMO_Dashboard.html", (req, res) => {
-  if (req.session.user && req.session.user.department === "PMO") {
+  if (req.session.user?.department === "PMO") {
     return res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html"));
   }
   res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
 });
 
 app.get("/GTA_Dashboard.html", (req, res) => {
-  if (req.session.user && req.session.user.department === "GTA") {
+  if (req.session.user?.department === "GTA") {
     return res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html"));
   }
   res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
 });
 
-// ---------- Nodemailer ----------
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: "vanshu2004sabharwal@gmail.com",
-          pass: "gbsksbtmkgqaldnq",
-        },
-      });
-
-      const link = `http://localhost:${PORT}/interview/${id}`;
-
-      const mailOptions = {
-        from: '"HireXpert" <yourgmail@gmail.com>',
-        to: email,
-        subject: `Interview Scheduled: ${title}`,
-        html: `
-          <p>Dear Candidate,</p>
-          <p>You have an interview scheduled for <b>${title}</b>.</p>
-          <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-          <p>Click <a href="${link}">here</a> to join your interview.</p>
-          <p>Regards,<br>HireXpert Team</p>
-        `,
-      };
-
-      transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          console.error("Error sending email:", err);
-        } else {
-          console.log("Email sent:", info.response);
-        }
-      });
-
-      res.json({
-        success: true,
-        message: "Interview scheduled successfully",
-        email,
-        id,
-        link: `/interview/${id}`,
-      });
-    } catch (err) {
-      console.error("❌ Error inserting interview:", err);
-      res.status(500).json({ message: "Error saving interview." });
-    }
-
-
-  });
-
-// ---------- Schedule interview (INSERT) ----------
+// ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
-
-  sendInterviewEmail(email, id, title, date, time);
-
   try {
     let { title, questions, timeLimits, date, time, email } = req.body;
 
-    // normalize questions -> array
+    // Normalize questions
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
     if (!Array.isArray(questions)) questions = [String(questions)];
 
-    // normalize timeLimits -> array of integers
+    // Normalize timeLimits
     if (!timeLimits) timeLimits = [];
     if (typeof timeLimits === "string") {
       try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
     }
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
 
-    // ensure timeLimits has same length as questions
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
     const id = uuidv4();
-    const questionsArrayLiteral = toPostgresArray(questions);
+    const questionsArrayLiteral = `{${questions.map(q => `"${q}"`).join(",")}}`;
     const timeLimitsArrayLiteral = `{${timeLimits.join(",")}}`;
 
     await pool.query(
-      `UPDATE interviews 
-      SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5, email=$6
-      WHERE id=$7`,
-      [title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time, email, req.params.id]
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time, email)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time, email]
     );
 
     console.log("✅ Interview saved:", title);
 
-    
+    // Send email AFTER saving to DB
+    sendInterviewEmail(email, id, title, date, time);
 
-// ---------- Fetch single interview by ID ----------
+    res.json({
+      success: true,
+      message: "Interview scheduled successfully",
+      email,
+      id,
+      link: `/interview/${id}`,
+    });
+  } catch (err) {
+    console.error("❌ Error inserting interview:", err);
+    res.status(500).json({ message: "Error saving interview." });
+  }
+});
+
+// ---------- Fetch single interview ----------
 app.get("/api/interview/:id", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ message: "Interview not found" });
+    if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
     const row = result.rows[0];
-    const questions = parseQuestionsField(row.questions);
-    const timeLimits = row.time_limits || [];
-
     res.json({
       ...row,
-      questions,
-      timeLimits
+      questions: parseQuestionsField(row.questions),
+      timeLimits: row.time_limits || [],
     });
   } catch (err) {
     console.error("DB error:", err);
@@ -220,20 +206,17 @@ app.post("/api/interview/:id/update", async (req, res) => {
   try {
     let { title, questions, timeLimits, date, time, email } = req.body;
 
-    // normalize questions -> array
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
     if (!Array.isArray(questions)) questions = [String(questions)];
 
-    // normalize timeLimits -> array
     if (!timeLimits) timeLimits = [];
     if (typeof timeLimits === "string") {
       try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
     }
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
 
-    // ensure timeLimits has same length as questions
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
     const questionsArrayLiteral = `{${questions.map(q => `"${q}"`).join(",")}}`;
@@ -268,14 +251,11 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
 app.get("/api/interviews", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
-
-    const formatted = result.rows.map(r => ({
+    res.json(result.rows.map(r => ({
       ...r,
       questions: r.questions || [],
       timeLimits: r.time_limits || [],
-    }));
-
-    res.json(formatted);
+    })));
   } catch (err) {
     console.error("Error fetching interviews:", err);
     res.status(500).json({ error: "Database error" });
@@ -283,10 +263,11 @@ app.get("/api/interviews", async (req, res) => {
 });
 
 // ---------- Candidate interview page ----------
+// ---------- Candidate interview page ----------
 app.get("/interview/:id", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).send("<h1>Interview not found</h1>");
+    if (!result.rows.length) return res.status(404).send("<h1>Interview not found</h1>");
 
     const row = result.rows[0];
     const questions = parseQuestionsField(row.questions);
@@ -306,43 +287,6 @@ app.get("/interview/:id", async (req, res) => {
     res.status(500).send("DB error");
   }
 });
-
-// ---------- Pages for edit/view ----------
-app.get("/interview-edit.html", (req, res) => {
-  if (req.session.user && req.session.user.department === "HR") {
-    return res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
-  }
-  res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
-});
-
-app.get("/interview-view.html", (req, res) => {
-  if (req.session.user && req.session.user.department === "HR") {
-    return res.sendFile(path.join(__dirname, "views", "interview-view.html"));
-  }
-  res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
-});
-
-// ---------- API route alias ----------
-app.get("/api/interviews/:id", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ message: "Interview not found" });
-
-    const row = result.rows[0];
-    res.json({
-      title: row.title || "",
-      questions: parseQuestionsField(row.questions),
-      timeLimits: row.time_limits || [],
-      date: row.date || "",
-      time: row.time || "",
-      email: row.email || "",
-    });
-  } catch (err) {
-    console.error("DB error:", err);
-    res.status(500).json({ message: "Database error" });
-  }
-});
-
 
 // ---------- Start server ----------
 app.listen(PORT, () => {
