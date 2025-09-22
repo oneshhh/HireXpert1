@@ -41,16 +41,15 @@
           </div>
 
           <!-- Questions -->
-          <div>
-            <h3 class="mb-2 block text-sm font-medium text-[var(--text-primary)]">Questions</h3>
-            <div id="questions-container" class="space-y-4">
-              <div class="flex items-start gap-4">
-                <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
-                <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200">
-                  <span class="material-symbols-outlined text-xl">delete</span>
-                </button>
-              </div>
+          <div id="questions-container" class="space-y-4">
+            <div class="flex items-start gap-4">
+              <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
+              <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="w-24 rounded-md border border-gray-300 p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
+              <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200">
+                <span class="material-symbols-outlined text-xl">delete</span>
+              </button>
             </div>
+          </div>
             <button type="button" onclick="addQuestion()" class="mt-4 flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--secondary-color)] px-4 text-sm font-medium text-[var(--text-primary)] hover:bg-gray-200">
               <span class="material-symbols-outlined">add</span>
               <span>Add Question</span>
@@ -61,11 +60,13 @@
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="interview-date">Date</label>
-              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-date" name="date" type="date" required>
+              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" 
+                    id="interview-date" name="date" type="date" required>
             </div>
             <div>
               <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="interview-time">Time</label>
-              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-time" name="time" type="time" required>
+              <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" 
+                    id="interview-time" name="time" type="time" value="09:00" required>
             </div>
           </div>
 
@@ -92,6 +93,7 @@
     div.classList.add("flex", "items-start", "gap-4");
     div.innerHTML = `
       <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
+      <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="w-24 rounded-md border border-gray-300 p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
       <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200">
         <span class="material-symbols-outlined text-xl">delete</span>
       </button>

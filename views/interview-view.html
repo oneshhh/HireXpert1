@@ -49,9 +49,13 @@
 
         const qList = document.getElementById("questions");
         qList.innerHTML = "";
-        (data.questions || []).forEach(q => {
+        const questions = data.questions || [];
+        const timeLimits = data.timeLimits || [];
+
+        questions.forEach((q, index) => {
           const li = document.createElement("li");
-          li.textContent = q;
+          const time = timeLimits[index] || 0;
+          li.textContent = `${q} (Time limit: ${time} sec)`; // display time limit
           qList.appendChild(li);
         });
       } catch (err) {
