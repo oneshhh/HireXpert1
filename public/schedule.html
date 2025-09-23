@@ -2,20 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta charset="utf-8"/>
+<title>Create Interview</title>
 <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-<title>Create Interview</title>
-<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <style>
      :root {
-     --primary-color: #1173d4;
-     --secondary-color: #f0f2f4;
-     --text-primary: #111418;
-     --text-secondary: #617589;
-        }
+       --primary-color: #1173d4;
+       --secondary-color: #f0f2f4;
+       --text-primary: #111418;
+       --text-secondary: #617589;
+     }
     </style>
 </head>
 <body class="bg-gray-50 text-[var(--text-primary)]" style='font-family: "Inter", "Noto Sans", sans-serif;'>
@@ -26,7 +24,7 @@
 <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
 <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
 </svg>
-<h1 class="text-xl font-bold tracking-tight text-[var(--text-primary)]">TalentTrack</h1>
+<h1 class="text-xl font-bold tracking-tight text-[var(--text-primary)]">HireXpert</h1>
 </div>
 <nav class="hidden items-center gap-6 text-sm font-medium lg:flex">
 <a class="text-[var(--text-secondary)] hover:text-[var(--primary-color)]" href="#">Dashboard</a>
@@ -109,15 +107,28 @@
 <div class="mt-4 space-y-4">
 <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-48 resize-y" id="job-description" placeholder="Paste Job Description here..."></textarea>
 <div class="flex items-end gap-4">
-<div class="flex-1">
-<label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="num-questions">Number of questions</label>
-<input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="num-questions" placeholder="e.g., 5" type="number"/>
-</div>
-<button id="generate-questions-btn" class="flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-indigo-500 text-white hover:bg-indigo-600 gap-2">
-<span class="material-symbols-outlined">spark</span>
-<span>Generate</span>
-</button>
-</div>
+
+    <!-- ++++++++++ UPDATED SECTION ++++++++++ -->
+    <div class="flex flex-1 items-end gap-4">
+        <div class="flex-1">
+            <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="num-questions">Number of questions</label>
+            <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="num-questions" placeholder="e.g., 5" type="number"/>
+        </div>
+        <div class="flex-1">
+            <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="difficulty-selector">Difficulty</label>
+            <select id="difficulty-selector" class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
+                <option value="Beginner">Beginner</option>
+                <option value="Moderate" selected>Moderate</option>
+                <option value="Expert">Expert</option>
+            </select>
+        </div>
+    </div>
+    <!-- ++++++++++ END OF UPDATED SECTION ++++++++++ -->
+    
+    <button id="generate-questions-btn" class="flex h-12 items-center justify-center rounded-md bg-indigo-500 px-4 text-sm font-medium text-white hover:bg-indigo-600 gap-2">
+        <span class="material-symbols-outlined">spark</span>
+        <span>Generate</span>
+    </button>
 </div>
 </div>
 </div>
@@ -126,20 +137,21 @@
 </main>
 </div>
 <script>
-   function addQuestion(questionText = '') {
-     const container = document.getElementById("questions-container");
-     const div = document.createElement("div");
-     div.classList.add("flex", "items-start", "gap-4");
-    div.innerHTML = `
-       <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
-       <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="w-24 rounded-md border border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
-       <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
-         <span class="material-symbols-outlined text-xl">delete</span>
-       </button>
-    `;
-   container.appendChild(div);
-   }
+    function addQuestion(questionText = '') {
+      const container = document.getElementById("questions-container");
+      const div = document.createElement("div");
+      div.classList.add("flex", "items-start", "gap-4");
+      div.innerHTML = `
+        <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
+        <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="w-24 rounded-md border border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
+        <button type="button" onclick="this.parentElement.remove()" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
+          <span class="material-symbols-outlined text-xl">delete</span>
+        </button>
+      `;
+      container.appendChild(div);
+    }
 </script>
 <script src="js/schedule.js"></script>
 <script src="js/generate.js"></script>
 </body></html>
+
