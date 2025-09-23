@@ -5,13 +5,14 @@ const jobDescriptionEl = document.getElementById('job-description');
 const numQuestionsEl = document.getElementById('num-questions');
 const questionsContainer = document.getElementById('questions-container');
 
-// 🚨 IMPORTANT: Replace this placeholder with the API key you confirmed works in the tester.
+// 🚨 CRITICAL SECURITY WARNING: This key is exposed to anyone visiting your website.
+// It should NOT be used in production. Please use the server.js solution for deployment.
 const GEMINI_API_KEY = 'AIzaSyCXjVe1B-s5Yyakl5upyIHrErdbZ1h8pP0';
 
 // A function to add a question to the form
 function addQuestion(questionText = '') {
     const div = document.createElement("div");
-    div.classList.add("flex", "items-start", "gap-4", "mt-4"); // Added margin-top for spacing
+    div.classList.add("flex", "items-start", "gap-4", "mt-4");
     div.innerHTML = `
         <textarea class="form-input min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
         <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="form-input w-24 !p-2 text-sm">
@@ -19,7 +20,6 @@ function addQuestion(questionText = '') {
             <span class="material-symbols-outlined text-xl">delete</span>
         </button>
     `;
-    // Add event listener to the delete button instead of using inline onclick
     div.querySelector('button').addEventListener('click', () => div.remove());
     questionsContainer.appendChild(div);
 }
@@ -37,13 +37,12 @@ generateBtn.addEventListener('click', async () => {
     const jobDescription = jobDescriptionEl.value.trim();
     const numQuestions = numQuestionsEl.value;
 
-    // Use a custom modal/message instead of alert()
     if (!jobDescription || numQuestions < 1) {
         questionsContainer.innerHTML = `<p class="text-red-500">Please enter a job description and a valid number of questions.</p>`;
         return;
     }
 
-    setFormState(true); // Disable form and show loading state
+    setFormState(true);
     questionsContainer.innerHTML = '<p class="text-gray-500">Generating questions, please wait...</p>';
 
     try {
@@ -62,33 +61,35 @@ generateBtn.addEventListener('click', async () => {
         });
 
         if (!response.ok) {
-            // Handle HTTP errors like 400, 404 or 500
             const errorData = await response.json();
             throw new Error(`HTTP error! Status: ${response.status} - ${errorData.error.message}`);
         }
 
         const data = await response.json();
 
-        // Handle API errors embedded in a 200 OK response
         if (data.error || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
             throw new Error('Invalid API response format. The model may have returned an unexpected result.');
         }
 
-        // Extract and parse the questions from the response
-        // Added a cleanup step to handle potential markdown backticks from the model
-        const responseText = data.candidates[0].content.parts[0].text.trim().replace(/^```json\n?/, '').replace(/```$/, '');
-        const questionsArray = JSON.parse(responseText); 
+        // ⭐ FIX APPLIED HERE: Clean the string before parsing to remove whitespace and markdown backticks.
+        const responseText = data.candidates[0].content.parts[0].text;
+        const cleanJsonString = responseText
+            .trim()
+            .replace(/^```json\n?/, '') // Remove starting markdown fence
+            .replace(/```$/, '');      // Remove ending markdown fence
 
-        questionsContainer.innerHTML = ''; // Clear loading message
+        const questionsArray = JSON.parse(cleanJsonString);
+
+        questionsContainer.innerHTML = '';
         questionsArray.forEach(question => {
             addQuestion(question);
         });
 
     } catch (error) {
-        // Catch network errors and other exceptions
         questionsContainer.innerHTML = `<p class="text-red-500">An error occurred: ${error.message}. Please check the console for details.</p>`;
         console.error('Generation Error:', error);
     } finally {
-        setFormState(false); // Re-enable the form in all cases
+        setFormState(false);
     }
 });
+
