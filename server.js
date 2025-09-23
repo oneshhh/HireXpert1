@@ -254,9 +254,13 @@ app.get("/api/interviews", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
     res.json(result.rows.map(r => ({
-      ...r,
+      id: r.id,
+      title: r.title,
       questions: r.questions || [],
-      timeLimits: r.time_limits || [],
+      date: r.date,
+      time: r.time,
+      email: r.email,
+      timeLimits: r.time_limits || [], // Use only timeLimits and ignore time_limits
     })));
   } catch (err) {
     console.error("Error fetching interviews:", err);
