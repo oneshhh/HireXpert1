@@ -82,6 +82,65 @@ function sendInterviewEmail(to, id, title, date, time) {
   });
 }
 
+const pool = require("./db");
+
+// ---------- NEW DEPENDENCY FOR GEMINI API CALL ----------
+const fetch = require('node-fetch');
+
+const app = express();
+// ... existing code ...
+// ----------------------------------------------------
+// ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
+// ----------------------------------------------------
+app.post('/api/generate', async (req, res) => {
+    // Retrieve the API key securely from environment variables
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    // Basic validation
+    if (!GEMINI_API_KEY) {
+        console.error('Gemini API key is not configured on the server.');
+        return res.status(500).json({ error: 'API key is not configured on the server.' });
+    }
+
+    const { jobDescription, numQuestions } = req.body;
+    if (!jobDescription || !numQuestions) {
+        return res.status(400).json({ error: 'jobDescription and numQuestions are required.' });
+    }
+
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    
+    // The prompt is created on the server
+    const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
+
+    try {
+        const geminiResponse = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await geminiResponse.json();
+
+        if (!geminiResponse.ok) {
+            console.error('Gemini API Error:', data);
+            // Forward the specific error message from Google's API
+            return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' });
+        }
+        
+        // Send the successful response back to the frontend
+        res.json(data);
+
+    } catch (error) {
+        console.error('Server Error while calling Gemini API:', error);
+        res.status(500).json({ error: 'An internal server error occurred.' });
+    }
+});
+
+
+
+
 // ---------- Routes ----------
 
 // Root -> Login page
