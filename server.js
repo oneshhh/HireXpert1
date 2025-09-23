@@ -61,7 +61,7 @@ function sendInterviewEmail(to, id, title, date, time) {
     },
   });
 
-  const link = `https://your-frontend.com/interview?id=${id}`;
+  const link = `https://candidateportal.onrender.com/interview?id=${id}`;
 
   const mailOptions = {
     from: '"HireXpert" <yourgmail@gmail.com>',
