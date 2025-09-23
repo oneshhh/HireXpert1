@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 const pool = require("./db");
 
-const app = express();
+// const app = express(); // Removed duplicate declaration
 const PORT = process.env.PORT || 3000;
 
 // ---------- Middleware ----------
@@ -82,12 +82,13 @@ function sendInterviewEmail(to, id, title, date, time) {
   });
 }
 
-const pool = require("./db");
 
 // ---------- NEW DEPENDENCY FOR GEMINI API CALL ----------
 const fetch = require('node-fetch');
 
 const app = express();
+
+
 // ... existing code ...
 // ----------------------------------------------------
 // ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
