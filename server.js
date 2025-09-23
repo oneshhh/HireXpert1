@@ -61,7 +61,7 @@ function sendInterviewEmail(to, id, title, date, time) {
     },
   });
 
-  const link = `http://localhost:${PORT}/interview/${id}`;
+  const link = `https://your-frontend.com/interview?id=${id}`;
 
   const mailOptions = {
     from: '"HireXpert" <yourgmail@gmail.com>',
