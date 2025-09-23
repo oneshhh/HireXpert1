@@ -9,7 +9,7 @@ const pool = require("./db");
 
 // const app = express(); // Removed duplicate declaration
 const PORT = process.env.PORT || 3000;
-
+const app = express();
 // ---------- Middleware ----------
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
@@ -86,7 +86,6 @@ function sendInterviewEmail(to, id, title, date, time) {
 // ---------- NEW DEPENDENCY FOR GEMINI API CALL ----------
 const fetch = require('node-fetch');
 
-const app = express();
 
 
 // ... existing code ...
