@@ -336,6 +336,32 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
 
 
 // =================================================================
+// =========== NEW ROUTE TO FETCH CANDIDATES FOR AN INTERVIEW ===========
+// =================================================================
+app.get("/api/interview/:id/candidates", async (req, res) => {
+  try {
+    const { id } = req.params; // This is the master interview_id
+
+    // Query the candidate_sessions table for all sessions linked to this interview_id
+    const result = await pool.query(
+      `SELECT session_id, candidate_email, status 
+       FROM candidate_sessions 
+       WHERE interview_id = $1 
+       ORDER BY created_at DESC`,
+      [id]
+    );
+
+    // Return the list of candidates found
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
+    res.status(500).json({ message: "Failed to fetch candidate list." });
+  }
+});
+
+
+// =================================================================
 // =========== ROUTES TO SERVE STATIC HTML PAGES ===========
 // =================================================================
 
