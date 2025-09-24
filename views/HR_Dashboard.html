@@ -84,6 +84,7 @@
       <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">Interviews</h2>
+        <!-- MODIFIED BUTTON STYLE -->
         <button onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
@@ -112,17 +113,36 @@
   </main>
 </div>
 
-<!-- VERIFIED SCRIPT TO ACTIVATE SEARCH AND ADD NUMBERING -->
+<!-- SCRIPT WITH DATE/TIME FORMATTING AND UI CHANGES -->
 <script>
-  // Ensure this script runs after the page content is loaded
   document.addEventListener('DOMContentLoaded', () => {
     const searchBar = document.getElementById("search-bar");
     const tbody = document.querySelector("tbody");
 
-    // Check if the search bar exists to prevent errors
     if (!searchBar) {
         console.error("Search bar element not found!");
         return;
+    }
+
+    // --- NEW HELPER FUNCTION TO FORMAT DATE AND TIME ---
+    function formatDateTime(dateStr, timeStr) {
+        // Format Date: "September 24, 2025"
+        const date = new Date(dateStr);
+        const formattedDate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Format Time: "09:00 AM"
+        if (!timeStr) return formattedDate; // Handle cases where time might be missing
+        let [hours, minutes] = timeStr.split(':');
+        let ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+
+        return `${formattedDate}, ${formattedTime}`;
     }
 
     let debounceTimeout;
@@ -138,14 +158,11 @@
           : "/api/interviews";
         
         console.log(`Fetching from: ${url}`);
-
         const res = await fetch(url);
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status}`); }
         const interviews = await res.json();
 
-        tbody.innerHTML = ""; // clear old data
+        tbody.innerHTML = ""; 
 
         if (interviews.length === 0) {
           tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No interviews found.</td></tr>';
@@ -154,10 +171,20 @@
 
         interviews.forEach((interview, index) => {
           const tr = document.createElement("tr");
+
+          // --- MODIFIED ROW CREATION ---
           tr.innerHTML = `
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">${interview.title}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.date} ${interview.time}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+              <!-- Title is now the link -->
+              <a href="/interview-view.html?id=${interview.id}" class="text-primary-600 hover:text-primary-900 hover:underline">
+                ${interview.title}
+              </a>
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+              <!-- Use the new formatting function -->
+              ${formatDateTime(interview.date, interview.time)}
+            </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.email}</td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
@@ -165,7 +192,7 @@
               </span>
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-              <a class="mr-3 text-primary-600 hover:text-primary-900" href="/interview-view.html?id=${interview.id}">View</a>
+              <!-- View link removed -->
               <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
             </td>
           `;
@@ -183,7 +210,6 @@
       });
     });
 
-    // Initial load when the page is ready
     loadInterviews();
   });
 </script>
