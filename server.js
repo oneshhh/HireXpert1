@@ -1,23 +1,24 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const session = require("express-session");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 const pool = require("./db");
+const fetch = require('node-fetch');
+require('dotenv').config();
 
-// const app = express(); // Removed duplicate declaration
 const PORT = process.env.PORT || 3000;
 const app = express();
+
 // ---------- Middleware ----------
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "*" })); // Consider restricting this to your frontend URL in production
 app.use(
   session({
-    secret: "supersecretkey",
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development", // It's better to use an environment variable
     resave: false,
     saveUninitialized: true,
   })
@@ -34,35 +35,20 @@ const users = [
 function parseQuestionsField(q) {
   if (!q) return [];
   if (Array.isArray(q)) return q;
-  if (typeof q === "object") return q;
-  if (typeof q === "string") {
-    try {
-      return JSON.parse(q);
-    } catch (e) {
-      if (/^\{.*\}$/.test(q)) {
-        return q
-          .replace(/^{|}$/g, "")
-          .split(",")
-          .map((s) => s.replace(/^"|"$/g, ""));
-      }
-      return [q];
-    }
-  }
-  return [];
+  return [String(q)];
 }
 
 // ---------- Email sender helper ----------
-function sendInterviewEmail(to, id, title, date, time) {
+function sendInterviewEmail(to, sessionId, title, date, time) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "vanshu2004sabharwal@gmail.com",
-      pass: "gbsksbtmkgqaldnq",
+      user: process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com",
+      pass: process.env.EMAIL_PASS || "gbsksbtmkgqaldnq",
     },
   });
 
-  // new code in sendInterviewEmail
-  const link = `https://candidateportal.onrender.com/interview?id=${sessionId}`; // Use sessionId
+  const link = `https://candidateportal.onrender.com/interview?id=${sessionId}`;
 
   const mailOptions = {
     from: '"HireXpert" <yourgmail@gmail.com>',
@@ -83,156 +69,82 @@ function sendInterviewEmail(to, id, title, date, time) {
   });
 }
 
-
-// ---------- NEW DEPENDENCY FOR GEMINI API CALL ----------
-const fetch = require('node-fetch');
-
-
-
-// ... existing code ...
-// ----------------------------------------------------
 // ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
-// ----------------------------------------------------
 app.post('/api/generate', async (req, res) => {
-    // Retrieve the API key securely from environment variables
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    // Basic validation
     if (!GEMINI_API_KEY) {
-        console.error('Gemini API key is not configured on the server.');
         return res.status(500).json({ error: 'API key is not configured on the server.' });
     }
-
-    const { jobDescription, numQuestions } = req.body;
-    if (!jobDescription || !numQuestions) {
-        return res.status(400).json({ error: 'jobDescription and numQuestions are required.' });
+    const { jobDescription, numQuestions, difficulty } = req.body;
+    if (!jobDescription || !numQuestions || !difficulty) {
+        return res.status(400).json({ error: 'jobDescription, numQuestions, and difficulty are required.' });
     }
-
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-    
-    // The prompt is created on the server
-    const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
-
+    const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
     try {
         const geminiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
-
         const data = await geminiResponse.json();
-
         if (!geminiResponse.ok) {
-            console.error('Gemini API Error:', data);
-            // Forward the specific error message from Google's API
             return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' });
         }
-        
-        // Send the successful response back to the frontend
         res.json(data);
-
     } catch (error) {
-        console.error('Server Error while calling Gemini API:', error);
         res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-
-
-
 // ---------- Routes ----------
-
-// Root -> Login page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// Login
 app.post("/login", (req, res) => {
-  const { email, password, department } = req.body;
-  const user = users.find(
-    (u) => u.email === email && u.password === password && u.department === department
-  );
-
-  if (user) {
-    req.session.user = user;
-    switch (user.department) {
-      case "HR":
-        return res.redirect("/HR_Dashboard.html");
-      case "PMO":
-        return res.redirect("/PMO_Dashboard.html");
-      case "GTA":
-        return res.redirect("/GTA_Dashboard.html");
-      default:
-        return res.status(401).json({ message: "Unauthorized department." });
+    const { email, password, department } = req.body;
+    const user = users.find(u => u.email === email && u.password === password && u.department === department);
+    if (user) {
+        req.session.user = user;
+        res.redirect(`/${user.department}_Dashboard.html`);
+    } else {
+        res.status(401).send("Invalid credentials or department.");
     }
-  } else {
-    res.status(401).json({ message: "Invalid credentials or department." });
-  }
 });
 
 // Dashboards
 app.get("/HR_Dashboard.html", (req, res) => {
-  if (req.session.user?.department === "HR") {
-    return res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
-  }
-  res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
+    res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
 });
 
 app.get("/PMO_Dashboard.html", (req, res) => {
-  if (req.session.user?.department === "PMO") {
-    return res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html"));
-  }
-  res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
+    res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html"));
 });
 
 app.get("/GTA_Dashboard.html", (req, res) => {
-  if (req.session.user?.department === "GTA") {
-    return res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html"));
-  }
-  res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
+    res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html"));
 });
 
-// =================================================================
-// ============ NEW ROUTE FOR CANDIDATE PORTAL SESSIONS ============
-// =================================================================
+// ---------- NEW ROUTE FOR CANDIDATE PORTAL SESSIONS ----------
 app.get("/api/session/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
-
-    // 1. Fetch the session details first
-    const sessionResult = await pool.query(
-      `SELECT * FROM candidate_sessions WHERE session_id = $1`,
-      [sessionId]
-    );
-
+    const sessionResult = await pool.query(`SELECT * FROM candidate_sessions WHERE session_id = $1`, [sessionId]);
     if (sessionResult.rows.length === 0) {
       return res.status(404).json({ message: "Interview session not found or has expired." });
     }
-
     const session = sessionResult.rows[0];
     const interviewId = session.interview_id;
-
-    // 2. Fetch the master interview details using the interview_id from the session
-    const interviewResult = await pool.query(
-      `SELECT * FROM interviews WHERE id = $1`,
-      [interviewId]
-    );
-
+    const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [interviewId]);
     if (interviewResult.rows.length === 0) {
       return res.status(404).json({ message: "Interview details could not be found." });
     }
-
     const interview = interviewResult.rows[0];
-
-    // 3. Combine the data and send it back to the frontend
     res.json({
       sessionId: session.session_id,
       candidateEmail: session.candidate_email,
       status: session.status,
-      // --- From the master interview template ---
       interviewId: interview.id,
       title: interview.title,
       questions: interview.questions || [],
@@ -240,21 +152,19 @@ app.get("/api/session/:sessionId", async (req, res) => {
       date: interview.date,
       time: interview.time
     });
-
   } catch (err) {
     console.error("Error fetching session details:", err);
     res.status(500).json({ message: "An internal server error occurred." });
   }
 });
 
+
 // ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
   try {
-    // Note the change from 'email' to 'emails'
     let { title, questions, timeLimits, date, time, emails } = req.body;
 
-    // --- 1. Create the Master Interview Template ---
-    // (Normalize questions and timeLimits as before)
+    // --- Data Normalization ---
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
@@ -266,19 +176,16 @@ app.post("/schedule", async (req, res) => {
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
+    // --- Create Master Interview Template ---
     const interviewId = uuidv4();
-    const questionsArrayLiteral = `{${questions.map(q => `"${q.replace(/"/g, '""')}"`).join(",")}}`;
-    const timeLimitsArrayLiteral = `{${timeLimits.join(",")}}`;
-    
-    // Insert into the main interviews table (notice no email column)
     await pool.query(
       `INSERT INTO interviews (id, title, questions, time_limits, date, time)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [interviewId, title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time]
+      [interviewId, title, questions, timeLimits, date, time]
     );
     console.log("✅ Master interview template saved:", title);
 
-    // --- 2. Create a Unique Session for Each Candidate ---
+    // --- Create a Unique Session for Each Candidate ---
     const candidateEmails = emails.split(',').map(email => email.trim()).filter(email => email);
 
     for (const email of candidateEmails) {
@@ -288,9 +195,6 @@ app.post("/schedule", async (req, res) => {
          VALUES ($1, $2, $3)`,
         [sessionId, interviewId, email]
       );
-      
-      // --- 3. Send a Unique Email for Each Session ---
-      // Pass the unique sessionId to the email function
       sendInterviewEmail(email, sessionId, title, date, time);
     }
 
@@ -298,16 +202,50 @@ app.post("/schedule", async (req, res) => {
       success: true,
       message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).`,
     });
-
   } catch (err) {
-    console.error("❌ Error scheduling interview:", err);
+    console.error("❌ Error scheduling interview:", err.stack);
     res.status(500).json({ message: "Error saving interview." });
   }
 });
 
-// ---------- Fetch single interview ----------
+// ---------- Fetch all interviews ----------
+app.get("/api/interviews", async (req, res) => {
+  try {
+    const { search } = req.query;
+    let result;
+    if (search) {
+      const searchTerm = `%${search}%`;
+      result = await pool.query(
+        `SELECT * FROM interviews WHERE title ILIKE $1 OR id::text ILIKE $1 ORDER BY date DESC`,
+        [searchTerm]
+      );
+    } else {
+      result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
+    }
+    res.json(result.rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      questions: r.questions || [],
+      date: r.date,
+      time: r.time,
+      timeLimits: r.time_limits || [],
+    })));
+  } catch (err) {
+    console.error("Error fetching interviews:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+
+// =================================================================
+// =========== ADDED BACK AND UPDATED API ROUTES ===========
+// =================================================================
+
+// ---------- Fetch single interview TEMPLATE ----------
+// This is used for the 'View' and 'Edit' pages.
 async function fetchSingleInterview(req, res) {
   try {
+    // This correctly fetches from the master 'interviews' table.
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
@@ -318,133 +256,85 @@ async function fetchSingleInterview(req, res) {
       timeLimits: row.time_limits || [],
     });
   } catch (err) {
-    console.error("DB error:", err);
+    console.error("DB error fetching single interview:", err);
     res.status(500).json({ message: "DB error" });
   }
 }
 app.get("/api/interview/:id", fetchSingleInterview);
-app.get("/api/interviews/:id", fetchSingleInterview); // ✅ Added alias route
+app.get("/api/interviews/:id", fetchSingleInterview);
 
-// ---------- Update interview ----------
+
+// ---------- Update interview TEMPLATE ----------
+// UPDATED: This route no longer handles 'email' as it's a template.
 app.post("/api/interview/:id/update", async (req, res) => {
   try {
-    let { title, questions, timeLimits, date, time, email } = req.body;
+    // Note: 'email' is removed from the destructured request body.
+    let { title, questions, timeLimits, date, time } = req.body;
 
+    // --- Data Normalization (same as schedule route) ---
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
     if (!Array.isArray(questions)) questions = [String(questions)];
-
     if (!timeLimits) timeLimits = [];
     if (typeof timeLimits === "string") {
       try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
     }
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
-
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
-    const questionsArrayLiteral = `{${questions.map(q => `"${q}"`).join(",")}}`;
-    const timeLimitsArrayLiteral = `{${timeLimits.join(",")}}`;
-
+    // UPDATED: The SQL query no longer tries to update an email column.
     await pool.query(
       `UPDATE interviews 
-       SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5, email=$6
-       WHERE id=$7`,
-      [title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time, email, req.params.id]
+       SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5
+       WHERE id=$6`,
+      [title, questions, timeLimits, date, time, req.params.id]
     );
 
-    res.json({ message: "Interview updated successfully" });
+    res.json({ message: "Interview template updated successfully" });
   } catch (err) {
     console.error("Update failed:", err);
     res.status(500).json({ message: "Update failed" });
   }
 });
 
-// ---------- Delete interview ----------
+// ---------- Delete interview TEMPLATE and all associated SESSIONS----------
+// UPDATED: This now performs a two-step delete for data integrity.
 app.delete("/api/interview/:id/delete", async (req, res) => {
+  const client = await pool.connect();
   try {
-    await pool.query("DELETE FROM interviews WHERE id = $1", [req.params.id]);
-    res.json({ message: "Interview deleted successfully" });
+    await client.query('BEGIN'); // Start a transaction
+
+    const interviewId = req.params.id;
+
+    // 1. Delete all candidate sessions linked to this interview template.
+    await client.query(
+        "DELETE FROM candidate_sessions WHERE interview_id = $1", 
+        [interviewId]
+    );
+    console.log(`Deleted sessions for interview ID: ${interviewId}`);
+
+    // 2. Delete the master interview template itself.
+    await client.query(
+        "DELETE FROM interviews WHERE id = $1", 
+        [interviewId]
+    );
+    console.log(`Deleted interview template with ID: ${interviewId}`);
+
+    await client.query('COMMIT'); // Commit the transaction
+    res.json({ message: "Interview and all associated sessions deleted successfully" });
   } catch (err) {
+    await client.query('ROLLBACK'); // Roll back the transaction on error
     console.error("Delete failed:", err);
     res.status(500).json({ message: "Delete failed" });
+  } finally {
+    client.release(); // Release the client back to the pool
   }
 });
 
-// ---------- Fetch all interviews with search bar integrated ----------
-app.get("/api/interviews", async (req, res) => {
-  try {
-    // Check if a 'search' query parameter exists from the frontend
-    const { search } = req.query; 
-
-    let result;
-    
-    // If there is a search term, use a WHERE clause to filter the results
-    if (search) {
-      const searchTerm = `%${search}%`; // Add SQL wildcards for partial matching
-      result = await pool.query(
-        `SELECT * FROM interviews 
-         WHERE title ILIKE $1 OR id::text ILIKE $1 
-         ORDER BY date DESC`,
-        [searchTerm]
-      );
-    } else {
-      // If there is no search term, fetch all interviews as before
-      result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
-    }
-
-    // This part remains the same, it just sends back whatever data the SQL query found
-    res.json(result.rows.map(r => ({
-      id: r.id,
-      title: r.title,
-      questions: r.questions || [],
-      date: r.date,
-      time: r.time,
-      email: r.email,
-      timeLimits: r.time_limits || [],
-    })));
-  } catch (err) {
-    console.error("Error fetching interviews:", err);
-    res.status(500).json({ error: "Database error" });
-  }
-});
-
-// ---------- Candidate interview page ----------
-app.get("/interview/:id", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
-    if (!result.rows.length) return res.status(404).send("<h1>Interview not found</h1>");
-
-    const row = result.rows[0];
-    const questions = parseQuestionsField(row.questions);
-    const timeLimits = row.time_limits || [];
-
-    res.send(`
-      <h1>Interview for ${row.title}</h1>
-      <p><b>Date:</b> ${row.date}</p>
-      <p><b>Time:</b> ${row.time}</p>
-      <p><b>Questions:</b></p>
-      <ul>
-        ${questions.map((q, i) => `<li>${q} (Time Limit: ${timeLimits[i] || 0} sec)</li>`).join("")}
-      </ul>
-    `);
-  } catch (err) {
-    console.error("DB error:", err);
-    res.status(500).send("DB error");
-  }
-});
-
-// ---------- Serve interview view/edit pages ----------
-app.get("/interview-view.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "interview-view.html"));
-});
-
-app.get("/interview-edit.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
-});
 
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-// ---------- End of server.js ----------
+
