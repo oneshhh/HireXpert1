@@ -186,7 +186,6 @@ app.post("/schedule", async (req, res) => {
     console.log("✅ Master interview template saved:", title);
 
     // --- Create a Unique Session for Each Candidate ---
-    // FIXED: This now safely handles cases where 'emails' is undefined.
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
 
     for (const email of candidateEmails) {
@@ -239,14 +238,12 @@ app.get("/api/interviews", async (req, res) => {
 
 
 // =================================================================
-// =========== ADDED BACK AND UPDATED API ROUTES ===========
+// =========== API ROUTES FOR VIEW/EDIT/DELETE ===========
 // =================================================================
 
 // ---------- Fetch single interview TEMPLATE ----------
-// This is used for the 'View' and 'Edit' pages.
 async function fetchSingleInterview(req, res) {
   try {
-    // This correctly fetches from the master 'interviews' table.
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
@@ -266,13 +263,11 @@ app.get("/api/interviews/:id", fetchSingleInterview);
 
 
 // ---------- Update interview TEMPLATE ----------
-// UPDATED: This route no longer handles 'email' as it's a template.
 app.post("/api/interview/:id/update", async (req, res) => {
   try {
-    // Note: 'email' is removed from the destructured request body.
     let { title, questions, timeLimits, date, time } = req.body;
 
-    // --- Data Normalization (same as schedule route) ---
+    // --- Data Normalization ---
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
@@ -284,7 +279,6 @@ app.post("/api/interview/:id/update", async (req, res) => {
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
-    // UPDATED: The SQL query no longer tries to update an email column.
     await pool.query(
       `UPDATE interviews 
        SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5
@@ -300,7 +294,6 @@ app.post("/api/interview/:id/update", async (req, res) => {
 });
 
 // ---------- Delete interview TEMPLATE and all associated SESSIONS----------
-// UPDATED: This now performs a two-step delete for data integrity.
 app.delete("/api/interview/:id/delete", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -332,6 +325,19 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
   } finally {
     client.release(); // Release the client back to the pool
   }
+});
+
+
+// =================================================================
+// =========== ROUTES TO SERVE STATIC HTML PAGES ===========
+// =================================================================
+
+app.get("/interview-view.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-view.html"));
+});
+
+app.get("/interview-edit.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
 });
 
 
