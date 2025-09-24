@@ -40,6 +40,11 @@
         'GRAD' 0,
         'opsz' 24
       }
+      /* --- DEFINITIVE BUTTON STYLE FIX --- */
+      #create-interview-btn {
+          background-color: var(--primary-600) !important;
+          color: white !important;
+      }
 </style>
 </head>
 <body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
@@ -84,8 +89,8 @@
       <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">Interviews</h2>
-        <!-- MODIFIED BUTTON STYLE -->
-        <button onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        <!-- BUTTON WITH NEW ID -->
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
         </button>
@@ -113,7 +118,7 @@
   </main>
 </div>
 
-<!-- SCRIPT WITH DATE/TIME FORMATTING AND UI CHANGES -->
+<!-- SCRIPT IS UNCHANGED -->
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const searchBar = document.getElementById("search-bar");
@@ -124,9 +129,7 @@
         return;
     }
 
-    // --- NEW HELPER FUNCTION TO FORMAT DATE AND TIME ---
     function formatDateTime(dateStr, timeStr) {
-        // Format Date: "September 24, 2025"
         const date = new Date(dateStr);
         const formattedDate = date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -134,12 +137,11 @@
             day: 'numeric'
         });
 
-        // Format Time: "09:00 AM"
-        if (!timeStr) return formattedDate; // Handle cases where time might be missing
+        if (!timeStr) return formattedDate;
         let [hours, minutes] = timeStr.split(':');
         let ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
+        hours = hours ? hours : 12;
         const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
 
         return `${formattedDate}, ${formattedTime}`;
@@ -171,18 +173,14 @@
 
         interviews.forEach((interview, index) => {
           const tr = document.createElement("tr");
-
-          // --- MODIFIED ROW CREATION ---
           tr.innerHTML = `
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-              <!-- Title is now the link -->
               <a href="/interview-view.html?id=${interview.id}" class="text-primary-600 hover:text-primary-900 hover:underline">
                 ${interview.title}
               </a>
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-              <!-- Use the new formatting function -->
               ${formatDateTime(interview.date, interview.time)}
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.email}</td>
@@ -192,7 +190,6 @@
               </span>
             </td>
             <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-              <!-- View link removed -->
               <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
             </td>
           `;
