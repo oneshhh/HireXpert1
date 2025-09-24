@@ -50,7 +50,7 @@ async function sendInterviewEmail(to, sessionId, title, date, time) {
     },
   });
 
-  const link = `https://candidateportal.onrender.com/interview?id=${sessionId}`;
+  const link = `https://candidateportal1.onrender.com/setup?id=${sessionId}`;
 
   const mailOptions = {
     from: '"HireXpert" <yourgmail@gmail.com>',
