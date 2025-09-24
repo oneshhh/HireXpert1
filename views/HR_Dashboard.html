@@ -95,6 +95,7 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">#</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Candidate</th>
@@ -111,7 +112,7 @@
   </main>
 </div>
 
-<!-- VERIFIED SCRIPT TO ACTIVATE SEARCH -->
+<!-- VERIFIED SCRIPT TO ACTIVATE SEARCH AND ADD NUMBERING -->
 <script>
   // Ensure this script runs after the page content is loaded
   document.addEventListener('DOMContentLoaded', () => {
@@ -136,7 +137,6 @@
           ? `/api/interviews?search=${encodeURIComponent(searchTerm)}` 
           : "/api/interviews";
         
-        // Log the URL we are about to fetch. This should appear in the browser console.
         console.log(`Fetching from: ${url}`);
 
         const res = await fetch(url);
@@ -148,13 +148,14 @@
         tbody.innerHTML = ""; // clear old data
 
         if (interviews.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No interviews found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No interviews found.</td></tr>';
           return;
         }
 
-        interviews.forEach(interview => {
+        interviews.forEach((interview, index) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">${interview.title}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.date} ${interview.time}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.email}</td>
@@ -172,7 +173,7 @@
         });
       } catch (err) {
         console.error("Error loading interviews:", err);
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-500">Failed to load interviews.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Failed to load interviews.</td></tr>';
       }
     }
 
