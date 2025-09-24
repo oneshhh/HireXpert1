@@ -186,7 +186,8 @@ app.post("/schedule", async (req, res) => {
     console.log("✅ Master interview template saved:", title);
 
     // --- Create a Unique Session for Each Candidate ---
-    const candidateEmails = emails.split(',').map(email => email.trim()).filter(email => email);
+    // FIXED: This now safely handles cases where 'emails' is undefined.
+    const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
 
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
@@ -323,7 +324,8 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
 
     await client.query('COMMIT'); // Commit the transaction
     res.json({ message: "Interview and all associated sessions deleted successfully" });
-  } catch (err) {
+  } catch (err)
+ {
     await client.query('ROLLBACK'); // Roll back the transaction on error
     console.error("Delete failed:", err);
     res.status(500).json({ message: "Delete failed" });
@@ -337,4 +339,3 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
