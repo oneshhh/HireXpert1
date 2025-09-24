@@ -308,10 +308,29 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
   }
 });
 
-// ---------- Fetch all interviews ----------
+// ---------- Fetch all interviews with search bar integrated ----------
 app.get("/api/interviews", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
+    // Check if a 'search' query parameter exists from the frontend
+    const { search } = req.query; 
+
+    let result;
+    
+    // If there is a search term, use a WHERE clause to filter the results
+    if (search) {
+      const searchTerm = `%${search}%`; // Add SQL wildcards for partial matching
+      result = await pool.query(
+        `SELECT * FROM interviews 
+         WHERE title ILIKE $1 OR id::text ILIKE $1 
+         ORDER BY date DESC`,
+        [searchTerm]
+      );
+    } else {
+      // If there is no search term, fetch all interviews as before
+      result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
+    }
+
+    // This part remains the same, it just sends back whatever data the SQL query found
     res.json(result.rows.map(r => ({
       id: r.id,
       title: r.title,
@@ -319,7 +338,7 @@ app.get("/api/interviews", async (req, res) => {
       date: r.date,
       time: r.time,
       email: r.email,
-      timeLimits: r.time_limits || [], // Use only timeLimits and ignore time_limits
+      timeLimits: r.time_limits || [],
     })));
   } catch (err) {
     console.error("Error fetching interviews:", err);
