@@ -61,7 +61,8 @@ function sendInterviewEmail(to, id, title, date, time) {
     },
   });
 
-  const link = `https://candidateportal.onrender.com/interview?id=${id}`;
+  // new code in sendInterviewEmail
+  const link = `https://candidateportal.onrender.com/interview?id=${sessionId}`; // Use sessionId
 
   const mailOptions = {
     from: '"HireXpert" <yourgmail@gmail.com>',
@@ -194,50 +195,112 @@ app.get("/GTA_Dashboard.html", (req, res) => {
   res.send("<h1>Unauthorized</h1><a href='/'>Login Again</a>");
 });
 
+// =================================================================
+// ============ NEW ROUTE FOR CANDIDATE PORTAL SESSIONS ============
+// =================================================================
+app.get("/api/session/:sessionId", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    // 1. Fetch the session details first
+    const sessionResult = await pool.query(
+      `SELECT * FROM candidate_sessions WHERE session_id = $1`,
+      [sessionId]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ message: "Interview session not found or has expired." });
+    }
+
+    const session = sessionResult.rows[0];
+    const interviewId = session.interview_id;
+
+    // 2. Fetch the master interview details using the interview_id from the session
+    const interviewResult = await pool.query(
+      `SELECT * FROM interviews WHERE id = $1`,
+      [interviewId]
+    );
+
+    if (interviewResult.rows.length === 0) {
+      return res.status(404).json({ message: "Interview details could not be found." });
+    }
+
+    const interview = interviewResult.rows[0];
+
+    // 3. Combine the data and send it back to the frontend
+    res.json({
+      sessionId: session.session_id,
+      candidateEmail: session.candidate_email,
+      status: session.status,
+      // --- From the master interview template ---
+      interviewId: interview.id,
+      title: interview.title,
+      questions: interview.questions || [],
+      timeLimits: interview.time_limits || [],
+      date: interview.date,
+      time: interview.time
+    });
+
+  } catch (err) {
+    console.error("Error fetching session details:", err);
+    res.status(500).json({ message: "An internal server error occurred." });
+  }
+});
+
 // ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
   try {
-    let { title, questions, timeLimits, date, time, email } = req.body;
+    // Note the change from 'email' to 'emails'
+    let { title, questions, timeLimits, date, time, emails } = req.body;
 
-    // Normalize questions
+    // --- 1. Create the Master Interview Template ---
+    // (Normalize questions and timeLimits as before)
     if (typeof questions === "string") {
       try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
     }
     if (!Array.isArray(questions)) questions = [String(questions)];
-
-    // Normalize timeLimits
     if (!timeLimits) timeLimits = [];
     if (typeof timeLimits === "string") {
       try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
     }
     if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
-
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
-    const id = uuidv4();
-    const questionsArrayLiteral = `{${questions.map(q => `"${q}"`).join(",")}}`;
+    const interviewId = uuidv4();
+    const questionsArrayLiteral = `{${questions.map(q => `"${q.replace(/"/g, '""')}"`).join(",")}}`;
     const timeLimitsArrayLiteral = `{${timeLimits.join(",")}}`;
-
+    
+    // Insert into the main interviews table (notice no email column)
     await pool.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time, email)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time, email]
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [interviewId, title, questionsArrayLiteral, timeLimitsArrayLiteral, date, time]
     );
+    console.log("✅ Master interview template saved:", title);
 
-    console.log("✅ Interview saved:", title);
+    // --- 2. Create a Unique Session for Each Candidate ---
+    const candidateEmails = emails.split(',').map(email => email.trim()).filter(email => email);
 
-    // Send email AFTER saving to DB
-    sendInterviewEmail(email, id, title, date, time);
+    for (const email of candidateEmails) {
+      const sessionId = uuidv4();
+      await pool.query(
+        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email)
+         VALUES ($1, $2, $3)`,
+        [sessionId, interviewId, email]
+      );
+      
+      // --- 3. Send a Unique Email for Each Session ---
+      // Pass the unique sessionId to the email function
+      sendInterviewEmail(email, sessionId, title, date, time);
+    }
 
     res.json({
       success: true,
-      message: "Interview scheduled successfully",
-      email,
-      id,
-      link: `/interview/${id}`,
+      message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).`,
     });
+
   } catch (err) {
-    console.error("❌ Error inserting interview:", err);
+    console.error("❌ Error scheduling interview:", err);
     res.status(500).json({ message: "Error saving interview." });
   }
 });
