@@ -38,8 +38,10 @@ function parseQuestionsField(q) {
   return [String(q)];
 }
 
-// ---------- Email sender helper ----------
-function sendInterviewEmail(to, sessionId, title, date, time) {
+// =================================================================
+// =========== UPGRADED EMAIL SENDER FOR BETTER ERROR LOGGING ===========
+// =================================================================
+async function sendInterviewEmail(to, sessionId, title, date, time) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -63,10 +65,14 @@ function sendInterviewEmail(to, sessionId, title, date, time) {
     `,
   };
 
-  transporter.sendMail(mailOptions, (err, info) => {
-    if (err) console.error("Error sending email:", err);
-    else console.log("Email sent:", info.response);
-  });
+  try {
+    // Using await for robust error handling
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully:", info.response);
+  } catch (err) {
+    // This will now catch and log the specific error from Google's servers
+    console.error("❌ CRITICAL: Error sending email:", err);
+  }
 }
 
 // ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
@@ -195,7 +201,8 @@ app.post("/schedule", async (req, res) => {
          VALUES ($1, $2, $3)`,
         [sessionId, interviewId, email]
       );
-      sendInterviewEmail(email, sessionId, title, date, time);
+      // Calling the upgraded async function
+      await sendInterviewEmail(email, sessionId, title, date, time);
     }
 
     res.json({
