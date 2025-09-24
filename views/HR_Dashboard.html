@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
+<meta charset="utf--8"/>
 <title>TalentFlow - Interviews</title>
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
@@ -68,7 +68,7 @@
     <div class="flex items-center gap-4">
       <div class="relative w-full max-w-xs">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-        <input class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search interviews..."/>
+        <input id="search-bar" class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search interviews..."/>
       </div>
       <button class="relative rounded-full p-2 hover:bg-gray-100">
         <span class="material-symbols-outlined text-gray-600">notifications</span>
@@ -84,7 +84,7 @@
       <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">Interviews</h2>
-        <button onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-blue-800 shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        <button onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
         </button>
@@ -111,49 +111,82 @@
   </main>
 </div>
 
-<!-- Script to fetch interviews from backend -->
+<!-- VERIFIED SCRIPT TO ACTIVATE SEARCH -->
 <script>
-  async function loadInterviews() {
-    try {
-      const res = await fetch("/api/interviews");
-      const interviews = await res.json();
+  // Ensure this script runs after the page content is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchBar = document.getElementById("search-bar");
+    const tbody = document.querySelector("tbody");
 
-      const tbody = document.querySelector("tbody");
-      tbody.innerHTML = ""; // clear old data
-
-      interviews.forEach(interview => {
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-            ${interview.title}
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-            ${interview.date} ${interview.time}
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-            ${interview.email}
-          </td>
-          <td class="px-6 py-4">
-            <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
-              <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
-            </span>
-          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-            <a class="mr-3 text-primary-600 hover:text-primary-900" href="/interview-view.html?id=${interview.id}">View</a>
-            <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
-        </td>
-        `;
-
-        tbody.appendChild(tr);
-      });
-    } catch (err) {
-      console.error("Error loading interviews:", err);
+    // Check if the search bar exists to prevent errors
+    if (!searchBar) {
+        console.error("Search bar element not found!");
+        return;
     }
-  }
 
-  // Load data on page load
-  window.onload = loadInterviews;
+    let debounceTimeout;
+    function debounce(func, delay = 300) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(func, delay);
+    }
+
+    async function loadInterviews(searchTerm = '') {
+      try {
+        const url = searchTerm 
+          ? `/api/interviews?search=${encodeURIComponent(searchTerm)}` 
+          : "/api/interviews";
+        
+        // Log the URL we are about to fetch. This should appear in the browser console.
+        console.log(`Fetching from: ${url}`);
+
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const interviews = await res.json();
+
+        tbody.innerHTML = ""; // clear old data
+
+        if (interviews.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No interviews found.</td></tr>';
+          return;
+        }
+
+        interviews.forEach(interview => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">${interview.title}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.date} ${interview.time}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${interview.email}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
+                <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
+              </span>
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+              <a class="mr-3 text-primary-600 hover:text-primary-900" href="/interview-view.html?id=${interview.id}">View</a>
+              <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Error loading interviews:", err);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-500">Failed to load interviews.</td></tr>';
+      }
+    }
+
+    searchBar.addEventListener('input', () => {
+      debounce(() => {
+        loadInterviews(searchBar.value);
+      });
+    });
+
+    // Initial load when the page is ready
+    loadInterviews();
+  });
 </script>
 
 </body>
 </html>
+
