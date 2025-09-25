@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>HireXpert - Candidates</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+        :root {
+            --primary-color: #1173d4;
+        }
+    </style>
+</head>
+<body class="font-display bg-neutral-100 text-neutral-800">
+<div class="flex flex-col min-h-screen">
+    <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-neutral-200">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-8">
+                    <a class="flex items-center gap-2 text-[var(--primary-color)]" href="/HR_Dashboard.html">
+                        <!-- =========== UPDATED LOGO =========== -->
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+                            <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+                        </svg>
+                        <!-- =========== UPDATED NAME =========== -->
+                        <h1 class="text-2xl font-bold">HireXpert</h1>
+                    </a>
+                    <nav class="hidden md:flex items-center gap-6">
+                        <a class="text-sm font-medium text-neutral-600 hover:text-[var(--primary-color)] transition-colors" href="/HR_Dashboard.html">Dashboard</a>
+                        <a class="text-sm font-medium text-[var(--primary-color)]" href="#">Candidates</a>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD5L4AwHSADEZdA_zGhqnUSLN3SpW4iWbFDAtwBLJfzPb6wL2mdoXmuUBs7bpT4v_ut4T01vomhFSMk-WhyZAFMShdVHrNRCa_cR2HdAZQFBNTZ--JDqDdKl2YuNH2g3x_X4ZB26OGH4NWnMWkRCYRBVd4o6U1tyfTQYMhlSj618N99qN6xJnyDt4KIfdA0QESNYsU0tC39qMD31gotz3f-MnLWIpY5IUYY6WPkDbC4D_0t5QeVUXtqRDTF3wvwA3ZKt14ieYxtvlQ");'></div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <h2 class="text-3xl font-bold text-neutral-900">All Candidates</h2>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-neutral-50 text-xs text-neutral-600 uppercase font-medium">
+                            <tr>
+                                <th class="px-6 py-3" scope="col">Candidate Email</th>
+                                <th class="px-6 py-3" scope="col">Interview Title</th>
+                                <th class="px-6 py-3" scope="col">Status</th>
+                                <th class="px-6 py-3" scope="col">Invited On</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidate-table-body">
+                            <tr>
+                                <td colspan="4" class="text-center p-8 text-neutral-500">
+                                    <p>Loading candidate data...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    window.onload = async () => {
+        const tbody = document.getElementById("candidate-table-body");
+        try {
+            const response = await fetch('/api/candidates/all');
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+            const candidates = await response.json();
+            tbody.innerHTML = "";
+
+            if (candidates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">No candidates found in the system.</td></tr>`;
+                return;
+            }
+
+            const formatDate = (dateString) => {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return new Date(dateString).toLocaleDateString(undefined, options);
+            };
+
+            candidates.forEach(candidate => {
+                const tr = document.createElement("tr");
+                tr.classList.add("border-t", "border-neutral-200", "hover:bg-neutral-50", "transition-colors");
+
+                let statusColorClasses = "bg-blue-500/10 text-blue-600";
+                if (candidate.status.toLowerCase() === 'completed') {
+                    statusColorClasses = "bg-green-500/10 text-green-600";
+                } else if (candidate.status.toLowerCase() === 'started') {
+                    statusColorClasses = "bg-yellow-500/10 text-yellow-600";
+                }
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_email}</td>
+                    <td class="px-6 py-4 text-neutral-600">${candidate.interview_title}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColorClasses}">
+                            ${candidate.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-neutral-600">${formatDate(candidate.created_at)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error("Failed to load candidates:", error);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-500">Failed to load candidate data. Please try again later.</td></tr>`;
+        }
+    };
+</script>
+
+</body>
+</html>
+
