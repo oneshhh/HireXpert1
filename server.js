@@ -39,9 +39,9 @@ function parseQuestionsField(q) {
 }
 
 // =================================================================
-// =========== UPGRADED EMAIL SENDER FOR BETTER ERROR LOGGING ===========
+// =========== EMAIL SENDER CORRECTED FOR interviewId ===========
 // =================================================================
-async function sendInterviewEmail(to, sessionId, title, date, time) {
+async function sendInterviewEmail(to, interviewId, title, date, time) { // <-- CHANGE #1: Accepts interviewId again
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -50,6 +50,7 @@ async function sendInterviewEmail(to, sessionId, title, date, time) {
     },
   });
 
+  // The link now correctly uses the interviewId passed into the function
   const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
 
   const mailOptions = {
@@ -66,11 +67,9 @@ async function sendInterviewEmail(to, sessionId, title, date, time) {
   };
 
   try {
-    // Using await for robust error handling
     const info = await transporter.sendMail(mailOptions);
     console.log("✅ Email sent successfully:", info.response);
   } catch (err) {
-    // This will now catch and log the specific error from Google's servers
     console.error("❌ CRITICAL: Error sending email:", err);
   }
 }
@@ -202,7 +201,8 @@ app.post("/schedule", async (req, res) => {
         [sessionId, interviewId, email]
       );
       // Calling the upgraded async function
-      await sendInterviewEmail(email, sessionId, title, date, time);
+      // <-- CHANGE #2: Pass interviewId to the email function as requested
+      await sendInterviewEmail(email, interviewId, title, date, time);
     }
 
     res.json({
