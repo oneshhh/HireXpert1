@@ -39,14 +39,14 @@ function parseQuestionsField(q) {
 }
 
 // =================================================================
-// =========== EMAIL SENDER WITH PROPER ERROR HANDLING ===========
+// =========== EMAIL SENDER WITH A ROBUST RETURN STATUS ===========
 // =================================================================
 async function sendInterviewEmail(to, interviewId, title, date, time) { 
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
-      secure: true, // true for 465, false for other ports
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -68,15 +68,13 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
       `,
     };
     
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully:", info.response);
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully to: ${to}`);
+    return { success: true }; // Return a success status
   } catch (err) {
-    console.error("❌ CRITICAL: Error sending email:", err);
-    // =================================================================
-    // =========== THIS IS THE FIX ===========
-    // =================================================================
-    // Re-throw the error so the main /schedule route knows it failed
-    throw err; 
+    console.error(`❌ CRITICAL: Error sending email to ${to}:`, err);
+    // Return a failure status with the error
+    return { success: false, error: err }; 
   }
 }
 
@@ -173,24 +171,19 @@ app.get("/api/session/:sessionId", async (req, res) => {
 
 // ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN'); // Start transaction for safety
     let { title, questions, timeLimits, date, time, emails } = req.body;
 
     // --- Data Normalization ---
-    if (typeof questions === "string") {
-      try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
-    }
-    if (!Array.isArray(questions)) questions = [String(questions)];
-    if (!timeLimits) timeLimits = [];
-    if (typeof timeLimits === "string") {
-      try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
-    }
-    if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
+    if (!Array.isArray(questions)) questions = [String(questions || '')];
+    if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
     // --- Create Master Interview Template ---
     const interviewId = uuidv4();
-    await pool.query(
+    await client.query(
       `INSERT INTO interviews (id, title, questions, time_limits, date, time)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [interviewId, title, questions, timeLimits, date, time]
@@ -202,23 +195,31 @@ app.post("/schedule", async (req, res) => {
 
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
-      await pool.query(
+      await client.query(
         `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email)
          VALUES ($1, $2, $3)`,
         [sessionId, interviewId, email]
       );
       
-      await sendInterviewEmail(email, interviewId, title, date, time);
+      const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
+      
+      // If any email fails, stop and report the error immediately.
+      if (!emailResult.success) {
+        throw new Error(`Failed to send email to ${email}. Aborting schedule.`);
+      }
     }
-
+    
+    await client.query('COMMIT'); // Commit all database changes if successful
     res.json({
       success: true,
       message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).`,
     });
   } catch (err) {
-    // Because sendInterviewEmail now throws the error, this catch block will now execute
-    console.error("❌ Error in /schedule route:", err.stack);
-    res.status(500).json({ message: "Failed to schedule interview. Could not send email." });
+    await client.query('ROLLBACK'); // Roll back database changes on any failure
+    console.error("❌ Error in /schedule route:", err.message);
+    res.status(500).json({ message: err.message || "Failed to schedule interview." });
+  } finally {
+    client.release();
   }
 });
 
@@ -282,15 +283,8 @@ app.post("/api/interview/:id/update", async (req, res) => {
     let { title, questions, timeLimits, date, time } = req.body;
 
     // --- Data Normalization ---
-    if (typeof questions === "string") {
-      try { questions = JSON.parse(questions); } catch (e) { questions = [questions]; }
-    }
-    if (!Array.isArray(questions)) questions = [String(questions)];
-    if (!timeLimits) timeLimits = [];
-    if (typeof timeLimits === "string") {
-      try { timeLimits = JSON.parse(timeLimits); } catch (e) { timeLimits = [parseInt(timeLimits) || 0]; }
-    }
-    if (!Array.isArray(timeLimits)) timeLimits = [parseInt(timeLimits) || 0];
+    if (!Array.isArray(questions)) questions = [String(questions || '')];
+    if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
     await pool.query(
@@ -385,3 +379,4 @@ app.get("/interview-edit.html", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
