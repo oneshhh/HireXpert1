@@ -39,40 +39,47 @@ function parseQuestionsField(q) {
 }
 
 // =================================================================
-// =========== EMAIL SENDER CORRECTED FOR interviewId ===========
+// =========== EMAIL SENDER WITH PROPER ERROR HANDLING ===========
 // =================================================================
-async function sendInterviewEmail(to, interviewId, title, date, time) { // <-- CHANGE #1: Accepts interviewId again
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com",
-      pass: process.env.EMAIL_PASS || "gbsksbtmkgqaldnq",
-    },
-  });
-
-  // The link now correctly uses the interviewId passed into the function
-  const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
-
-  const mailOptions = {
-    from: '"HireXpert" <yourgmail@gmail.com>',
-    to,
-    subject: `Interview Scheduled: ${title}`,
-    html: `
-      <p>Dear Candidate,</p>
-      <p>You have an interview scheduled for <b>${title}</b>.</p>
-      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-      <p>Click <a href="${link}">here</a> to join your interview.</p>
-      <p>Regards,<br>HireXpert Team</p>
-    `,
-  };
-
+async function sendInterviewEmail(to, interviewId, title, date, time) { 
   try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+
+    const mailOptions = {
+      from: `"HireXpert" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: `Interview Scheduled: ${title}`,
+      html: `
+        <p>Dear Candidate,</p>
+        <p>You have an interview scheduled for <b>${title}</b>.</p>
+        <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+        <p>Click <a href="${link}">here</a> to join your interview.</p>
+        <p>Regards,<br>HireXpert Team</p>
+      `,
+    };
+    
     const info = await transporter.sendMail(mailOptions);
     console.log("✅ Email sent successfully:", info.response);
   } catch (err) {
     console.error("❌ CRITICAL: Error sending email:", err);
+    // =================================================================
+    // =========== THIS IS THE FIX ===========
+    // =================================================================
+    // Re-throw the error so the main /schedule route knows it failed
+    throw err; 
   }
 }
+
 
 // ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
 app.post('/api/generate', async (req, res) => {
@@ -200,8 +207,7 @@ app.post("/schedule", async (req, res) => {
          VALUES ($1, $2, $3)`,
         [sessionId, interviewId, email]
       );
-      // Calling the upgraded async function
-      // <-- CHANGE #2: Pass interviewId to the email function as requested
+      
       await sendInterviewEmail(email, interviewId, title, date, time);
     }
 
@@ -210,8 +216,9 @@ app.post("/schedule", async (req, res) => {
       message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).`,
     });
   } catch (err) {
-    console.error("❌ Error scheduling interview:", err.stack);
-    res.status(500).json({ message: "Error saving interview." });
+    // Because sendInterviewEmail now throws the error, this catch block will now execute
+    console.error("❌ Error in /schedule route:", err.stack);
+    res.status(500).json({ message: "Failed to schedule interview. Could not send email." });
   }
 });
 
@@ -378,4 +385,3 @@ app.get("/interview-edit.html", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
