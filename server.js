@@ -2,11 +2,12 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const sgMail = require('@sendgrid/mail');  
+require('dotenv').config();
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
-require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 const app = express();
