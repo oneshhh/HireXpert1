@@ -7,7 +7,7 @@ const questionsContainer = document.getElementById('questions-container');
 
 // 🚨 CRITICAL SECURITY WARNING: This key is exposed to anyone visiting your website.
 // It should NOT be used in production. Please use the server.js solution for deployment.
-const GEMINI_API_KEY = 'AIzaSyCXjVe1B-s5Yyakl5upyIHrErdbZ1h8pP0';
+const GEMINI_API_KEY = 'AIzaSyBonRjkMwCmh5kxIOgrDLrcNFYdT7h2h9U';
 
 // A function to add a question to the form
 function addQuestion(questionText = '') {
