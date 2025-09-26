@@ -55,7 +55,6 @@ app.post('/api/generate', async (req, res) => {
     // Using the stable, public model name 'gemini-1.5-flash-latest'
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b-latest:generateContent?key=${GEMINI_API_KEY}`;
 
-
     
     const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
     try {
@@ -95,7 +94,7 @@ app.post("/login", (req, res) => {
 
 // Dashboards
 app.get("/HR_Dashboard.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
+    res.sendFile(path.join(__dirname, "public", "views", "HR_Dashboard.html"));
 });
 
 app.get("/PMO_Dashboard.html", (req, res) => {
