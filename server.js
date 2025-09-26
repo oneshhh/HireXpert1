@@ -1,12 +1,13 @@
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
-const nodemailer = require("nodemailer"); // <-- Reverted to Nodemailer
 const { v4: uuidv4 } = require("uuid");
+require('dotenv').config();
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
-require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -15,10 +16,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "*" })); // Consider restricting this to your frontend URL in production
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development", // It's better to use an environment variable
     resave: false,
     saveUninitialized: true,
   })
@@ -39,40 +40,37 @@ function parseQuestionsField(q) {
 }
 
 // =================================================================
-// =========== EMAIL SENDER REVERTED TO NODEMAILER/GMAIL ===========
+// =========== EMAIL SENDER USING SEND GRID===========
 // =================================================================
+// This is the NEW function you should paste in its place
 async function sendInterviewEmail(to, interviewId, title, date, time) { 
+  // IMPORTANT: This 'from' email MUST be the one you verified in your SendGrid account.
+  const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+
+  const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+
+  const msg = {
+    to: to, // Recipient
+    from: verifiedSenderEmail, // Verified Sender
+    subject: `Interview Scheduled: ${title}`,
+    html: `
+      <p>Dear Candidate,</p>
+      <p>You have an interview scheduled for <b>${title}</b>.</p>
+      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+      <p>Click <a href="${link}">here</a> to join your interview.</p>
+      <p>Regards,<br>HireXpert Team</p>
+    `,
+  };
+
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com",
-        pass: process.env.EMAIL_PASS || "gbsksbtmkgqaldnq",
-      },
-    });
-
-    const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
-
-    const mailOptions = {
-      from: `"HireXpert" <${process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com"}>`,
-      to,
-      subject: `Interview Scheduled: ${title}`,
-      html: `
-        <p>Dear Candidate,</p>
-        <p>You have an interview scheduled for <b>${title}</b>.</p>
-        <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-        <p>Click <a href="${link}">here</a> to join your interview.</p>
-        <p>Regards,<br>HireXpert Team</p>
-      `,
-    };
-    
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully to: ${to}`);
+    await sgMail.send(msg);
+    console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
     return { success: true };
   } catch (err) {
-    console.error(`❌ CRITICAL: Error sending email to ${to}:`, err);
+    console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
+    if (err.response) {
+      console.error(err.response.body)
+    }
     return { success: false, error: err };
   }
 }
@@ -202,6 +200,7 @@ app.post("/schedule", async (req, res) => {
       
       const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
       
+      // If any email fails, stop and report the error immediately.
       if (!emailResult.success) {
         throw new Error(`Failed to send email to ${email}. Aborting schedule.`);
       }
@@ -359,11 +358,33 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
   }
 });
 
+
 // =================================================================
-// =========== NEW API ROUTE TO FETCH ALL CANDIDATES ===========
+// =========== ROUTES TO SERVE STATIC HTML PAGES ===========
 // =================================================================
+
+app.get("/interview-view.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-view.html"));
+});
+
+app.get("/interview-edit.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
+});
+
+
+// ---------- Start server ----------
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+app.get("/candidates.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "candidates.html"));
+});
+
+// Add this API route to server.js to provide the data for the page
 app.get("/api/candidates/all", async (req, res) => {
     try {
+        // This query joins the two tables to get all the information we need
         const result = await pool.query(`
             SELECT 
                 cs.session_id, 
@@ -384,22 +405,3 @@ app.get("/api/candidates/all", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
-
-// =================================================================
-// =========== ROUTES TO SERVE STATIC HTML PAGES ===========
-// =================================================================
-
-app.get("/interview-view.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "interview-view.html"));
-});
-
-app.get("/interview-edit.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
-});
-
-
-// ---------- Start server ----------
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
