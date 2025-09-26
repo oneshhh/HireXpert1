@@ -39,42 +39,7 @@ function parseQuestionsField(q) {
   return [String(q)];
 }
 
-// =================================================================
-// =========== EMAIL SENDER USING SEND GRID===========
-// =================================================================
-// This is the NEW function you should paste in its place
-async function sendInterviewEmail(to, interviewId, title, date, time) { 
-  // IMPORTANT: This 'from' email MUST be the one you verified in your SendGrid account.
-  const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
-
-  const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
-
-  const msg = {
-    to: to, // Recipient
-    from: verifiedSenderEmail, // Verified Sender
-    subject: `Interview Scheduled: ${title}`,
-    html: `
-      <p>Dear Candidate,</p>
-      <p>You have an interview scheduled for <b>${title}</b>.</p>
-      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-      <p>Click <a href="${link}">here</a> to join your interview.</p>
-      <p>Regards,<br>HireXpert Team</p>
-    `,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
-    return { success: true };
-  } catch (err) {
-    console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
-    if (err.response) {
-      console.error(err.response.body)
-    }
-    return { success: false, error: err };
-  }
-}
-
+// The separate sendInterviewEmail function is now removed.
 
 // ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
 app.post('/api/generate', async (req, res) => {
@@ -166,7 +131,9 @@ app.get("/api/session/:sessionId", async (req, res) => {
 });
 
 
-// ---------- Schedule interview ----------
+// =================================================================
+// ===========        THIS IS THE DEFINITIVE FIX         ===========
+// =================================================================
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -179,7 +146,7 @@ app.post("/schedule", async (req, res) => {
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
     // --- Create Master Interview Template ---
-    const interviewId = uuidv4();
+    const interviewId = uuidv4(); // The correct ID is created here.
     await client.query(
       `INSERT INTO interviews (id, title, questions, time_limits, date, time)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -187,8 +154,9 @@ app.post("/schedule", async (req, res) => {
     );
     console.log("✅ Master interview template saved:", title);
 
-    // --- Create a Unique Session for Each Candidate ---
+    // --- Create a Unique Session and Send Email for Each Candidate ---
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
+    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
 
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
@@ -198,10 +166,28 @@ app.post("/schedule", async (req, res) => {
         [sessionId, interviewId, email]
       );
       
-      const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
+      // --- Email logic is now directly inside the loop, using the correct interviewId ---
+      const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+      const msg = {
+        to: email,
+        from: verifiedSenderEmail,
+        subject: `Interview Scheduled: ${title}`,
+        html: `
+          <p>Dear Candidate,</p>
+          <p>You have an interview scheduled for <b>${title}</b>.</p>
+          <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+          <p>Click <a href="${link}">here</a> to join your interview.</p>
+          <p>Regards,<br>HireXpert Team</p>
+        `,
+      };
       
-      // If any email fails, stop and report the error immediately.
-      if (!emailResult.success) {
+      try {
+        await sgMail.send(msg);
+        console.log(`✅ Email sent successfully to: ${email} via SendGrid`);
+      } catch(err) {
+        console.error(`❌ CRITICAL: Error sending email to ${email}:`, err);
+        if (err.response) { console.error(err.response.body); }
+        // We throw an error to make sure the entire transaction is rolled back.
         throw new Error(`Failed to send email to ${email}. Aborting schedule.`);
       }
     }
@@ -405,3 +391,4 @@ app.get("/api/candidates/all", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+
