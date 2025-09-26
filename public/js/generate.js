@@ -46,7 +46,7 @@ generateBtn.addEventListener('click', async () => {
     questionsContainer.innerHTML = '<p class="text-gray-500">Generating questions, please wait...</p>';
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -88,6 +88,7 @@ generateBtn.addEventListener('click', async () => {
     } catch (error) {
         questionsContainer.innerHTML = `<p class="text-red-500">An error occurred: ${error.message}. Please check the console for details.</p>`;
         console.error('Generation Error:', error);
+        console.log(API_URL);
     } finally {
         setFormState(false);
     }
