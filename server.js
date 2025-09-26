@@ -41,7 +41,7 @@ function parseQuestionsField(q) {
 
 // The separate sendInterviewEmail function is now removed.
 
-// ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
+// ---------- NEW GEMINI QUESTION GENERATOR ROUTE (Corrected) ----------
 app.post('/api/generate', async (req, res) => {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) {
@@ -51,7 +51,10 @@ app.post('/api/generate', async (req, res) => {
     if (!jobDescription || !numQuestions || !difficulty) {
         return res.status(400).json({ error: 'jobDescription, numQuestions, and difficulty are required.' });
     }
+    // =========== THIS IS THE CORRECTED LINE ===========
+    // Using the stable, public model name 'gemini-1.5-flash-latest'
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    
     const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
     try {
         const geminiResponse = await fetch(API_URL, {
@@ -61,10 +64,13 @@ app.post('/api/generate', async (req, res) => {
         });
         const data = await geminiResponse.json();
         if (!geminiResponse.ok) {
+            // Forward the specific error from Google's server
+            console.error('Gemini API Error:', data);
             return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' });
         }
         res.json(data);
     } catch (error) {
+        console.error('Server Error calling Gemini:', error);
         res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
