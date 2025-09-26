@@ -94,7 +94,7 @@ app.post("/login", (req, res) => {
 
 // Dashboards
 app.get("/HR_Dashboard.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "views", "HR_Dashboard.html"));
+    res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
 });
 
 app.get("/PMO_Dashboard.html", (req, res) => {
