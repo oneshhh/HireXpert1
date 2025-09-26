@@ -377,8 +377,12 @@ app.get("/candidates.html", (req, res) => {
 // Add this API route to server.js to provide the data for the page
 app.get("/api/candidates/all", async (req, res) => {
     try {
-        // This query joins the two tables to get all the information we need
-        const result = await pool.query(`
+        const { search } = req.query;
+        let query;
+        let queryParams = [];
+
+        // This is the base query that joins the tables to get all necessary info
+        let baseQuery = `
             SELECT 
                 cs.session_id, 
                 cs.candidate_email, 
@@ -389,10 +393,20 @@ app.get("/api/candidates/all", async (req, res) => {
                 candidate_sessions cs
             JOIN 
                 interviews i ON cs.interview_id = i.id
-            ORDER BY 
-                cs.created_at DESC
-        `);
+        `;
+
+        // If a search term is provided, add a WHERE clause to filter the results
+        if (search) {
+            query = `${baseQuery} WHERE cs.candidate_email ILIKE $1 OR i.title ILIKE $1 ORDER BY cs.created_at DESC`;
+            queryParams.push(`%${search}%`); // Add wildcards for partial matching
+        } else {
+            // If no search term, fetch all candidates
+            query = `${baseQuery} ORDER BY cs.created_at DESC`;
+        }
+
+        const result = await pool.query(query, queryParams);
         res.json(result.rows);
+        
     } catch (err) {
         console.error("Error fetching all candidates:", err);
         res.status(500).json({ error: "Database error" });
