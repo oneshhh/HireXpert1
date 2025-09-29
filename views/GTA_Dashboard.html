@@ -1,205 +1,201 @@
-<html><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8"/>
-<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
-<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>TalentFlow - GTA Interviews</title>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-<title>Stitch Design</title>
-<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <style type="text/tailwindcss">
       :root {
-        --primary-color: #1173d4;
-        --secondary-color: #F0F2F4;
+        --primary-50: #eff6ff;
+        --primary-100: #dbeafe;
+        --primary-200: #bfdbfe;
+        --primary-500: #3b82f6;
+        --primary-600: #2563eb;
+        --primary-700: #1d4ed8;
+        --primary-900: #1e3a8a;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --success-50: #f0fdf4;
+        --success-500: #22c55e;
+        --warning-50: #fffbeb;
+        --warning-500: #f59e0b;
+        --info-50: #ecfeff;
+        --info-500: #06b6d4;
       }
-    </style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+      #create-interview-btn {
+        background-color: var(--primary-600) !important;
+        color: white !important;
+      }
+</style>
 </head>
-<body class="bg-gray-50 text-[#111418]">
-<div class="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
-<div class="flex h-full grow flex-col">
-<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 bg-white px-10 py-4 shadow-sm">
-<div class="flex items-center gap-4 text-gray-800">
-<svg class="h-8 w-8 text-[var(--primary-color)]" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
-<path clip-rule="evenodd" d="M10.4485 13.8519C10.4749 13.9271 10.6203 14.246 11.379 14.7361C12.298 15.3298 13.7492 15.9145 15.6717 16.3735C18.0007 16.9296 20.8712 17.2655 24 17.2655C27.1288 17.2655 29.9993 16.9296 32.3283 16.3735C34.2508 15.9145 35.702 15.3298 36.621 14.7361C37.3796 14.246 37.5251 13.9271 37.5515 13.8519C37.5287 13.7876 37.4333 13.5973 37.0635 13.2931C36.5266 12.8516 35.6288 12.3647 34.343 11.9175C31.79 11.0295 28.1333 10.4437 24 10.4437C19.8667 10.4437 16.2099 11.0295 13.657 11.9175C12.3712 12.3647 11.4734 12.8516 10.9365 13.2931C10.5667 13.5973 10.4713 13.7876 10.4485 13.8519ZM37.5563 18.7877C36.3176 19.3925 34.8502 19.8839 33.2571 20.2642C30.5836 20.9025 27.3973 21.2655 24 21.2655C20.6027 21.2655 17.4164 20.9025 14.7429 20.2642C13.1498 19.8839 11.6824 19.3925 10.4436 18.7877V34.1275C10.4515 34.1545 10.5427 34.4867 11.379 35.027C12.298 35.6207 13.7492 36.2054 15.6717 36.6644C18.0007 37.2205 20.8712 37.5564 24 37.5564C27.1288 37.5564 29.9993 37.2205 32.3283 36.6644C34.2508 36.2054 35.702 35.6207 36.621 35.027C37.4573 34.4867 37.5485 34.1546 37.5563 34.1275V18.7877ZM41.5563 13.8546V34.1455C41.5563 36.1078 40.158 37.5042 38.7915 38.3869C37.3498 39.3182 35.4192 40.0389 33.2571 40.5551C30.5836 41.1934 27.3973 41.5564 24 41.5564C20.6027 41.5564 17.4164 41.1934 14.7429 40.5551C12.5808 40.0389 10.6502 39.3182 9.20848 38.3869C7.84205 37.5042 6.44365 36.1078 6.44365 34.1455L6.44365 13.8546C6.44365 12.2684 7.37223 11.0454 8.39581 10.2036C9.43325 9.3505 10.8137 8.67141 12.343 8.13948C15.4203 7.06909 19.5418 6.44366 24 6.44366C28.4582 6.44366 32.5797 7.06909 35.657 8.13948C37.1863 8.67141 38.5667 9.3505 39.6042 10.2036C40.6278 11.0454 41.5563 12.2684 41.5563 13.8546Z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-<h2 class="text-gray-800 text-lg font-bold leading-tight tracking-[-0.015em]">Talent Acquisition Platform</h2>
-</div>
-<div class="flex flex-1 justify-end gap-4">
-<nav class="flex items-center gap-2">
-<a class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md px-4 py-2 text-sm font-medium leading-normal transition-colors" href="#">Home</a>
-<a class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md px-4 py-2 text-sm font-medium leading-normal transition-colors" href="#">Candidates</a>
-<a class="text-gray-900 bg-gray-100 rounded-md px-4 py-2 text-sm font-bold leading-normal" href="#">Dashboard</a>
-<a class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md px-4 py-2 text-sm font-medium leading-normal transition-colors" href="#">Jobs</a>
-<a class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md px-4 py-2 text-sm font-medium leading-normal transition-colors" href="#">Reports</a>
-</nav>
-<div class="flex items-center gap-4">
-<button class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-<span class="material-symbols-outlined text-2xl">notifications</span>
-</button>
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDuJ6fUgobHvsd8bH75oksZRduBb-Og7Ib0zggXg_KMyKdnbqn69FHmgeEqCQKLTfMfgPdRjnIhkHrFvIQVhJbTErLk0S_apOIi62Nq30K2-oZQhCaKIZZILkI1MnNy9SzL_wb2mcL1wB5PKKpetwsiY51MNIr352ls5Kgsz1xGM_wMa-HHyih9Mm5Xwar5-EZ9xDs2rA21yFOX54rT8nED6QQvjvsWu2RL04SvMMpukcmcQzmZidXOOuGmX0z6bjBqSG5YD5WTHJ0");'></div>
-</div>
-</div>
-</header>
-<main class="flex-1 px-10 py-8 lg:px-16">
-<div class="mx-auto max-w-7xl">
-<div class="mb-8">
-<h1 class="text-3xl font-bold tracking-tight text-gray-900">GTA Dashboard</h1>
-<p class="text-gray-500 mt-1">Overview of global talent acquisition metrics and trends</p>
-</div>
-<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-<div class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<p class="text-gray-600 text-sm font-medium">Candidate Pipeline</p>
-<p class="text-gray-900 text-3xl font-bold">1,250</p>
-<div class="flex items-center gap-1 text-green-600">
-<span class="material-symbols-outlined text-base">trending_up</span>
-<p class="text-sm font-medium">+10%</p>
-</div>
-</div>
-<div class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<p class="text-gray-600 text-sm font-medium">Recruitment Funnel</p>
-<p class="text-gray-900 text-3xl font-bold">45%</p>
-<div class="flex items-center gap-1 text-red-600">
-<span class="material-symbols-outlined text-base">trending_down</span>
-<p class="text-sm font-medium">-5%</p>
-</div>
-</div>
-<div class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<p class="text-gray-600 text-sm font-medium">Time to Hire</p>
-<p class="text-gray-900 text-3xl font-bold">28 days</p>
-<div class="flex items-center gap-1 text-green-600">
-<span class="material-symbols-outlined text-base">trending_up</span>
-<p class="text-sm font-medium">+2 days</p>
-</div>
-</div>
-</div>
-<div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<h2 class="text-lg font-semibold text-gray-900">Candidate Pipeline by Region</h2>
-<div class="mt-4 grid min-h-[220px] grid-flow-col items-end justify-items-center gap-4 px-3">
-<div class="flex w-full flex-col items-center gap-2">
-<div class="w-full rounded-t-md bg-[var(--primary-color)]" style="height: 40%;"></div>
-<p class="text-gray-500 text-xs font-medium">NA</p>
-</div>
-<div class="flex w-full flex-col items-center gap-2">
-<div class="w-full rounded-t-md bg-[var(--primary-color)]" style="height: 90%;"></div>
-<p class="text-gray-500 text-xs font-medium">Europe</p>
-</div>
-<div class="flex w-full flex-col items-center gap-2">
-<div class="w-full rounded-t-md bg-[var(--primary-color)]" style="height: 80%;"></div>
-<p class="text-gray-500 text-xs font-medium">Asia</p>
-</div>
-<div class="flex w-full flex-col items-center gap-2">
-<div class="w-full rounded-t-md bg-[var(--primary-color)]" style="height: 60%;"></div>
-<p class="text-gray-500 text-xs font-medium">SA</p>
-</div>
-<div class="flex w-full flex-col items-center gap-2">
-<div class="w-full rounded-t-md bg-[var(--primary-color)]" style="height: 20%;"></div>
-<p class="text-gray-500 text-xs font-medium">Africa</p>
-</div>
-</div>
-</div>
-<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<h2 class="text-lg font-semibold text-gray-900">Recruitment Funnel Stages</h2>
-<div class="mt-4 grid min-h-[220px] grid-cols-[auto_1fr] items-center gap-x-4 gap-y-5 py-3">
-<p class="text-gray-500 text-sm font-medium">Applied</p>
-<div class="h-4 w-full rounded-full bg-gray-200"><div class="h-4 rounded-full bg-[var(--primary-color)]" style="width: 100%;"></div></div>
-<p class="text-gray-500 text-sm font-medium">Screening</p>
-<div class="h-4 w-full rounded-full bg-gray-200"><div class="h-4 rounded-full bg-[var(--primary-color)]" style="width: 60%;"></div></div>
-<p class="text-gray-500 text-sm font-medium">Interview</p>
-<div class="h-4 w-full rounded-full bg-gray-200"><div class="h-4 rounded-full bg-[var(--primary-color)]" style="width: 45%;"></div></div>
-<p class="text-gray-500 text-sm font-medium">Offer</p>
-<div class="h-4 w-full rounded-full bg-gray-200"><div class="h-4 rounded-full bg-[var(--primary-color)]" style="width: 20%;"></div></div>
-<p class="text-gray-500 text-sm font-medium">Hired</p>
-<div class="h-4 w-full rounded-full bg-gray-200"><div class="h-4 rounded-full bg-[var(--primary-color)]" style="width: 15%;"></div></div>
-</div>
-</div>
-</div>
-<div class="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-<h2 class="text-lg font-semibold text-gray-900">Monthly Hiring Rate</h2>
-<div class="flex min-h-[200px] flex-1 flex-col gap-8 py-4">
-<svg fill="none" height="148" preserveAspectRatio="none" viewBox="-3 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
-<defs>
-<linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_1131_5935" x1="236" x2="236" y1="1" y2="149">
-<stop stop-color="var(--primary-color)" stop-opacity="0.2"></stop>
-<stop offset="1" stop-color="var(--primary-color)" stop-opacity="0"></stop>
-</linearGradient>
-</defs>
-<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z" fill="url(#paint0_linear_1131_5935)"></path>
-<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="var(--primary-color)" stroke-linecap="round" stroke-width="3"></path>
-</svg>
-<div class="flex justify-around">
-<p class="text-gray-500 text-sm font-medium">Jan</p>
-<p class="text-gray-500 text-sm font-medium">Feb</p>
-<p class="text-gray-500 text-sm font-medium">Mar</p>
-<p class="text-gray-500 text-sm font-medium">Apr</p>
-<p class="text-gray-500 text-sm font-medium">May</p>
-<p class="text-gray-500 text-sm font-medium">Jun</p>
-<p class="text-gray-500 text-sm font-medium">Jul</p>
-</div>
-</div>
-</div>
-<div class="mt-8 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-<div class="p-6">
-<h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full">
-<thead class="bg-gray-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Candidate Name</th>
-<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Job Title</th>
-<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Application Date</th>
-<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-gray-200 bg-white">
-<tr>
-<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">Sophia Clark</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">Software Engineer</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">2024-07-15</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm">
-<span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">Interviewing</span>
-</td>
-</tr>
-<tr>
-<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">Ethan Miller</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">Product Manager</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">2024-07-10</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm">
-<span class="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800">Screening</span>
-</td>
-</tr>
-<tr>
-<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">Olivia Davis</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">UX Designer</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">2024-07-05</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm">
-<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">Applied</span>
-</td>
-</tr>
-<tr>
-<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">Noah Wilson</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">Data Analyst</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">2024-06-30</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm">
-<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-800">Offer</span>
-</td>
-</tr>
-<tr>
-<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">Ava Martinez</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">Marketing Specialist</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">2024-06-25</td>
-<td class="whitespace-nowrap px-6 py-4 text-sm">
-<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Hired</span>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</main>
-</div>
+<body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
+<div class="flex min-h-screen w-full flex-col">
+
+  <!-- Header -->
+  <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 text-gray-800">
+        <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
+        <h1 class="text-xl font-bold text-gray-900">TalentFlow</h1>
+      </div>
+      <nav class="hidden md:flex items-center gap-4">
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html">Candidates</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="#">Reports</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="#">Settings</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="relative w-full max-w-xs">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+        <input id="search-bar" class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search interviews..."/>
+      </div>
+      <button class="relative rounded-full p-2 hover:bg-gray-100">
+        <span class="material-symbols-outlined text-gray-600">notifications</span>
+      </button>
+      <div class="h-9 w-9 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCNctMQZk057P4bZQyXOoQ8_ftfJSJig5XgqMo5Mr3D_o9DZ5n5kCInWe5TIfW-ulGx3VYTOsKo1EzETBKi8RNVx98zI9JS__wtG0yh14icatZqcW8tTAP2oUhIRqCGZd_A9V9ic2qKuRy3osm7X3mYNvepkxopJ8EnrXL11wsiyIS4OLG8pkEGjr6OUdBWUBiNlyNWo3fzOb_bgDq9IWQcZepr9dApJMfHAFG_GsHmOeXRzvi8Qrxt_RU3OilP0PEXxof-wZQcJos");'></div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
+    <div class="mx-auto max-w-7xl">
+
+      <!-- Header -->
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 class="text-3xl font-bold text-gray-900">GTA Interviews</h2>
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined">add</span>
+          <span>Create Interview</span>
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">#</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
+              <th class="relative px-6 py-3" scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white">
+            <!-- Dynamic rows will load here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 </div>
 
-</body></html>
+
+<!-- Script to fetch and display interviews -->
+<script>
+  // Helper function to format date and time
+  function formatDateTime(dateStr, timeStr) {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    
+    if (!timeStr) return `${month} ${day}, ${year}`;
+
+    let [hours, minutes] = timeStr.split(':');
+    let ampm = 'AM';
+    if (hours >= 12) {
+      ampm = 'PM';
+      if (hours > 12) {
+        hours -= 12;
+      }
+    }
+    if (hours == 0) {
+      hours = 12;
+    }
+    return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
+  }
+
+  // Main function to load interviews
+  async function loadInterviews(searchTerm = '') {
+    try {
+      // THIS IS THE ONLY CHANGE: We now explicitly ask for the 'GTA' department's data.
+      const url = searchTerm 
+        ? `/api/interviews?department=GTA&search=${encodeURIComponent(searchTerm)}` 
+        : "/api/interviews?department=GTA";
+      
+      const res = await fetch(url);
+      const interviews = await res.json(); 
+
+      const tbody = document.querySelector("#interviews-table-body");
+      tbody.innerHTML = ""; // clear old data
+
+      if (interviews.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found for GTA department.</td></tr>';
+        return;
+      }
+
+      interviews.forEach((interview, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+            <a href="/interview-view.html?id=${interview.id}" class="hover:text-primary-600">${interview.title}</a>
+          </td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+            ${formatDateTime(interview.date, interview.time)}
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
+              <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
+            </span>
+          </td>
+          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+            <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Error loading interviews:", err);
+      const tbody = document.querySelector("#interviews-table-body");
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+    }
+  }
+
+  // --- Search Bar Logic ---
+  const searchBar = document.getElementById('search-bar');
+  let debounceTimer;
+  searchBar.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      loadInterviews(e.target.value);
+    }, 300);
+  });
+
+  // Load data on page load
+  window.onload = () => loadInterviews();
+</script>
+
+</body>
+</html>
+

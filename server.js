@@ -39,9 +39,39 @@ function parseQuestionsField(q) {
   return [String(q)];
 }
 
-// The separate sendInterviewEmail function is now removed.
+// =================================================================
+// =========== EMAIL SENDER USING SEND GRID===========
+// =================================================================
+async function sendInterviewEmail(to, interviewId, title, date, time) { 
+  const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+  const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+  const msg = {
+    to: to,
+    from: verifiedSenderEmail,
+    subject: `Interview Scheduled: ${title}`,
+    html: `
+      <p>Dear Candidate,</p>
+      <p>You have an interview scheduled for <b>${title}</b>.</p>
+      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+      <p>Click <a href="${link}">here</a> to join your interview.</p>
+      <p>Regards,<br>HireXpert Team</p>
+    `,
+  };
+  try {
+    await sgMail.send(msg);
+    console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
+    return { success: true };
+  } catch (err) {
+    console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
+    if (err.response) {
+      console.error(err.response.body)
+    }
+    return { success: false, error: err };
+  }
+}
 
-// ---------- NEW GEMINI QUESTION GENERATOR ROUTE (Corrected) ----------
+
+// ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
 app.post('/api/generate', async (req, res) => {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) {
@@ -51,12 +81,7 @@ app.post('/api/generate', async (req, res) => {
     if (!jobDescription || !numQuestions || !difficulty) {
         return res.status(400).json({ error: 'jobDescription, numQuestions, and difficulty are required.' });
     }
-    // =========== THIS IS THE CORRECTED LINE ===========
-    // Using the stable, public model name 'gemini-1.5-flash-latest'
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-
-
-    
     const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
     try {
         const geminiResponse = await fetch(API_URL, {
@@ -66,13 +91,10 @@ app.post('/api/generate', async (req, res) => {
         });
         const data = await geminiResponse.json();
         if (!geminiResponse.ok) {
-            // Forward the specific error from Google's server
-            console.error('Gemini API Error:', data);
             return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' });
         }
         res.json(data);
     } catch (error) {
-        console.error('Server Error calling Gemini:', error);
         res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
@@ -140,12 +162,18 @@ app.get("/api/session/:sessionId", async (req, res) => {
 
 
 // =================================================================
-// ===========        THIS IS THE DEFINITIVE FIX         ===========
+// ===========        MODIFIED SCHEDULE ROUTE        ===========
 // =================================================================
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN'); // Start transaction for safety
+    // NEW: Get the department from the logged-in user's session
+    if (!req.session.user || !req.session.user.department) {
+        return res.status(401).json({ message: "Unauthorized. Please log in again." });
+    }
+    const { department } = req.session.user;
+
+    await client.query('BEGIN');
     let { title, questions, timeLimits, date, time, emails } = req.body;
 
     // --- Data Normalization ---
@@ -153,60 +181,38 @@ app.post("/schedule", async (req, res) => {
     if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
-    // --- Create Master Interview Template ---
-    const interviewId = uuidv4(); // The correct ID is created here.
+    // --- Create Master Interview Template with Department ---
+    const interviewId = uuidv4();
     await client.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [interviewId, title, questions, timeLimits, date, time]
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [interviewId, title, questions, timeLimits, date, time, department]
     );
-    console.log("✅ Master interview template saved:", title);
+    console.log(`✅ Master interview template saved for ${department}:`, title);
 
-    // --- Create a Unique Session and Send Email for Each Candidate ---
+    // --- Create Sessions and Send Emails ---
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
-    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
-
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
       await client.query(
-        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email)
-         VALUES ($1, $2, $3)`,
-        [sessionId, interviewId, email]
+        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department)
+         VALUES ($1, $2, $3, $4)`,
+        [sessionId, interviewId, email, department]
       );
       
-      // --- Email logic is now directly inside the loop, using the correct interviewId ---
-      const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
-      const msg = {
-        to: email,
-        from: verifiedSenderEmail,
-        subject: `Interview Scheduled: ${title}`,
-        html: `
-          <p>Dear Candidate,</p>
-          <p>You have an interview scheduled for <b>${title}</b>.</p>
-          <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-          <p>Click <a href="${link}">here</a> to join your interview.</p>
-          <p>Regards,<br>HireXpert Team</p>
-        `,
-      };
-      
-      try {
-        await sgMail.send(msg);
-        console.log(`✅ Email sent successfully to: ${email} via SendGrid`);
-      } catch(err) {
-        console.error(`❌ CRITICAL: Error sending email to ${email}:`, err);
-        if (err.response) { console.error(err.response.body); }
-        // We throw an error to make sure the entire transaction is rolled back.
+      const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
+      if (!emailResult.success) {
         throw new Error(`Failed to send email to ${email}. Aborting schedule.`);
       }
     }
     
-    await client.query('COMMIT'); // Commit all database changes if successful
+    await client.query('COMMIT');
     res.json({
       success: true,
       message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).`,
     });
   } catch (err) {
-    await client.query('ROLLBACK'); // Roll back database changes on any failure
+    await client.query('ROLLBACK');
     console.error("❌ Error in /schedule route:", err.message);
     res.status(500).json({ message: err.message || "Failed to schedule interview." });
   } finally {
@@ -214,20 +220,38 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-// ---------- Fetch all interviews ----------
+// =================================================================
+// ===========        MODIFIED INTERVIEWS API ROUTE        ===========
+// =================================================================
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search } = req.query;
-    let result;
-    if (search) {
-      const searchTerm = `%${search}%`;
-      result = await pool.query(
-        `SELECT * FROM interviews WHERE title ILIKE $1 OR id::text ILIKE $1 ORDER BY date DESC`,
-        [searchTerm]
-      );
-    } else {
-      result = await pool.query("SELECT * FROM interviews ORDER BY date DESC");
+    const { search, department } = req.query; // Now accepts department filter
+    
+    let queryParams = [];
+    let whereClauses = [];
+
+    let baseQuery = "SELECT * FROM interviews";
+
+    // Filter by department if provided
+    if (department) {
+        queryParams.push(department);
+        whereClauses.push(`department = $${queryParams.length}`);
     }
+
+    // Filter by search term if provided
+    if (search) {
+        queryParams.push(`%${search}%`);
+        whereClauses.push(`(title ILIKE $${queryParams.length} OR id::text ILIKE $${queryParams.length})`);
+    }
+
+    if (whereClauses.length > 0) {
+        baseQuery += " WHERE " + whereClauses.join(" AND ");
+    }
+    
+    // Use created_at for reliable sorting
+    baseQuery += " ORDER BY created_at DESC";
+
+    const result = await pool.query(baseQuery, queryParams);
     res.json(result.rows.map(r => ({
       id: r.id,
       title: r.title,
@@ -247,18 +271,13 @@ app.get("/api/interviews", async (req, res) => {
 // =========== API ROUTES FOR VIEW/EDIT/DELETE ===========
 // =================================================================
 
-// ---------- Fetch single interview TEMPLATE ----------
 async function fetchSingleInterview(req, res) {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
     const row = result.rows[0];
-    res.json({
-      ...row,
-      questions: parseQuestionsField(row.questions),
-      timeLimits: row.time_limits || [],
-    });
+    res.json({ ...row, questions: parseQuestionsField(row.questions), timeLimits: row.time_limits || [], });
   } catch (err) {
     console.error("DB error fetching single interview:", err);
     res.status(500).json({ message: "DB error" });
@@ -267,24 +286,16 @@ async function fetchSingleInterview(req, res) {
 app.get("/api/interview/:id", fetchSingleInterview);
 app.get("/api/interviews/:id", fetchSingleInterview);
 
-
-// ---------- Update interview TEMPLATE ----------
 app.post("/api/interview/:id/update", async (req, res) => {
   try {
     let { title, questions, timeLimits, date, time } = req.body;
-
-    // --- Data Normalization ---
     if (!Array.isArray(questions)) questions = [String(questions || '')];
     if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
-
     await pool.query(
-      `UPDATE interviews 
-       SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5
-       WHERE id=$6`,
+      `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5 WHERE id=$6`,
       [title, questions, timeLimits, date, time, req.params.id]
     );
-
     res.json({ message: "Interview template updated successfully" });
   } catch (err) {
     console.error("Update failed:", err);
@@ -292,60 +303,33 @@ app.post("/api/interview/:id/update", async (req, res) => {
   }
 });
 
-// ---------- Delete interview TEMPLATE and all associated SESSIONS----------
 app.delete("/api/interview/:id/delete", async (req, res) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN'); // Start a transaction
-
+    await client.query('BEGIN');
     const interviewId = req.params.id;
-
-    // 1. Delete all candidate sessions linked to this interview template.
-    await client.query(
-        "DELETE FROM candidate_sessions WHERE interview_id = $1", 
-        [interviewId]
-    );
-    console.log(`Deleted sessions for interview ID: ${interviewId}`);
-
-    // 2. Delete the master interview template itself.
-    await client.query(
-        "DELETE FROM interviews WHERE id = $1", 
-        [interviewId]
-    );
-    console.log(`Deleted interview template with ID: ${interviewId}`);
-
-    await client.query('COMMIT'); // Commit the transaction
+    await client.query("DELETE FROM candidate_sessions WHERE interview_id = $1", [interviewId]);
+    await client.query("DELETE FROM interviews WHERE id = $1", [interviewId]);
+    await client.query('COMMIT');
     res.json({ message: "Interview and all associated sessions deleted successfully" });
-  } catch (err)
- {
-    await client.query('ROLLBACK'); // Roll back the transaction on error
+  } catch (err) {
+    await client.query('ROLLBACK');
     console.error("Delete failed:", err);
     res.status(500).json({ message: "Delete failed" });
   } finally {
-    client.release(); // Release the client back to the pool
+    client.release();
   }
 });
 
 
-// =================================================================
-// =========== NEW ROUTE TO FETCH CANDIDATES FOR AN INTERVIEW ===========
-// =================================================================
 app.get("/api/interview/:id/candidates", async (req, res) => {
   try {
-    const { id } = req.params; // This is the master interview_id
-
-    // Query the candidate_sessions table for all sessions linked to this interview_id
+    const { id } = req.params;
     const result = await pool.query(
-      `SELECT session_id, candidate_email, status 
-       FROM candidate_sessions 
-       WHERE interview_id = $1 
-       ORDER BY created_at DESC`,
+      `SELECT session_id, candidate_email, status FROM candidate_sessions WHERE interview_id = $1 ORDER BY created_at DESC`,
       [id]
     );
-
-    // Return the list of candidates found
     res.json(result.rows);
-
   } catch (err) {
     console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
     res.status(500).json({ message: "Failed to fetch candidate list." });
@@ -353,10 +337,41 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
 });
 
 
+app.get("/api/candidates/all", async (req, res) => {
+    try {
+        const { search, department } = req.query; // Now accepts department filter
+        let queryParams = [];
+        let whereClauses = [];
+        let baseQuery = `
+            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title 
+            FROM candidate_sessions cs
+            JOIN interviews i ON cs.interview_id = i.id
+        `;
+
+        if (department) {
+            queryParams.push(department);
+            whereClauses.push(`cs.department = $${queryParams.length}`);
+        }
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`);
+        }
+        if (whereClauses.length > 0) {
+            baseQuery += " WHERE " + whereClauses.join(" AND ");
+        }
+        baseQuery += " ORDER BY cs.created_at DESC";
+        const result = await pool.query(baseQuery, queryParams);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching all candidates:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+
 // =================================================================
 // =========== ROUTES TO SERVE STATIC HTML PAGES ===========
 // =================================================================
-
 app.get("/interview-view.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-view.html"));
 });
@@ -365,52 +380,13 @@ app.get("/interview-edit.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-edit.html"));
 });
 
-
-// ---------- Start server ----------
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
 app.get("/candidates.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "candidates.html"));
 });
 
-// Add this API route to server.js to provide the data for the page
-app.get("/api/candidates/all", async (req, res) => {
-    try {
-        const { search } = req.query;
-        let query;
-        let queryParams = [];
 
-        // This is the base query that joins the tables to get all necessary info
-        let baseQuery = `
-            SELECT 
-                cs.session_id, 
-                cs.candidate_email, 
-                cs.status, 
-                cs.created_at,
-                i.title AS interview_title 
-            FROM 
-                candidate_sessions cs
-            JOIN 
-                interviews i ON cs.interview_id = i.id
-        `;
-
-        // If a search term is provided, add a WHERE clause to filter the results
-        if (search) {
-            query = `${baseQuery} WHERE cs.candidate_email ILIKE $1 OR i.title ILIKE $1 ORDER BY cs.created_at DESC`;
-            queryParams.push(`%${search}%`); // Add wildcards for partial matching
-        } else {
-            // If no search term, fetch all candidates
-            query = `${baseQuery} ORDER BY cs.created_at DESC`;
-        }
-
-        const result = await pool.query(query, queryParams);
-        res.json(result.rows);
-        
-    } catch (err) {
-        console.error("Error fetching all candidates:", err);
-        res.status(500).json({ error: "Database error" });
-    }
+// ---------- Start server ----------
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 

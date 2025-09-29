@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>TalentFlow - Interviews</title>
+<title>TalentFlow - HR Interviews</title>
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -81,7 +81,7 @@
 
       <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h2 class="text-3xl font-bold text-gray-900">Interviews</h2>
+        <h2 class="text-3xl font-bold text-gray-900">HR Interviews</h2>
         <button id="create-interview-btn" onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
@@ -138,7 +138,11 @@
   // Main function to load interviews
   async function loadInterviews(searchTerm = '') {
     try {
-      const url = searchTerm ? `/api/interviews?search=${searchTerm}` : "/api/interviews";
+      // THIS IS THE ONLY CHANGE: We now explicitly ask for the 'HR' department's data.
+      const url = searchTerm 
+        ? `/api/interviews?department=HR&search=${encodeURIComponent(searchTerm)}` 
+        : "/api/interviews?department=HR";
+      
       const res = await fetch(url);
       const interviews = await res.json(); 
 
@@ -146,7 +150,7 @@
       tbody.innerHTML = ""; // clear old data
 
       if (interviews.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found for HR department.</td></tr>';
         return;
       }
 

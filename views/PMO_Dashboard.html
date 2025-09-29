@@ -1,221 +1,201 @@
-<html><head>
-<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
-<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
-<title>Stitch Design</title>
-<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<title>TalentFlow - PMO Interviews</title>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <style type="text/tailwindcss">
       :root {
-        --primary-color: #1173d4;
-        --secondary-color: #f0f7ff;
-        --text-primary: #111827;
-        --text-secondary: #6b7280;
+        --primary-50: #eff6ff;
+        --primary-100: #dbeafe;
+        --primary-200: #bfdbfe;
+        --primary-500: #3b82f6;
+        --primary-600: #2563eb;
+        --primary-700: #1d4ed8;
+        --primary-900: #1e3a8a;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --success-50: #f0fdf4;
+        --success-500: #22c55e;
+        --warning-50: #fffbeb;
+        --warning-500: #f59e0b;
+        --info-50: #ecfeff;
+        --info-500: #06b6d4;
       }
-    </style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+      #create-interview-btn {
+        background-color: var(--primary-600) !important;
+        color: white !important;
+      }
+</style>
 </head>
-<body class="bg-gray-50">
-<div class="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
-<div class="layout-container flex h-full grow flex-col">
-<div class="flex flex-1">
-<aside class="flex flex-col w-64 bg-white border-r border-gray-200 p-4">
-<div class="flex items-center gap-2 mb-8">
-<div class="p-2 bg-[var(--primary-color)] rounded-lg text-white">
-<span class="material-symbols-outlined"> all_inbox </span>
-</div>
-<h1 class="text-xl font-bold text-[var(--text-primary)]">OnboardFlow</h1>
-</div>
-<nav class="flex flex-col gap-2">
-<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-[var(--secondary-color)] text-[var(--primary-color)]" href="#">
-<span class="material-symbols-outlined"> dashboard </span>
-<p class="text-sm font-medium">Dashboard</p>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
-<span class="material-symbols-outlined"> business_center </span>
-<p class="text-sm font-medium">Projects</p>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
-<span class="material-symbols-outlined"> group </span>
-<p class="text-sm font-medium">Resources</p>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
-<span class="material-symbols-outlined"> monitoring </span>
-<p class="text-sm font-medium">Reports</p>
-</a>
-</nav>
-<div class="mt-auto">
-<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-[var(--text-secondary)]" href="#">
-<span class="material-symbols-outlined"> settings </span>
-<p class="text-sm font-medium">Settings</p>
-</a>
-<div class="flex items-center gap-3 p-3 mt-4 border-t border-gray-200">
-<img alt="Admin" class="rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqi5rXLtbDZdTs8ccuqIIjdfCyF-nKnXLvgkSzniBycWZAjwk_1hn1WpuM8CO0LdTAl4zievIycggAMdoainB2SI-ovXiMALGMf2Tf6WOTonZP_aUNcQR69YwF7ckqt_hMuYzxfwBw_vw9OJzvk-jQ6S0D624KJjWPFDBdO7yqX6iBWlOTuBPmmR7xzwJGk8jrPFRt2WuQJcYMXJmLPiRDj_izZSvT9DacU5W8z0dC06BaiHScjvuWeaig2SryLRyWHTILFFyc2_8"/>
-<div>
-<p class="text-sm font-semibold text-[var(--text-primary)]">Admin User</p>
-<p class="text-xs text-[var(--text-secondary)]">admin.user@example.com</p>
-</div>
-</div>
-</div>
-</aside>
-<main class="flex-1 p-8">
-<div class="flex justify-between items-center mb-8">
-<div>
-<h1 class="text-3xl font-bold text-[var(--text-primary)]">PMO Dashboard</h1>
-<p class="text-[var(--text-secondary)]">Overview of project management activities and team performance</p>
-</div>
-<button class="flex items-center gap-2 px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-opacity-90 transition-colors">
-<span class="material-symbols-outlined"> add </span>
-                Create Project
-              </button>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-<div class="bg-white p-6 rounded-lg border border-gray-200">
-<div class="flex items-center justify-between mb-2">
-<h3 class="text-base font-medium text-[var(--text-secondary)]">Active Projects</h3>
-<span class="material-symbols-outlined text-green-500"> trending_up </span>
-</div>
-<p class="text-4xl font-bold text-[var(--text-primary)]">12</p>
-<p class="text-sm text-green-500">+10% from last month</p>
-</div>
-<div class="bg-white p-6 rounded-lg border border-gray-200">
-<div class="flex items-center justify-between mb-2">
-<h3 class="text-base font-medium text-[var(--text-secondary)]">Completed Projects</h3>
-<span class="material-symbols-outlined text-green-500"> trending_up </span>
-</div>
-<p class="text-4xl font-bold text-[var(--text-primary)]">35</p>
-<p class="text-sm text-green-500">+5% from last month</p>
-</div>
-<div class="bg-white p-6 rounded-lg border border-gray-200">
-<div class="flex items-center justify-between mb-2">
-<h3 class="text-base font-medium text-[var(--text-secondary)]">Total Team Members</h3>
-<span class="material-symbols-outlined text-green-500"> trending_up </span>
-</div>
-<p class="text-4xl font-bold text-[var(--text-primary)]">20</p>
-<p class="text-sm text-green-500">+2 new members</p>
-</div>
-</div>
-<div class="bg-white p-6 rounded-lg border border-gray-200 mb-8">
-<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Ongoing Projects</h2>
-<div class="overflow-x-auto">
-<table class="w-full text-left">
-<thead>
-<tr class="border-b border-gray-200">
-<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Project Name</th>
-<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Status</th>
-<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Progress</th>
-<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Due Date</th>
-<th class="py-3 px-4 text-sm font-semibold text-[var(--text-secondary)]">Team Lead</th>
-</tr>
-</thead>
-<tbody>
-<tr class="border-b border-gray-200 hover:bg-gray-50">
-<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Alpha</td>
-<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">In Progress</span></td>
-<td class="py-3 px-4">
-<div class="flex items-center gap-2">
-<div class="w-full bg-gray-200 rounded-full h-1.5">
-<div class="bg-blue-500 h-1.5 rounded-full" style="width: 60%"></div>
-</div>
-<span class="text-sm font-medium text-[var(--text-secondary)]">60%</span>
-</div>
-</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-08-15</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Ethan Harper</td>
-</tr>
-<tr class="border-b border-gray-200 hover:bg-gray-50">
-<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Beta</td>
-<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Planning</span></td>
-<td class="py-3 px-4">
-<div class="flex items-center gap-2">
-<div class="w-full bg-gray-200 rounded-full h-1.5">
-<div class="bg-yellow-500 h-1.5 rounded-full" style="width: 20%"></div>
-</div>
-<span class="text-sm font-medium text-[var(--text-secondary)]">20%</span>
-</div>
-</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-09-30</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Olivia Bennett</td>
-</tr>
-<tr class="border-b border-gray-200 hover:bg-gray-50">
-<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Gamma</td>
-<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Completed</span></td>
-<td class="py-3 px-4">
-<div class="flex items-center gap-2">
-<div class="w-full bg-gray-200 rounded-full h-1.5">
-<div class="bg-green-500 h-1.5 rounded-full" style="width: 100%"></div>
-</div>
-<span class="text-sm font-medium text-[var(--text-secondary)]">100%</span>
-</div>
-</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-07-20</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Noah Carter</td>
-</tr>
-<tr class="border-b border-gray-200 hover:bg-gray-50">
-<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Delta</td>
-<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">On Hold</span></td>
-<td class="py-3 px-4">
-<div class="flex items-center gap-2">
-<div class="w-full bg-gray-200 rounded-full h-1.5">
-<div class="bg-gray-400 h-1.5 rounded-full" style="width: 0%"></div>
-</div>
-<span class="text-sm font-medium text-[var(--text-secondary)]">0%</span>
-</div>
-</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-10-01</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Ava Thompson</td>
-</tr>
-<tr class="hover:bg-gray-50">
-<td class="py-3 px-4 text-sm font-medium text-[var(--text-primary)]">Project Epsilon</td>
-<td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">In Progress</span></td>
-<td class="py-3 px-4">
-<div class="flex items-center gap-2">
-<div class="w-full bg-gray-200 rounded-full h-1.5">
-<div class="bg-blue-500 h-1.5 rounded-full" style="width: 80%"></div>
-</div>
-<span class="text-sm font-medium text-[var(--text-secondary)]">80%</span>
-</div>
-</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">2024-08-30</td>
-<td class="py-3 px-4 text-sm text-[var(--text-secondary)]">Liam Foster</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="bg-white p-6 rounded-lg border border-gray-200">
-<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Team Performance</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div>
-<h3 class="text-base font-medium text-[var(--text-secondary)]">Project Completion Rate</h3>
-<p class="text-4xl font-bold text-[var(--text-primary)]">85%</p>
-<p class="text-sm text-green-500">+5% from last quarter</p>
-</div>
-<div class="h-48">
-<div class="flex h-full items-end gap-4">
-<div class="flex-1 text-center">
-<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 50%; width: 50%;"></div>
-<p class="text-xs text-[var(--text-secondary)] mt-1">Q1</p>
-</div>
-<div class="flex-1 text-center">
-<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 70%; width: 50%;"></div>
-<p class="text-xs text-[var(--text-secondary)] mt-1">Q2</p>
-</div>
-<div class="flex-1 text-center">
-<div class="bg-blue-200 rounded-t-md mx-auto" style="height: 60%; width: 50%;"></div>
-<p class="text-xs text-[var(--text-secondary)] mt-1">Q3</p>
-</div>
-<div class="flex-1 text-center">
-<div class="bg-[var(--primary-color)] rounded-t-md mx-auto" style="height: 85%; width: 50%;"></div>
-<p class="text-xs font-bold text-[var(--primary-color)] mt-1">Q4</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</main>
-</div>
-</div>
+<body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
+<div class="flex min-h-screen w-full flex-col">
+
+  <!-- Header -->
+  <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 text-gray-800">
+        <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
+        <h1 class="text-xl font-bold text-gray-900">TalentFlow</h1>
+      </div>
+      <nav class="hidden md:flex items-center gap-4">
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html">Candidates</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="#">Reports</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="#">Settings</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="relative w-full max-w-xs">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+        <input id="search-bar" class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search interviews..."/>
+      </div>
+      <button class="relative rounded-full p-2 hover:bg-gray-100">
+        <span class="material-symbols-outlined text-gray-600">notifications</span>
+      </button>
+      <div class="h-9 w-9 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCNctMQZk057P4bZQyXOoQ8_ftfJSJig5XgqMo5Mr3D_o9DZ5n5kCInWe5TIfW-ulGx3VYTOsKo1EzETBKi8RNVx98zI9JS__wtG0yh14icatZqcW8tTAP2oUhIRqCGZd_A9V9ic2qKuRy3osm7X3mYNvepkxopJ8EnrXL11wsiyIS4OLG8pkEGjr6OUdBWUBiNlyNWo3fzOb_bgDq9IWQcZepr9dApJMfHAFG_GsHmOeXRzvi8Qrxt_RU3OilP0PEXxof-wZQcJos");'></div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
+    <div class="mx-auto max-w-7xl">
+
+      <!-- Header -->
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 class="text-3xl font-bold text-gray-900">PMO Interviews</h2>
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined">add</span>
+          <span>Create Interview</span>
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">#</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
+              <th class="relative px-6 py-3" scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white">
+            <!-- Dynamic rows will load here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 </div>
 
-</body></html>
+
+<!-- Script to fetch and display interviews -->
+<script>
+  // Helper function to format date and time
+  function formatDateTime(dateStr, timeStr) {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    
+    if (!timeStr) return `${month} ${day}, ${year}`;
+
+    let [hours, minutes] = timeStr.split(':');
+    let ampm = 'AM';
+    if (hours >= 12) {
+      ampm = 'PM';
+      if (hours > 12) {
+        hours -= 12;
+      }
+    }
+    if (hours == 0) {
+      hours = 12;
+    }
+    return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
+  }
+
+  // Main function to load interviews
+  async function loadInterviews(searchTerm = '') {
+    try {
+      // THIS IS THE ONLY CHANGE: We now explicitly ask for the 'PMO' department's data.
+      const url = searchTerm 
+        ? `/api/interviews?department=PMO&search=${encodeURIComponent(searchTerm)}` 
+        : "/api/interviews?department=PMO";
+      
+      const res = await fetch(url);
+      const interviews = await res.json(); 
+
+      const tbody = document.querySelector("#interviews-table-body");
+      tbody.innerHTML = ""; // clear old data
+
+      if (interviews.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found for PMO department.</td></tr>';
+        return;
+      }
+
+      interviews.forEach((interview, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+            <a href="/interview-view.html?id=${interview.id}" class="hover:text-primary-600">${interview.title}</a>
+          </td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+            ${formatDateTime(interview.date, interview.time)}
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
+              <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
+            </span>
+          </td>
+          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+            <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Error loading interviews:", err);
+      const tbody = document.querySelector("#interviews-table-body");
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+    }
+  }
+
+  // --- Search Bar Logic ---
+  const searchBar = document.getElementById('search-bar');
+  let debounceTimer;
+  searchBar.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      loadInterviews(e.target.value);
+    }, 300);
+  });
+
+  // Load data on page load
+  window.onload = () => loadInterviews();
+</script>
+
+</body>
+</html>
+
