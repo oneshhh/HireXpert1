@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>TalentFlow - PMO Interviews</title>
+<title>HireXpert - PMO Interviews</title>
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -26,7 +26,7 @@
         --gray-700: #374151;
         --gray-800: #1f2937;
         --gray-900: #111827;
-        --success-50: #f0fdf4;
+        --success-50: #f0df4;
         --success-500: #22c55e;
         --warning-50: #fffbeb;
         --warning-500: #f59e0b;
@@ -54,7 +54,7 @@
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-3 text-gray-800">
         <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
-        <h1 class="text-xl font-bold text-gray-900">TalentFlow</h1>
+        <h1 class="text-xl font-bold text-gray-900">HireXpert</h1>
       </div>
       <nav class="hidden md:flex items-center gap-4">
         <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
@@ -80,14 +80,13 @@
     <div class="mx-auto max-w-7xl">
 
       <!-- Header -->
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-  <h2 class="text-3xl font-bold text-gray-900">PMO Interviews</h2>
-  <!-- THIS LINE IS UPDATED -->
-  <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=PMO_Dashboard.html'" class="flex items-center ...">
-    <span class="material-symbols-outlined">add</span>
-    <span>Create Interview</span>
-  </button>
-</div>
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 class="text-3xl font-bold text-gray-900">PMO Interviews</h2>
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=PMO_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined">add</span>
+          <span>Create Interview</span>
+        </button>
+      </div>
 
       <!-- Table -->
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
