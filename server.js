@@ -53,7 +53,7 @@ app.post('/api/generate', async (req, res) => {
     }
     // =========== THIS IS THE CORRECTED LINE ===========
     // Using the stable, public model name 'gemini-1.5-flash-latest'
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 
     
