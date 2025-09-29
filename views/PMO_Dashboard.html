@@ -80,13 +80,14 @@
     <div class="mx-auto max-w-7xl">
 
       <!-- Header -->
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h2 class="text-3xl font-bold text-gray-900">PMO Interviews</h2>
-        <button id="create-interview-btn" onclick="window.location.href='/schedule.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-          <span class="material-symbols-outlined">add</span>
-          <span>Create Interview</span>
-        </button>
-      </div>
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <h2 class="text-3xl font-bold text-gray-900">PMO Interviews</h2>
+  <!-- THIS LINE IS UPDATED -->
+  <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=PMO_Dashboard.html'" class="flex items-center ...">
+    <span class="material-symbols-outlined">add</span>
+    <span>Create Interview</span>
+  </button>
+</div>
 
       <!-- Table -->
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -15,7 +15,7 @@
      --secondary-color: #f0f2f4;
      --text-primary: #111418;
      --text-secondary: #617589;
-       }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-[var(--text-primary)]" style='font-family: "Inter", "Noto Sans", sans-serif;'>
@@ -29,7 +29,8 @@
         </svg>
         <h1 class="text-xl font-bold tracking-tight text-[var(--text-primary)]">HireXpert</h1>
     </div>
-    <a class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--primary-color)]" href="/HR_Dashboard">Dashboard</a>
+    <!-- THIS IS THE ONLY CHANGE IN THIS FILE -->
+    <a id="back-to-dashboard-link" class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--primary-color)]" href="/HR_Dashboard.html">Dashboard</a>
 </div>
 <div class="flex items-center gap-4">
 <button class="relative rounded-full p-2 text-[var(--text-secondary)] hover:bg-gray-100 hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2">
@@ -69,22 +70,18 @@
 </button>
 </div>
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-<!-- =========== THIS IS THE CLEANED UP DATE SECTION =========== -->
 <div>
     <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-date">Date</label>
     <div>
         <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-date" name="date" placeholder="Select Date" type="date" required>
     </div>
 </div>
-<!-- ============================================================== -->
-<!-- =========== THIS IS THE CLEANED UP TIME SECTION =========== -->
 <div>
     <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-time">Time</label>
     <div>
         <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-time" name="time" type="time" value="09:00" required>
     </div>
 </div>
-<!-- ============================================================== -->
 </div>
 <div>
     <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="candidate-emails">Candidate Emails</label>
@@ -219,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script src="js/schedule.js"></script>
 <script src="js/generate.js"></script>
-</body></html>
 
+</body>
+</html>
 

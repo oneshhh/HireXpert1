@@ -1,4 +1,22 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // =================================================================
+  // ===========        DYNAMIC REDIRECT LOGIC         ===========
+  // =================================================================
+  // 1. Read the 'from' parameter from the page's URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const originDashboard = urlParams.get('from');
+  
+  // 2. Determine the correct URL to redirect back to. Default to HR if it's missing.
+  const redirectUrl = originDashboard ? `/${originDashboard}` : '/HR_Dashboard.html';
+
+  // 3. Find the "Dashboard" link in the header and update its destination
+  const backLink = document.getElementById('back-to-dashboard-link');
+  if (backLink) {
+      backLink.href = redirectUrl;
+  }
+  // =================================================================
+
+
   const form = document.getElementById("scheduleForm");
 
   form.addEventListener("submit", async function (e) {
@@ -6,21 +24,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const formData = new FormData(form);
     
-    // This 'data' object is now correctly aligned with the form and the server.
     const data = {
       title: formData.get("title"),
       questions: formData.getAll("questions[]"),
-      timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t) || 0),
+      timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
       date: formData.get("date"),
       time: formData.get("time"),
-      // =================================================================
-      // =========== THIS IS THE CORRECTED LINE ===========
-      // =================================================================
-      emails: formData.get("emails"), // Changed from "email" to "emails"
+      emails: formData.get("emails"),
     };
 
     try {
-      // Send data to the server
       const res = await fetch("/schedule", {
         method: "POST",
         headers: {
@@ -32,13 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await res.json();
 
       if (res.ok) {
-        // We can't use alert() because it might be blocked. A console log is safer for now.
-        console.log(`✅ Interview scheduled successfully! Response:`, result.message);
+        console.log(`✅ Interview scheduled! Response:`, result.message);
         
-        // Redirect back to the HR dashboard
-        window.location.href = "/HR_Dashboard.html";
+        // 4. Use the dynamic redirectUrl we created above
+        window.location.href = redirectUrl;
       } else {
-        // Use console.error for errors
         console.error(`❌ Error: ${result.message || "Something went wrong"}`);
         alert(`❌ Error: ${result.message || "Something went wrong"}`);
       }
@@ -48,3 +59,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
