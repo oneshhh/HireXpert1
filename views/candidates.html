@@ -20,7 +20,7 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-8">
-                    <a class="flex items-center gap-2 text-[var(--primary-color)]" href="/HR_Dashboard.html">
+                    <a id="header-logo-link" class="flex items-center gap-2 text-[var(--primary-color)]" href="/HR_Dashboard.html">
                         <svg class="h-8 w-8" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                             <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
                             <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
@@ -28,8 +28,8 @@
                         <h1 class="text-2xl font-bold">HireXpert</h1>
                     </a>
                     <nav class="hidden md:flex items-center gap-6">
-                        <a class="text-sm font-medium text-neutral-600 hover:text-[var(--primary-color)] transition-colors" href="/HR_Dashboard.html">Dashboard</a>
-                        <a class="text-sm font-medium text-[var(--primary-color)]" href="#">Candidates</a>
+                        <a id="header-dashboard-link" class="text-sm font-medium text-neutral-600 hover:text-[var(--primary-color)] transition-colors" href="/HR_Dashboard.html">Dashboard</a>
+                        <a id="header-candidates-link" class="text-sm font-medium text-[var(--primary-color)]" href="#">Candidates</a>
                     </nav>
                 </div>
                 <div class="flex items-center gap-4">
@@ -41,9 +41,8 @@
     <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-5xl mx-auto">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <h2 class="text-3xl font-bold text-neutral-900">All Candidates</h2>
+                <h2 id="page-title" class="text-3xl font-bold text-neutral-900">All Candidates</h2>
             </div>
-            <!-- =========== SEARCH BAR ADDED =========== -->
             <div class="mb-6">
                 <label class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">search</span>
@@ -62,11 +61,7 @@
                             </tr>
                         </thead>
                         <tbody id="candidate-table-body">
-                            <tr>
-                                <td colspan="4" class="text-center p-8 text-neutral-500">
-                                    <p>Loading candidate data...</p>
-                                </td>
-                            </tr>
+                            <!-- Rows will be injected here by the script -->
                         </tbody>
                     </table>
                 </div>
@@ -76,11 +71,24 @@
 </div>
 
 <script>
-    // Main function to load candidates, now with search
-    async function loadCandidates(searchTerm = "") {
+    // This function now takes the department as an argument
+    async function loadCandidates(department, searchTerm = "") {
         const tbody = document.getElementById("candidate-table-body");
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">Loading candidate data...</td></tr>`;
         try {
-            const url = searchTerm ? `/api/candidates/all?search=${encodeURIComponent(searchTerm)}` : '/api/candidates/all';
+            let url = '/api/candidates/all';
+            const params = new URLSearchParams();
+            if (department) {
+                params.append('department', department);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
+
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`API Error: ${response.status}`);
@@ -89,14 +97,11 @@
             tbody.innerHTML = "";
 
             if (candidates.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">No candidates found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">No candidates found for this department.</td></tr>`;
                 return;
             }
 
-            const formatDate = (dateString) => {
-                const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                return new Date(dateString).toLocaleDateString(undefined, options);
-            };
+            const formatDate = (dateString) => new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
             candidates.forEach(candidate => {
                 const tr = document.createElement("tr");
@@ -124,22 +129,46 @@
 
         } catch (error) {
             console.error("Failed to load candidates:", error);
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-500">Failed to load candidate data. Please try again later.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-500">Failed to load candidate data. Please try again.</td></tr>`;
         }
     };
 
-    // --- Search Bar Logic ---
-    const searchBar = document.getElementById('candidate-search-bar');
-    let debounceTimer;
-    searchBar.addEventListener('input', (e) => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            loadCandidates(e.target.value);
-        }, 300); // Wait 300ms after user stops typing
+    // This block runs when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- THIS IS THE NEW LOGIC ---
+        // 1. Read the department from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const department = urlParams.get('department');
+        
+        // 2. Update the page title and header links to be department-specific
+        const pageTitle = document.getElementById('page-title');
+        const logoLink = document.getElementById('header-logo-link');
+        const dashboardLink = document.getElementById('header-dashboard-link');
+        const candidatesLink = document.getElementById('header-candidates-link');
+
+        if (department) {
+            pageTitle.textContent = `${department} Candidates`;
+            const dashboardUrl = `/${department}_Dashboard.html`;
+            logoLink.href = dashboardUrl;
+            dashboardLink.href = dashboardUrl;
+            candidatesLink.href = `/candidates.html?department=${department}`;
+        } else {
+            pageTitle.textContent = "All Company Candidates";
+        }
+        
+        // 3. Load the initial data for the correct department
+        loadCandidates(department);
+
+        // --- Search Bar Logic ---
+        const searchBar = document.getElementById('candidate-search-bar');
+        let debounceTimer;
+        searchBar.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                loadCandidates(department, e.target.value);
+            }, 300);
+        });
     });
-    
-    // Initial load
-    window.onload = () => loadCandidates();
 </script>
 
 </body>
