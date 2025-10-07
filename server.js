@@ -161,9 +161,7 @@ app.get("/api/session/:sessionId", async (req, res) => {
 });
 
 
-// =================================================================
-// ===========        MODIFIED SCHEDULE ROUTE        ===========
-// =================================================================
+// ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -181,8 +179,8 @@ app.post("/schedule", async (req, res) => {
 
     const interviewId = uuidv4();
     await client.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
       [interviewId, title, questions, timeLimits, date, time, department]
     );
     console.log(`✅ Master interview template saved for ${department}:`, title);
@@ -216,12 +214,10 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-// =================================================================
-// ===========        MODIFIED INTERVIEWS API ROUTE        ===========
-// =================================================================
+// ---------- Fetch all interviews ----------
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search, department } = req.query; 
+    const { search, department } = req.query;
     let queryParams = [];
     let whereClauses = [];
     let baseQuery = "SELECT * FROM interviews";
@@ -237,7 +233,7 @@ app.get("/api/interviews", async (req, res) => {
     if (whereClauses.length > 0) {
         baseQuery += " WHERE " + whereClauses.join(" AND ");
     }
-    baseQuery += " ORDER BY created_at DESC, date DESC";
+    baseQuery += " ORDER BY created_at DESC";
 
     const result = await pool.query(baseQuery, queryParams);
     res.json(result.rows.map(r => ({
@@ -256,26 +252,105 @@ app.get("/api/interviews", async (req, res) => {
 
 
 // =================================================================
+// ===========        NEW ROUTES FOR ADMIN DASHBOARD       ===========
+// =================================================================
+app.get("/admin_dashboard.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "admin_dashboard.html"));
+});
+
+app.get("/api/users", (req, res) => {
+    res.json(users);
+});
+
+app.get("/api/analytics/status-counts", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT status, COUNT(*) AS count 
+             FROM candidate_sessions 
+             GROUP BY status`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching status counts:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+// =================================================================
+
+
+// =================================================================
 // =========== API ROUTES FOR VIEW/EDIT/DELETE ===========
 // =================================================================
+async function fetchSingleInterview(req, res) {
+  try {
+    const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
-async function fetchSingleInterview(req, res) { /* ... existing code ... */ }
+    const row = result.rows[0];
+    res.json({ ...row, questions: parseQuestionsField(row.questions), timeLimits: row.time_limits || [] });
+  } catch (err) {
+    console.error("DB error fetching single interview:", err);
+    res.status(500).json({ message: "DB error" });
+  }
+}
 app.get("/api/interview/:id", fetchSingleInterview);
 app.get("/api/interviews/:id", fetchSingleInterview);
-app.post("/api/interview/:id/update", async (req, res) => { /* ... existing code ... */ });
-app.delete("/api/interview/:id/delete", async (req, res) => { /* ... existing code ... */ });
-app.get("/api/interview/:id/candidates", async (req, res) => { /* ... existing code ... */ });
 
+app.post("/api/interview/:id/update", async (req, res) => {
+  try {
+    let { title, questions, timeLimits, date, time } = req.body;
+    if (!Array.isArray(questions)) questions = [String(questions || '')];
+    if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
+    while (timeLimits.length < questions.length) timeLimits.push(0);
+    await pool.query(
+      `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5 WHERE id=$6`,
+      [title, questions, timeLimits, date, time, req.params.id]
+    );
+    res.json({ message: "Interview template updated successfully" });
+  } catch (err) {
+    console.error("Update failed:", err);
+    res.status(500).json({ message: "Update failed" });
+  }
+});
 
-// =================================================================
-// ===========        UPDATED CANDIDATES API ROUTE       ===========
-// =================================================================
+app.delete("/api/interview/:id/delete", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const interviewId = req.params.id;
+    await client.query("DELETE FROM candidate_sessions WHERE interview_id = $1", [interviewId]);
+    await client.query("DELETE FROM interviews WHERE id = $1", [interviewId]);
+    await client.query('COMMIT');
+    res.json({ message: "Interview and all associated sessions deleted successfully" });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Delete failed:", err);
+    res.status(500).json({ message: "Delete failed" });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/api/interview/:id/candidates", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT session_id, candidate_email, status FROM candidate_sessions WHERE interview_id = $1 ORDER BY created_at DESC`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
+    res.status(500).json({ message: "Failed to fetch candidate list." });
+  }
+});
+
+// --- UPDATED CANDIDATES ROUTE to include department ---
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department } = req.query;
         let queryParams = [];
         let whereClauses = [];
-        // UPDATED: Added 'review_url' to the SELECT statement
         let baseQuery = `
             SELECT 
                 cs.session_id, 
@@ -283,7 +358,8 @@ app.get("/api/candidates/all", async (req, res) => {
                 cs.status, 
                 cs.created_at,
                 cs.review_url, 
-                i.title AS interview_title 
+                i.title AS interview_title,
+                cs.department
             FROM 
                 candidate_sessions cs
             JOIN 
@@ -309,66 +385,9 @@ app.get("/api/candidates/all", async (req, res) => {
     }
 });
 
-
-// =================================================================
-// ===========        NEW ENDPOINTS FOR STATUS UPDATES       ===========
-// =================================================================
-
-// This endpoint is called by the candidate portal when an interview starts
-app.post("/api/session/:sessionId/start", async (req, res) => {
-    try {
-        const { sessionId } = req.params;
-        await pool.query(
-            "UPDATE candidate_sessions SET status = 'Started' WHERE session_id = $1 AND status = 'Invited'",
-            [sessionId]
-        );
-        console.log(`✅ Status updated to 'Started' for session: ${sessionId}`);
-        res.status(200).json({ success: true });
-    } catch (err) {
-        console.error("Error starting session:", err);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-// This is the secure webhook endpoint for when an interview is completed
-app.post("/api/webhook/interview-completed", async (req, res) => {
-  try {
-    const { sessionId, reviewUrl, secret } = req.body;
-
-    // Security check: Ensure the secret from the webhook matches our environment variable
-    if (secret !== process.env.WEBHOOK_SECRET) {
-      console.warn("Unauthorized webhook attempt blocked due to wrong secret.");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    if (!sessionId || !reviewUrl) {
-      return res.status(400).json({ error: "Missing sessionId or reviewUrl" });
-    }
-
-    // Update the database with the 'Completed' status and the review link
-    const result = await pool.query(
-      `UPDATE candidate_sessions SET status = 'Completed', review_url = $1 WHERE session_id = $2`,
-      [reviewUrl, sessionId]
-    );
-
-    if (result.rowCount > 0) {
-        console.log(`✅ Webhook processed: Status 'Completed' for session ${sessionId}`);
-    } else {
-        console.warn(`Webhook received for a non-existent session ID: ${sessionId}`);
-    }
-
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error("❌ Error processing webhook:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-
 // =================================================================
 // =========== ROUTES TO SERVE STATIC HTML PAGES ===========
 // =================================================================
-
 app.get("/interview-view.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-view.html"));
 });
@@ -380,7 +399,6 @@ app.get("/interview-edit.html", (req, res) => {
 app.get("/candidates.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "candidates.html"));
 });
-
 
 // ---------- Start server ----------
 app.listen(PORT, () => {
