@@ -255,7 +255,7 @@ app.get("/api/interviews", async (req, res) => {
 // ===========        NEW ROUTES FOR ADMIN DASHBOARD       ===========
 // =================================================================
 app.get("/admin_dashboard.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "views", "admin_dashboard.html"));
+    res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
 });
 
 app.get("/api/users", (req, res) => {
