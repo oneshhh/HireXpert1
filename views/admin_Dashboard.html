@@ -136,15 +136,16 @@
             
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
             
-            // If the chart instance already exists, just update its data without animation
-            if (interviewsLineChartInstance) {
+            if (interviewsLineChartInstance && !withAnimation) {
                 interviewsLineChartInstance.data.labels = labels;
                 interviewsLineChartInstance.data.datasets[0].data = counts;
-                interviewsLineChartInstance.update(); // Use a smooth update
+                interviewsLineChartInstance.update('none'); // Update without animation
                 return;
             }
+            if (interviewsLineChartInstance) {
+                interviewsLineChartInstance.destroy();
+            }
 
-            // Otherwise, create the new chart instance with the initial animation
             interviewsLineChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -157,11 +158,9 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Fixes resizing issue
+                    maintainAspectRatio: false,
                     scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
                     plugins: { legend: { display: false } },
-                    // Only animate on the first load
-                    animation: withAnimation ? undefined : { duration: 0 }
                 }
             });
         } catch (error) { console.error(`Failed to load line chart data for ${days} days:`, error); }
@@ -177,11 +176,14 @@
             const labels = data.map(item => item.status);
             const counts = data.map(item => item.count);
 
-            if (pieChartInstance) {
+            if (pieChartInstance && !withAnimation) {
                 pieChartInstance.data.labels = labels;
                 pieChartInstance.data.datasets[0].data = counts;
-                pieChartInstance.update();
+                pieChartInstance.update('none'); // Update without animation
                 return;
+            }
+            if(pieChartInstance){
+                pieChartInstance.destroy();
             }
             
             pieChartInstance = new Chart(ctx, {
@@ -196,9 +198,8 @@
                 },
                 options: { 
                     responsive: true,
-                    maintainAspectRatio: false, // Fixes resizing issue
+                    maintainAspectRatio: false,
                     plugins: { legend: { position: 'top' } },
-                    animation: withAnimation ? undefined : { duration: 0 }
                 }
             });
         } catch (error) {
@@ -208,9 +209,67 @@
         }
     }
     
-    // --- SCRIPT TO LOAD THE USERS & CANDIDATES TABLES ---
-    async function loadUsers() { /* ... existing code ... */ }
-    async function loadCandidates() { /* ... existing code ... */ }
+    // =================================================================
+    // ===========        THIS IS THE CORRECTED CODE         ===========
+    // =================================================================
+    // --- 3. SCRIPT TO LOAD THE USERS TABLE ---
+    async function loadUsers() {
+        const tbody = document.getElementById("users-table-body");
+        try {
+            const response = await fetch('/api/users');
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            const users = await response.json();
+            tbody.innerHTML = "";
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4">
+                        <div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Failed to load users:", error);
+            if(tbody.innerHTML.includes('Loading')) tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
+        }
+    }
+
+    // --- 4. SCRIPT TO LOAD THE CANDIDATES TABLE ---
+    async function loadCandidates() {
+        const tbody = document.getElementById("candidates-table-body");
+        try {
+            const response = await fetch('/api/candidates/all'); // No department filter
+            if (!response.ok) throw new Error('Failed to fetch candidate data');
+            const candidates = await response.json();
+            tbody.innerHTML = "";
+            if (candidates.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>';
+                 return;
+            }
+            candidates.forEach(candidate => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4">
+                         <div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">
+                            ${candidate.status}
+                         </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Failed to load candidates:", error);
+             if(tbody.innerHTML.includes('Loading')) tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
+        }
+    }
+    // =================================================================
+
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
@@ -238,7 +297,6 @@
             });
             buttons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700');
             buttons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow');
-            // Load new chart data with animation when the button is clicked
             loadLineChartData(days, true);
         };
         
