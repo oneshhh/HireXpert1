@@ -1,124 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>TalentFlow Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  
-  <style type="text/tailwindcss">
-    :root { --primary-color: #1173d4; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - HireXpert</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        :root {
+            --primary-color: #1173d4;
+            --primary-color-hover: #1d4ed8;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
-<div class="relative flex size-full min-h-screen flex-col overflow-x-hidden">
-  <div class="flex flex-1 items-center justify-center p-6">
-    <div class="w-full max-w-md">
-      <div class="flex items-center justify-center gap-3 mb-8">
-        <svg class="h-8 w-8 text-[var(--primary-color)]" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8.578 8.578c-3.05 3.05-5.127 6.936-5.969 11.167-.842 4.231-.41 8.616 1.24 12.602 1.65 3.985 4.445 7.391 8.032 9.788 3.587 2.397 7.803 3.676 12.117 3.676s8.53-1.279 12.117-3.676c3.587-2.397 6.382-5.803 8.032-9.788 1.65-3.986 2.082-8.371 1.24-12.602-.842-4.231-2.919-8.117-5.969-11.167L24 24 8.578 8.578Z" fill="currentColor"></path>
-        </svg>
-        <h1 class="text-2xl font-bold text-gray-800">HireXpert</h1>
-      </div>
-
-      <div class="bg-white rounded-md shadow-sm p-8">
-        <div class="text-center mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">Secure Login</h2>
-          <p class="text-gray-500 mt-1">Access your department dashboard</p>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-xl shadow-lg">
+        <div class="text-center">
+            <div class="flex justify-center mx-auto mb-4 w-12 h-12 text-[var(--primary-color)]">
+                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+                    <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900">Sign in to HireXpert</h1>
+            <p class="mt-2 text-sm text-gray-600">Please select your department and enter your credentials.</p>
         </div>
-
-        <!-- Real form posting to backend -->
-        <form id="loginForm" action="/login" method="POST" class="space-y-6">
-          <div>
-            <label class="sr-only" for="email">Email</label>
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
-              <input name="email" id="email" placeholder="Email" type="email" required
-                class="form-input w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
-                       placeholder:text-gray-400 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"/>
+        <!-- The form now has an ID for the script to target -->
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+                <div class="mt-1">
+                    <input id="email" name="email" type="email" autocomplete="email" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
+                </div>
             </div>
-          </div>
-
-          <div>
-            <label class="sr-only" for="password">Password</label>
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
-              <input name="password" id="password" placeholder="Password" type="password" required
-                class="form-input w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
-                       placeholder:text-gray-400 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"/>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <div class="mt-1">
+                    <input id="password" name="password" type="password" autocomplete="current-password" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
+                </div>
             </div>
-          </div>
-
-          <div>
-            <label class="sr-only" for="department">Department</label>
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">business_center</span>
-              <select name="department" id="department" required
-                class="form-select w-full rounded-md border-gray-300 bg-gray-50 py-3 pl-10 pr-4 text-gray-800 
-                       focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
-                <option value="">Select Department</option>
-                <option value="HR">Human Resources (HR)</option>
-                <option value="PMO">Project Management Office (PMO)</option>
-                <option value="GTA">Global Talent Acquisition (GTA)</option>
-              </select>
+            <div>
+                <label for="department" class="block text-sm font-medium text-gray-700">Department</label>
+                <div class="mt-1">
+                    <select id="department" name="department" required
+                        class="w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
+                        <option value="HR">HR</option>
+                        <option value="PMO">PMO</option>
+                        <option value="GTA">GTA</option>
+                        <option value="Admin">Admin</option> 
+                    </select>
+                </div>
             </div>
-          </div>
-
-          <div>
-            <button type="submit"
-              class="flex w-full justify-center rounded-md bg-[var(--primary-color)] px-4 py-3 text-sm font-semibold text-white 
-                     shadow-sm hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 
-                     focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-              Login
-            </button>
-          </div>
+            <div>
+                <button type="submit"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]">
+                    Sign in
+                </button>
+            </div>
         </form>
-
-        <div class="mt-6 text-center">
-          <a class="text-sm text-gray-500 hover:text-[var(--primary-color)] hover:underline" href="#">Forgot Password?</a>
-        </div>
-      </div>
-
-      <p class="mt-8 text-center text-sm text-gray-500">© 2024 TalentFlow. All rights reserved.</p>
     </div>
-  </div>
-</div>
 
-<script>
-  const loginForm = document.getElementById("loginForm");
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault(); // Prevent default form submission
-
-    const formData = new FormData(loginForm);
-    const formProps = Object.fromEntries(formData);
-
-    try {
-      const response = await fetch("/login", {
-        method: "POST",
-        // Correctly set the headers to send JSON
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // Stringify the data to send it as a JSON string
-        body: JSON.stringify(formProps),
+    <!-- This script provides the modern fetch-based submission logic -->
+    <script>
+      const loginForm = document.getElementById("loginForm");
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault(); 
+    
+        const formData = new FormData(loginForm);
+        const formProps = Object.fromEntries(formData);
+    
+        try {
+          const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formProps),
+          });
+    
+          if (response.ok && response.redirected) {
+            // If the login is successful, the server sends a redirect. Follow it.
+            window.location.href = response.url;
+          } else {
+            // If the login fails, the server sends an error message as plain text.
+            const errorMessage = await response.text();
+            alert(errorMessage);
+          }
+        } catch (error) {
+          // Handle network errors (e.g., server is down)
+          console.error("Error:", error);
+          alert("A network error occurred. Please try again.");
+        }
       });
-
-      if (response.ok) {
-        // Successful login, redirect to the dashboard
-        window.location.href = response.url;
-      } else {
-        // Failed login, get the JSON error message
-        const errorData = await response.json();
-        alert(errorData.message);
-      }
-    } catch (error) {
-      // Handle network errors
-      console.error("Error:", error);
-      alert("The Password or Email is incorrect, Make sure to select the correct department");
-    }
-  });
-</script>
-
+    </script>
+    
 </body>
 </html>
+
