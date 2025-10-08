@@ -29,7 +29,6 @@
         </svg>
         <h1 class="text-xl font-bold tracking-tight text-[var(--text-primary)]">HireXpert</h1>
     </div>
-    <!-- THIS IS THE ONLY CHANGE IN THIS FILE -->
     <a id="back-to-dashboard-link" class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--primary-color)]" href="/HR_Dashboard.html">Dashboard</a>
 </div>
 <div class="flex items-center gap-4">
@@ -58,7 +57,14 @@
 <div id="questions-container" class="space-y-4">
 <div class="flex items-start gap-4">
 <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
-<input class="w-24 rounded-md border border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" type="number" min="0" name="timeLimits[]" placeholder="Time (sec)">
+<!-- =========== THIS IS THE NEW TIME DROPDOWN =========== -->
+<select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
+    <option value="0">Untimed</option>
+    <option value="30">30s</option>
+    <option value="60">60s</option>
+    <option value="90">90s</option>
+    <option value="120">120s</option>
+</select>
 <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
 <span class="material-symbols-outlined text-xl">delete</span>
 </button>
@@ -112,7 +118,19 @@
 <div class="flex items-end gap-4">
     <div class="flex-1">
         <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="num-questions">Number of questions</label>
-        <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="num-questions" placeholder="e.g., 5" type="number" min="1"/>
+        <!-- =========== THIS IS THE NEW NUMBER OF QUESTIONS DROPDOWN =========== -->
+        <select id="num-questions" class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
     </div>
     <div class="w-48">
         <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="difficulty">Difficulty</label>
@@ -156,8 +174,14 @@
       const div = document.createElement("div");
       div.classList.add("flex", "items-start", "gap-4");
     div.innerHTML = `
-        <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>\${questionText}</textarea>
-        <input type="number" min="0" name="timeLimits[]" placeholder="Time (sec)" class="w-24 rounded-md border border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
+        <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
+        <select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
+            <option value="0">Untimed</option>
+            <option value="30">30s</option>
+            <option value="60">60s</option>
+            <option value="90">90s</option>
+            <option value="120">120s</option>
+        </select>
         <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
           <span class="material-symbols-outlined text-xl">delete</span>
         </button>
@@ -173,43 +197,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('interview-date');
     const timeInput = document.getElementById('interview-time');
 
-    // --- 1. Set Minimum Date ---
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
     dateInput.min = todayString;
 
-    // --- 2. Function to Restrict Time Based on Selected Date ---
     function handleDateChange() {
         const now = new Date();
         const selectedDate = dateInput.value;
 
-        // Check if the selected date is today
         if (selectedDate === todayString) {
-            // If it is today, set the minimum selectable time to the current time
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const currentTime = `\${hours}:\${minutes}`;
+            const currentTime = `${hours}:${minutes}`;
             timeInput.min = currentTime;
 
-            // Optional: If the current time in the input is now in the past, clear it
             if (timeInput.value < currentTime) {
                 timeInput.value = currentTime;
             }
-
         } else {
-            // If a future date is selected, remove the minimum time restriction
             timeInput.min = '';
         }
     }
-
-    // --- 3. Add Event Listener ---
     dateInput.addEventListener('change', handleDateChange);
-
-    // --- 4. Initial Call on Load ---
-    // Run the function once when the page loads to set the initial state
     handleDateChange();
-
-    // Also manage the add question button on initial load
     manageAddQuestionButton();
 });
 </script>
