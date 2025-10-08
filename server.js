@@ -115,7 +115,7 @@ app.post("/login", (req, res) => {
         req.session.user = user;
         // NEW: Check for Admin department and redirect accordingly
         if (user.department === 'Admin') {
-            return res.redirect('/admin_dashboard.html');
+            return res.redirect('/admin_Dashboard.html');
         }
         res.redirect(`/${user.department}_Dashboard.html`);
     } else {
