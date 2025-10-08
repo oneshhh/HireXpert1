@@ -275,6 +275,24 @@ app.get("/api/analytics/status-counts", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+
+
+app.get("/api/analytics/interviews-over-time", async (req, res) => {
+    try {
+        const days = parseInt(req.query.days) || 7;
+        const result = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM interviews
+             WHERE created_at >= NOW() - INTERVAL '${days} days'
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching interviews over time data:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 // =================================================================
 
 

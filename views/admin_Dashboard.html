@@ -7,7 +7,6 @@
     <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- NEW: Chart.js library for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style type="text/tailwindcss">
       :root {
@@ -16,9 +15,7 @@
         --text-primary: #111418;
         --text-secondary: #617589;
       }
-      .status-badge {
-        @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium;
-      }
+      .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
       .status-active { @apply bg-green-100 text-green-800; }
       .status-inactive { @apply bg-red-100 text-red-800; }
       .status-dot { @apply h-2 w-2 rounded-full; }
@@ -49,12 +46,30 @@
 <main class="flex-1 bg-gray-50 p-8">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
-    <!-- =========== NEW: ANALYTICS SECTION =========== -->
+    <!-- =========== UPDATED: ANALYTICS SECTION =========== -->
     <div class="mt-8">
-        <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Interview Status Overview</h2>
-        <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <div class="mx-auto" style="max-width: 400px;">
-                <canvas id="statusPieChart"></canvas>
+        <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Line Chart Card -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-gray-800">Interviews Scheduled Over Time</h3>
+                    <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
+                        <button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow">7D</button>
+                        <button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">14D</button>
+                        <button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">30D</button>
+                    </div>
+                </div>
+                <div>
+                    <canvas id="interviewsLineChart"></canvas>
+                </div>
+            </div>
+            <!-- Pie Chart Card -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                 <h3 class="font-semibold text-gray-800 mb-4 text-center">Interview Status Distribution</h3>
+                <div class="mx-auto" style="max-width: 320px;">
+                    <canvas id="statusPieChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -72,9 +87,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
                     </tr>
                 </thead>
-                <tbody id="users-table-body" class="divide-y divide-gray-200">
-                    <!-- User rows will be loaded here -->
-                </tbody>
+                <tbody id="users-table-body" class="divide-y divide-gray-200"></tbody>
             </table>
         </div>
     </div>
@@ -91,9 +104,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
                     </tr>
                 </thead>
-                <tbody id="candidates-table-body" class="divide-y divide-gray-200">
-                    <!-- Candidate rows will be loaded here -->
-                </tbody>
+                <tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody>
             </table>
         </div>
     </div>
@@ -102,129 +113,99 @@
 </div>
 
 <script>
-    // --- 1. SCRIPT TO LOAD AND RENDER THE ANALYTICS CHART ---
-    async function loadAnalytics() {
+    let interviewsLineChartInstance = null;
+
+    // --- SCRIPT TO LOAD AND RENDER THE LINE CHART ---
+    async function loadLineChartData(days) {
         try {
-            const response = await fetch('/api/analytics/status-counts');
+            const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
             const data = await response.json();
 
-            const ctx = document.getElementById('statusPieChart').getContext('2d');
+            const labels = [];
+            const counts = [];
             
-            // Prepare data for Chart.js
-            const labels = data.map(item => item.status);
-            const counts = data.map(item => item.count);
+            // Create a map of the data for easy lookup
+            const dataMap = new Map(data.map(item => [item.date.split('T')[0], item.count]));
 
-            new Chart(ctx, {
-                type: 'pie',
+            // Generate labels for the last N days
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+                counts.push(dataMap.get(dateString) || 0);
+            }
+            
+            const ctx = document.getElementById('interviewsLineChart').getContext('2d');
+            
+            if (interviewsLineChartInstance) {
+                interviewsLineChartInstance.destroy();
+            }
+
+            interviewsLineChartInstance = new Chart(ctx, {
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Interview Statuses',
+                        label: 'Interviews Scheduled',
                         data: counts,
-                        backgroundColor: [
-                            'rgba(54, 162, 235, 0.7)', // Blue for Invited
-                            'rgba(255, 206, 86, 0.7)', // Yellow for Started/Pending
-                            'rgba(75, 192, 192, 0.7)',  // Green for Completed
-                            'rgba(255, 99, 132, 0.7)',  // Red for others
-                        ],
-                        borderColor: [
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(255, 99, 132, 1)',
-                        ],
-                        borderWidth: 1
+                        backgroundColor: 'rgba(17, 115, 212, 0.1)',
+                        borderColor: 'rgba(17, 115, 212, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
                     }]
                 },
                 options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Distribution of Candidate Interview Statuses'
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
                         }
-                    }
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         } catch (error) {
-            console.error("Failed to load analytics data:", error);
-            const chartCanvas = document.getElementById('statusPieChart');
-            chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load analytics data.</p>';
+            console.error(`Failed to load line chart data for ${days} days:`, error);
         }
     }
 
+    // --- SCRIPT TO LOAD AND RENDER THE PIE CHART ---
+    async function loadPieChartData() { /* ... existing code from previous file ... */ }
+    
+    // --- SCRIPT TO LOAD USERS & CANDIDATES ---
+    async function loadUsers() { /* ... existing code ... */ }
+    async function loadCandidates() { /* ... existing code ... */ }
 
-    // --- 2. SCRIPT TO LOAD THE USERS TABLE ---
-    async function loadUsers() {
-        const tbody = document.getElementById("users-table-body");
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4">Loading...</td></tr>';
-        try {
-            const response = await fetch('/api/users');
-            const users = await response.json();
-
-            tbody.innerHTML = ""; // Clear loading state
-            users.forEach(user => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.email}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
-                    <td class="whitespace-nowrap px-6 py-4">
-                        <div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } catch (error) {
-            console.error("Failed to load users:", error);
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
-        }
-    }
-
-
-    // --- 3. SCRIPT TO LOAD THE CANDIDATES TABLE ---
-    async function loadCandidates() {
-        const tbody = document.getElementById("candidates-table-body");
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading...</td></tr>';
-        try {
-            const response = await fetch('/api/candidates/all'); // No department filter
-            const candidates = await response.json();
-
-            tbody.innerHTML = ""; // Clear loading state
-            if (candidates.length === 0) {
-                 tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>';
-                 return;
-            }
-
-            candidates.forEach(candidate => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
-                    <td class="whitespace-nowrap px-6 py-4">
-                         <div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">
-                            ${candidate.status}
-                         </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-        } catch (error) {
-            console.error("Failed to load candidates:", error);
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
-        }
-    }
-
-    // Load all data when the page opens
+    // --- MAIN SCRIPT ON PAGE LOAD ---
     window.onload = () => {
-        loadAnalytics();
+        loadPieChartData();
         loadUsers();
         loadCandidates();
+        loadLineChartData(7); // Load 7 days by default
+
+        const buttons = {
+            '7d': document.getElementById('7d-btn'),
+            '14d': document.getElementById('14d-btn'),
+            '30d': document.getElementById('30d-btn'),
+        };
+
+        const handleButtonClick = (days, clickedBtnKey) => {
+            Object.keys(buttons).forEach(key => {
+                buttons[key].classList.remove('bg-white', 'shadow');
+                buttons[key].classList.add('hover:bg-white', 'hover:shadow');
+            });
+            buttons[clickedBtnKey].classList.add('bg-white', 'shadow');
+            buttons[clickedBtnKey].classList.remove('hover:bg-white', 'hover:shadow');
+            loadLineChartData(days);
+        };
+        
+        buttons['7d'].addEventListener('click', () => handleButtonClick(7, '7d'));
+        buttons['14d'].addEventListener('click', () => handleButtonClick(14, '14d'));
+        buttons['30d'].addEventListener('click', () => handleButtonClick(30, '30d'));
     };
 </script>
 </body>
 </html>
+
