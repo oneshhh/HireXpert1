@@ -113,6 +113,8 @@
 
 <script>
     let interviewsLineChartInstance = null;
+    let pieChartInstance = null;
+    let currentDays = 7; // Keep track of the active day range for the line chart
 
     // --- 1. SCRIPT TO LOAD AND RENDER THE LINE CHART ---
     async function loadLineChartData(days) {
@@ -120,11 +122,8 @@
             const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
             if (!response.ok) throw new Error('Failed to fetch line chart data');
             const data = await response.json();
-
-            const labels = [];
-            const counts = [];
+            const labels = [], counts = [];
             const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count]));
-            
             for (let i = days - 1; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
@@ -132,25 +131,16 @@
                 labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
                 counts.push(parseInt(dataMap.get(dateString) || 0));
             }
-            
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
-            
-            if (interviewsLineChartInstance) {
-                interviewsLineChartInstance.destroy();
-            }
-
+            if (interviewsLineChartInstance) interviewsLineChartInstance.destroy();
             interviewsLineChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Interviews Scheduled',
-                        data: counts,
-                        backgroundColor: 'rgba(17, 115, 212, 0.1)',
-                        borderColor: 'rgba(17, 115, 212, 1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true,
+                        label: 'Interviews Scheduled', data: counts,
+                        backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)',
+                        borderWidth: 2, tension: 0.3, fill: true,
                     }]
                 },
                 options: {
@@ -158,9 +148,7 @@
                     plugins: { legend: { display: false } }
                 }
             });
-        } catch (error) {
-            console.error(`Failed to load line chart data for ${days} days:`, error);
-        }
+        } catch (error) { console.error(`Failed to load line chart data for ${days} days:`, error); }
     }
 
     // --- 2. SCRIPT TO LOAD AND RENDER THE PIE CHART ---
@@ -169,40 +157,32 @@
             const response = await fetch('/api/analytics/status-counts');
             if (!response.ok) throw new Error('Failed to fetch pie chart data');
             const data = await response.json();
-
             const ctx = document.getElementById('statusPieChart').getContext('2d');
             const labels = data.map(item => item.status);
             const counts = data.map(item => item.count);
-
-            new Chart(ctx, {
+            if (pieChartInstance) pieChartInstance.destroy();
+            pieChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: counts,
                         backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'],
-                        borderColor: ['#fff'],
-                        borderWidth: 2
+                        borderColor: ['#fff'], borderWidth: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' }
-                    }
-                }
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
             });
         } catch (error) {
             console.error("Failed to load pie chart data:", error);
             const chartCanvas = document.getElementById('statusPieChart');
-            chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
+            if (chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
         }
     }
     
     // --- 3. SCRIPT TO LOAD THE USERS TABLE ---
     async function loadUsers() {
         const tbody = document.getElementById("users-table-body");
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4">Loading...</td></tr>';
         try {
             const response = await fetch('/api/users');
             if (!response.ok) throw new Error('Failed to fetch user data');
@@ -221,16 +201,15 @@
             });
         } catch (error) {
             console.error("Failed to load users:", error);
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
+            if(tbody.innerHTML.includes('Loading')) tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
         }
     }
 
     // --- 4. SCRIPT TO LOAD THE CANDIDATES TABLE ---
     async function loadCandidates() {
         const tbody = document.getElementById("candidates-table-body");
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading...</td></tr>';
         try {
-            const response = await fetch('/api/candidates/all'); // No department filter
+            const response = await fetch('/api/candidates/all');
             if (!response.ok) throw new Error('Failed to fetch candidate data');
             const candidates = await response.json();
             tbody.innerHTML = "";
@@ -254,24 +233,34 @@
             });
         } catch (error) {
             console.error("Failed to load candidates:", error);
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
+            if(tbody.innerHTML.includes('Loading')) tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
         }
     }
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
+        // Initial data load
         loadPieChartData();
         loadUsers();
         loadCandidates();
-        loadLineChartData(7); // Load 7 days by default
+        loadLineChartData(currentDays);
 
-        const buttons = {
-            '7d': document.getElementById('7d-btn'),
-            '14d': document.getElementById('14d-btn'),
-            '30d': document.getElementById('30d-btn'),
-        };
+        // =================================================================
+        // ===========        NEW LIVE FETCHING LOGIC (POLLING)        ===========
+        // =================================================================
+        setInterval(() => {
+            console.log("Refreshing admin dashboard data...");
+            loadPieChartData();
+            loadUsers();
+            loadCandidates();
+            // Refresh the line chart with the currently selected day range
+            loadLineChartData(currentDays);
+        }, 5000); // Refresh every 5 seconds
+        // =================================================================
 
+        const buttons = { '7d': document.getElementById('7d-btn'), '14d': document.getElementById('14d-btn'), '30d': document.getElementById('30d-btn') };
         const handleButtonClick = (days, clickedBtnKey) => {
+            currentDays = days; // Update the current day range
             Object.keys(buttons).forEach(key => {
                 buttons[key].classList.remove('bg-white', 'shadow', 'text-gray-700');
                 buttons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow');
@@ -280,7 +269,6 @@
             buttons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow');
             loadLineChartData(days);
         };
-        
         buttons['7d'].addEventListener('click', () => handleButtonClick(7, '7d'));
         buttons['14d'].addEventListener('click', () => handleButtonClick(14, '14d'));
         buttons['30d'].addEventListener('click', () => handleButtonClick(30, '30d'));

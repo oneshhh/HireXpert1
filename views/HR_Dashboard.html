@@ -59,6 +59,7 @@
       <nav class="hidden md:flex items-center gap-4">
         <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
         <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html?department=HR">Candidates</a>
+      </nav>
     </div>
     <div class="flex items-center gap-4">
       <div class="relative w-full max-w-xs">
@@ -79,7 +80,6 @@
       <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">HR Interviews</h2>
-        <!-- THIS LINE IS UPDATED -->
         <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=HR_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
@@ -136,7 +136,6 @@
   // Main function to load interviews
   async function loadInterviews(searchTerm = '') {
     try {
-      // THIS IS THE ONLY CHANGE: We now explicitly ask for the 'HR' department's data.
       const url = searchTerm 
         ? `/api/interviews?department=HR&search=${encodeURIComponent(searchTerm)}` 
         : "/api/interviews?department=HR";
@@ -175,8 +174,11 @@
       });
     } catch (err) {
       console.error("Error loading interviews:", err);
+      // Avoid clearing the table on a failed refresh
       const tbody = document.querySelector("#interviews-table-body");
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+      if(tbody.innerHTML === "") { // Only show error if table is empty
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+      }
     }
   }
 
@@ -190,8 +192,20 @@
     }, 300);
   });
 
-  // Load data on page load
-  window.onload = () => loadInterviews();
+  // =================================================================
+  // ===========        LIVE FETCHING LOGIC (POLLING)        ===========
+  // =================================================================
+  // 1. Initial load when the page opens
+  loadInterviews();
+
+  // 2. Set up a timer that re-runs the load function every 5 seconds
+  setInterval(() => {
+    // Get the current value from the search bar to maintain the filter on auto-refresh
+    const currentSearchTerm = document.getElementById('search-bar').value;
+    console.log(`Refreshing interviews... (Search term: "${currentSearchTerm}")`);
+    loadInterviews(currentSearchTerm);
+  }, 5000); // 5000 milliseconds = 5 seconds
+
 </script>
 
 </body>

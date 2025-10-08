@@ -136,7 +136,6 @@
   // Main function to load interviews
   async function loadInterviews(searchTerm = '') {
     try {
-      // THIS IS THE ONLY CHANGE: We now explicitly ask for the 'GTA' department's data.
       const url = searchTerm 
         ? `/api/interviews?department=GTA&search=${encodeURIComponent(searchTerm)}` 
         : "/api/interviews?department=GTA";
@@ -176,7 +175,9 @@
     } catch (err) {
       console.error("Error loading interviews:", err);
       const tbody = document.querySelector("#interviews-table-body");
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+       if(tbody.innerHTML === "") {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
+      }
     }
   }
 
@@ -190,8 +191,19 @@
     }, 300);
   });
 
-  // Load data on page load
-  window.onload = () => loadInterviews();
+  // =================================================================
+  // ===========        LIVE FETCHING LOGIC (POLLING)        ===========
+  // =================================================================
+  // 1. Initial load when the page opens
+  loadInterviews();
+
+  // 2. Set up a timer that re-runs the load function every 5 seconds
+  setInterval(() => {
+    const currentSearchTerm = document.getElementById('search-bar').value;
+    console.log(`Refreshing GTA interviews... (Search term: "${currentSearchTerm}")`);
+    loadInterviews(currentSearchTerm);
+  }, 5000); // 5000 milliseconds = 5 seconds
+
 </script>
 
 </body>
