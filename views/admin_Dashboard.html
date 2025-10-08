@@ -46,14 +46,13 @@
 <main class="flex-1 bg-gray-50 p-8">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
-    <!-- =========== UPDATED: ANALYTICS SECTION =========== -->
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Line Chart Card -->
             <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-semibold text-gray-800">Interviews Scheduled Over Time</h3>
+                    <h3 class="font-semibold text-gray-800">Interviews Scheduled</h3>
                     <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
                         <button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow">7D</button>
                         <button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">14D</button>
@@ -66,7 +65,7 @@
             </div>
             <!-- Pie Chart Card -->
             <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                 <h3 class="font-semibold text-gray-800 mb-4 text-center">Interview Status Distribution</h3>
+                 <h3 class="font-semibold text-gray-800 mb-4 text-center">Candidate Status Distribution</h3>
                 <div class="mx-auto" style="max-width: 320px;">
                     <canvas id="statusPieChart"></canvas>
                 </div>
@@ -115,25 +114,23 @@
 <script>
     let interviewsLineChartInstance = null;
 
-    // --- SCRIPT TO LOAD AND RENDER THE LINE CHART ---
+    // --- 1. SCRIPT TO LOAD AND RENDER THE LINE CHART ---
     async function loadLineChartData(days) {
         try {
             const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
+            if (!response.ok) throw new Error('Failed to fetch line chart data');
             const data = await response.json();
 
             const labels = [];
             const counts = [];
+            const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count]));
             
-            // Create a map of the data for easy lookup
-            const dataMap = new Map(data.map(item => [item.date.split('T')[0], item.count]));
-
-            // Generate labels for the last N days
             for (let i = days - 1; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
                 const dateString = date.toISOString().split('T')[0];
                 labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-                counts.push(dataMap.get(dateString) || 0);
+                counts.push(parseInt(dataMap.get(dateString) || 0));
             }
             
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
@@ -157,12 +154,7 @@
                     }]
                 },
                 options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
                     plugins: { legend: { display: false } }
                 }
             });
@@ -171,15 +163,103 @@
         }
     }
 
-    // --- SCRIPT TO LOAD AND RENDER THE PIE CHART ---
-    async function loadPieChartData() { /* ... existing code from previous file ... */ }
+    // --- 2. SCRIPT TO LOAD AND RENDER THE PIE CHART ---
+    async function loadPieChartData() {
+        try {
+            const response = await fetch('/api/analytics/status-counts');
+            if (!response.ok) throw new Error('Failed to fetch pie chart data');
+            const data = await response.json();
+
+            const ctx = document.getElementById('statusPieChart').getContext('2d');
+            const labels = data.map(item => item.status);
+            const counts = data.map(item => item.count);
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                        borderColor: ['#fff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Failed to load pie chart data:", error);
+            const chartCanvas = document.getElementById('statusPieChart');
+            chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
+        }
+    }
     
-    // --- SCRIPT TO LOAD USERS & CANDIDATES ---
-    async function loadUsers() { /* ... existing code ... */ }
-    async function loadCandidates() { /* ... existing code ... */ }
+    // --- 3. SCRIPT TO LOAD THE USERS TABLE ---
+    async function loadUsers() {
+        const tbody = document.getElementById("users-table-body");
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4">Loading...</td></tr>';
+        try {
+            const response = await fetch('/api/users');
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            const users = await response.json();
+            tbody.innerHTML = "";
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4">
+                        <div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Failed to load users:", error);
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
+        }
+    }
+
+    // --- 4. SCRIPT TO LOAD THE CANDIDATES TABLE ---
+    async function loadCandidates() {
+        const tbody = document.getElementById("candidates-table-body");
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading...</td></tr>';
+        try {
+            const response = await fetch('/api/candidates/all'); // No department filter
+            if (!response.ok) throw new Error('Failed to fetch candidate data');
+            const candidates = await response.json();
+            tbody.innerHTML = "";
+            if (candidates.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>';
+                 return;
+            }
+            candidates.forEach(candidate => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4">
+                         <div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">
+                            ${candidate.status}
+                         </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Failed to load candidates:", error);
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
+        }
+    }
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
-    window.onload = () => {
+    document.addEventListener('DOMContentLoaded', () => {
         loadPieChartData();
         loadUsers();
         loadCandidates();
@@ -193,18 +273,18 @@
 
         const handleButtonClick = (days, clickedBtnKey) => {
             Object.keys(buttons).forEach(key => {
-                buttons[key].classList.remove('bg-white', 'shadow');
-                buttons[key].classList.add('hover:bg-white', 'hover:shadow');
+                buttons[key].classList.remove('bg-white', 'shadow', 'text-gray-700');
+                buttons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow');
             });
-            buttons[clickedBtnKey].classList.add('bg-white', 'shadow');
-            buttons[clickedBtnKey].classList.remove('hover:bg-white', 'hover:shadow');
+            buttons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700');
+            buttons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow');
             loadLineChartData(days);
         };
         
         buttons['7d'].addEventListener('click', () => handleButtonClick(7, '7d'));
         buttons['14d'].addEventListener('click', () => handleButtonClick(14, '14d'));
         buttons['30d'].addEventListener('click', () => handleButtonClick(30, '30d'));
-    };
+    });
 </script>
 </body>
 </html>
