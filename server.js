@@ -161,10 +161,13 @@ app.get("/api/session/:sessionId", async (req, res) => {
 });
 
 
-// ---------- Schedule interview ----------
+// =================================================================
+// ===========        MODIFIED SCHEDULE ROUTE        ===========
+// =================================================================
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
+    // NEW: Get the department from the logged-in user's session
     if (!req.session.user || !req.session.user.department) {
         return res.status(401).json({ message: "Unauthorized. Please log in again." });
     }
@@ -173,18 +176,21 @@ app.post("/schedule", async (req, res) => {
     await client.query('BEGIN');
     let { title, questions, timeLimits, date, time, emails } = req.body;
 
+    // --- Data Normalization ---
     if (!Array.isArray(questions)) questions = [String(questions || '')];
     if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
 
+    // --- Create Master Interview Template with Department ---
     const interviewId = uuidv4();
     await client.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [interviewId, title, questions, timeLimits, date, time, department]
     );
     console.log(`✅ Master interview template saved for ${department}:`, title);
 
+    // --- Create Sessions and Send Emails ---
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
@@ -214,25 +220,35 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-// ---------- Fetch all interviews ----------
+// =================================================================
+// ===========        MODIFIED INTERVIEWS API ROUTE        ===========
+// =================================================================
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search, department } = req.query;
+    const { search, department } = req.query; // Now accepts department filter
+    
     let queryParams = [];
     let whereClauses = [];
+
     let baseQuery = "SELECT * FROM interviews";
 
+    // Filter by department if provided
     if (department) {
         queryParams.push(department);
         whereClauses.push(`department = $${queryParams.length}`);
     }
+
+    // Filter by search term if provided
     if (search) {
         queryParams.push(`%${search}%`);
         whereClauses.push(`(title ILIKE $${queryParams.length} OR id::text ILIKE $${queryParams.length})`);
     }
+
     if (whereClauses.length > 0) {
         baseQuery += " WHERE " + whereClauses.join(" AND ");
     }
+    
+    // Use created_at for reliable sorting
     baseQuery += " ORDER BY created_at DESC";
 
     const result = await pool.query(baseQuery, queryParams);
@@ -252,60 +268,16 @@ app.get("/api/interviews", async (req, res) => {
 
 
 // =================================================================
-// ===========        NEW ROUTES FOR ADMIN DASHBOARD       ===========
-// =================================================================
-app.get("/admin_dashboard.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
-});
-
-app.get("/api/users", (req, res) => {
-    res.json(users);
-});
-
-app.get("/api/analytics/status-counts", async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT status, COUNT(*) AS count 
-             FROM candidate_sessions 
-             GROUP BY status`
-        );
-        res.json(result.rows);
-    } catch (err) {
-        console.error("Error fetching status counts:", err);
-        res.status(500).json({ error: "Database error" });
-    }
-});
-
-
-app.get("/api/analytics/interviews-over-time", async (req, res) => {
-    try {
-        const days = parseInt(req.query.days) || 7;
-        const result = await pool.query(
-            `SELECT DATE(created_at) AS date, COUNT(*) AS count
-             FROM interviews
-             WHERE created_at >= NOW() - INTERVAL '${days} days'
-             GROUP BY DATE(created_at)
-             ORDER BY date ASC`
-        );
-        res.json(result.rows);
-    } catch (err) {
-        console.error("Error fetching interviews over time data:", err);
-        res.status(500).json({ error: "Database error" });
-    }
-});
-// =================================================================
-
-
-// =================================================================
 // =========== API ROUTES FOR VIEW/EDIT/DELETE ===========
 // =================================================================
+
 async function fetchSingleInterview(req, res) {
   try {
     const result = await pool.query("SELECT * FROM interviews WHERE id = $1", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ message: "Interview not found" });
 
     const row = result.rows[0];
-    res.json({ ...row, questions: parseQuestionsField(row.questions), timeLimits: row.time_limits || [] });
+    res.json({ ...row, questions: parseQuestionsField(row.questions), timeLimits: row.time_limits || [], });
   } catch (err) {
     console.error("DB error fetching single interview:", err);
     res.status(500).json({ message: "DB error" });
@@ -349,6 +321,7 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
   }
 });
 
+
 app.get("/api/interview/:id/candidates", async (req, res) => {
   try {
     const { id } = req.params;
@@ -363,26 +336,21 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
   }
 });
 
-// --- UPDATED CANDIDATES ROUTE to include department ---
+
+// =================================================================
+// ===========        MODIFIED CANDIDATES API ROUTE        ===========
+// =================================================================
 app.get("/api/candidates/all", async (req, res) => {
     try {
-        const { search, department } = req.query;
+        const { search, department } = req.query; // Now accepts department filter
         let queryParams = [];
         let whereClauses = [];
         let baseQuery = `
-            SELECT 
-                cs.session_id, 
-                cs.candidate_email, 
-                cs.status, 
-                cs.created_at,
-                cs.review_url, 
-                i.title AS interview_title,
-                cs.department
-            FROM 
-                candidate_sessions cs
-            JOIN 
-                interviews i ON cs.interview_id = i.id
+            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title 
+            FROM candidate_sessions cs
+            JOIN interviews i ON cs.interview_id = i.id
         `;
+
         if (department) {
             queryParams.push(department);
             whereClauses.push(`cs.department = $${queryParams.length}`);
@@ -403,9 +371,11 @@ app.get("/api/candidates/all", async (req, res) => {
     }
 });
 
+
 // =================================================================
 // =========== ROUTES TO SERVE STATIC HTML PAGES ===========
 // =================================================================
+
 app.get("/interview-view.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "interview-view.html"));
 });
@@ -417,6 +387,7 @@ app.get("/interview-edit.html", (req, res) => {
 app.get("/candidates.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "candidates.html"));
 });
+
 
 // ---------- Start server ----------
 app.listen(PORT, () => {
