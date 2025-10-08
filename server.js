@@ -149,10 +149,10 @@ app.get("/GTA_Dashboard.html", (req, res) => {
 // =================================================================
 // ===========        NEW ROUTES FOR ADMIN DASHBOARD       ===========
 // =================================================================
-app.get("/admin_dashboard.html", (req, res) => {
+app.get("/admin_Dashboard.html", (req, res) => {
     // NEW: Auth check for admin page
     if (req.session.user?.department === 'Admin') {
-        return res.sendFile(path.join(__dirname, "views", "admin_dashboard.html"));
+        return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
 });
