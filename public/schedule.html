@@ -57,7 +57,6 @@
 <div id="questions-container" class="space-y-4">
 <div class="flex items-start gap-4">
 <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
-<!-- =========== THIS IS THE NEW TIME DROPDOWN =========== -->
 <select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
     <option value="0">Untimed</option>
     <option value="30">30s</option>
@@ -70,10 +69,14 @@
 </button>
 </div>
 </div>
-<button type="button" onclick="addQuestion()" class="flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 mt-4 gap-2">
-<span class="material-symbols-outlined">add</span>
-<span>Add Question</span>
-</button>
+<!-- =========== THIS IS THE NEW BUTTON SECTION =========== -->
+<div class="mt-4 flex items-center gap-4">
+    <button type="button" onclick="addQuestion()" class="flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-[var(--secondary-color)] px-4 text-sm font-medium text-[var(--text-primary)] hover:bg-gray-200 gap-2">
+        <span class="material-symbols-outlined">add</span>
+        <span>Add Question</span>
+    </button>
+    <button type="button" id="apply-time-to-all" class="text-sm font-medium text-[var(--primary-color)] hover:underline">Apply first time limit to all</button>
+</div>
 </div>
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 <div>
@@ -118,7 +121,6 @@
 <div class="flex items-end gap-4">
     <div class="flex-1">
         <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="num-questions">Number of questions</label>
-        <!-- =========== THIS IS THE NEW NUMBER OF QUESTIONS DROPDOWN =========== -->
         <select id="num-questions" class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]">
             <option value="1">1</option>
             <option value="2">2</option>
@@ -173,7 +175,7 @@
       }
       const div = document.createElement("div");
       div.classList.add("flex", "items-start", "gap-4");
-    div.innerHTML = `
+      div.innerHTML = `
         <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
         <select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
             <option value="0">Untimed</option>
@@ -191,26 +193,23 @@
     }
 </script>
 
-<!-- =================== SCRIPT FOR DATE/TIME LOGIC (Unchanged) =================== -->
+<!-- =================== SCRIPT FOR PAGE LOGIC =================== -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Date/Time Logic ---
     const dateInput = document.getElementById('interview-date');
     const timeInput = document.getElementById('interview-time');
-
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
     dateInput.min = todayString;
 
     function handleDateChange() {
         const now = new Date();
-        const selectedDate = dateInput.value;
-
-        if (selectedDate === todayString) {
+        if (dateInput.value === todayString) {
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const currentTime = `${hours}:${minutes}`;
             timeInput.min = currentTime;
-
             if (timeInput.value < currentTime) {
                 timeInput.value = currentTime;
             }
@@ -221,6 +220,26 @@ document.addEventListener('DOMContentLoaded', () => {
     dateInput.addEventListener('change', handleDateChange);
     handleDateChange();
     manageAddQuestionButton();
+
+    // --- NEW: Logic for the "Apply Time to All" button ---
+    const applyTimeButton = document.getElementById('apply-time-to-all');
+    if (applyTimeButton) {
+        applyTimeButton.addEventListener('click', () => {
+            const questionsContainer = document.getElementById('questions-container');
+            const timeLimitSelects = questionsContainer.querySelectorAll('select[name="timeLimits[]"]');
+            if (timeLimitSelects.length > 1) {
+                // Using a simple confirm dialog for the pop-up
+                if (confirm('Apply the time limit from the first question to all other questions?')) {
+                    const firstTimeLimit = timeLimitSelects[0].value;
+                    for (let i = 1; i < timeLimitSelects.length; i++) {
+                        timeLimitSelects[i].value = firstTimeLimit;
+                    }
+                }
+            } else {
+                alert('Please add at least two questions to use this feature.');
+            }
+        });
+    }
 });
 </script>
 
