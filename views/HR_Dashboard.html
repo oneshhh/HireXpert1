@@ -81,6 +81,8 @@
           <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
           <div>
               <button id="move-to-closed-btn" class="mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Move to Closed</button>
+              <!-- NEW "Re-open" button, hidden by default -->
+              <button id="move-to-open-btn" class="hidden mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Re-open Positions</button>
               <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
           </div>
       </div>
@@ -121,11 +123,6 @@
   let selectedInterviewIds = new Set();
   const DEPARTMENT = 'HR';
 
-  // =================================================================
-  // ===========        THIS IS THE COMPLETE SCRIPT        ===========
-  // =================================================================
-
-  // --- HELPER FUNCTION ---
   function formatDateTime(dateStr, timeStr) {
     const date = new Date(dateStr);
     const day = date.getDate();
@@ -139,16 +136,13 @@
     return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
   }
 
-  // --- API CALLS ---
   async function loadCounts() {
       try {
           const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
           const counts = await res.json();
           document.getElementById('open-count').textContent = counts.open || 0;
           document.getElementById('closed-count').textContent = counts.closed || 0;
-      } catch (err) {
-          console.error("Error loading counts:", err);
-      }
+      } catch (err) { console.error("Error loading counts:", err); }
   }
 
   async function loadInterviews(searchTerm = '') {
@@ -183,10 +177,22 @@
     const countSpan = document.getElementById('selected-count');
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
 
     if (selectedInterviewIds.size > 0) {
         bar.classList.remove('hidden');
         countSpan.textContent = selectedInterviewIds.size;
+        
+        // Show/hide buttons based on the active tab
+        if (currentStatusFilter === 'open') {
+            moveToClosedBtn.classList.remove('hidden');
+            moveToOpenBtn.classList.add('hidden');
+        } else { // 'closed'
+            moveToClosedBtn.classList.add('hidden');
+            moveToOpenBtn.classList.remove('hidden');
+        }
+        
         selectAllCheckbox.checked = selectedInterviewIds.size === rowCheckboxes.length && rowCheckboxes.length > 0;
     } else {
         bar.classList.add('hidden');
@@ -221,6 +227,7 @@
     const tableBody = document.getElementById('interviews-table-body');
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
 
     confirmBtn.addEventListener('click', () => {
@@ -270,6 +277,25 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'closed' })
+                });
+                selectedInterviewIds.clear();
+                updateBulkActionBar();
+                loadCounts();
+                loadInterviews(searchBar.value);
+            }
+        );
+    });
+
+    // NEW: Event listener for the "Re-open" button
+    moveToOpenBtn.addEventListener('click', () => {
+        showConfirmModal(
+            `Re-open ${selectedInterviewIds.size} interviews?`,
+            "Are you sure you want to move the selected interviews back to 'Open'?",
+            async () => {
+                await fetch('/api/interviews/bulk-update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'open' })
                 });
                 selectedInterviewIds.clear();
                 updateBulkActionBar();
