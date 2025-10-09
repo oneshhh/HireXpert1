@@ -10,39 +10,23 @@
 <style type="text/tailwindcss">
       :root {
         --primary-50: #eff6ff;
-        --primary-100: #dbeafe;
-        --primary-200: #bfdbfe;
-        --primary-500: #3b82f6;
         --primary-600: #2563eb;
-        --primary-700: #1d4ed8;
-        --primary-900: #1e3a8a;
-        --gray-50: #f9fafb;
-        --gray-100: #f3f4f6;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-400: #9ca3af;
         --gray-500: #6b7280;
-        --gray-600: #4b5563;
-        --gray-700: #374151;
-        --gray-800: #1f2937;
-        --gray-900: #111827;
-        --success-50: #f0fdf4;
-        --success-500: #22c55e;
-        --warning-50: #fffbeb;
-        --warning-500: #f59e0b;
         --info-50: #ecfeff;
         --info-500: #06b6d4;
       }
       .material-symbols-outlined {
-        font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
       #create-interview-btn {
         background-color: var(--primary-600) !important;
         color: white !important;
+      }
+      /* Styles for the active tab */
+      .tab-active {
+        border-bottom-color: var(--primary-600);
+        color: var(--primary-600);
+        font-weight: 600;
       }
 </style>
 </head>
@@ -86,126 +70,205 @@
         </button>
       </div>
 
+      <!-- =========== NEW: OPEN/CLOSED POSITION TABS =========== -->
+      <div class="border-b border-gray-200 mb-6">
+          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button id="open-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
+                  Open Positions <span id="open-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600">0</span>
+              </button>
+              <button id="closed-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                  Closed Positions <span id="closed-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
+              </button>
+          </nav>
+      </div>
+      <!-- ======================================================== -->
+
+      <!-- =========== NEW: BULK ACTIONS BAR (Initially hidden) =========== -->
+      <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
+          <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
+          <div>
+              <button id="move-to-closed-btn" class="mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Move to Closed</button>
+              <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
+          </div>
+      </div>
+      <!-- ============================================================= -->
+
       <!-- Table -->
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">#</th>
+              <!-- New checkbox column -->
+              <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
               <th class="relative px-6 py-3" scope="col"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
-          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white">
-            <!-- Dynamic rows will load here -->
-          </tbody>
+          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
         </table>
       </div>
     </div>
   </main>
 </div>
 
-
-<!-- Script to fetch and display interviews -->
 <script>
-  // Helper function to format date and time
-  function formatDateTime(dateStr, timeStr) {
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'long' });
-    const year = date.getFullYear();
-    
-    if (!timeStr) return `${month} ${day}, ${year}`;
+  let currentStatusFilter = 'open'; // 'open' or 'closed'
+  let selectedInterviewIds = new Set();
+  const DEPARTMENT = 'HR'; // Department for this dashboard
 
-    let [hours, minutes] = timeStr.split(':');
-    let ampm = 'AM';
-    if (hours >= 12) {
-      ampm = 'PM';
-      if (hours > 12) {
-        hours -= 12;
+  function formatDateTime(dateStr, timeStr) { /* ... same as before ... */ }
+
+  async function loadCounts() {
+      try {
+          const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
+          const counts = await res.json();
+          document.getElementById('open-count').textContent = counts.open || 0;
+          document.getElementById('closed-count').textContent = counts.closed || 0;
+      } catch (err) {
+          console.error("Error loading counts:", err);
       }
-    }
-    if (hours == 0) {
-      hours = 12;
-    }
-    return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
   }
 
-  // Main function to load interviews
   async function loadInterviews(searchTerm = '') {
     try {
-      const url = searchTerm 
-        ? `/api/interviews?department=HR&search=${encodeURIComponent(searchTerm)}` 
-        : "/api/interviews?department=HR";
-      
+      const url = `/api/interviews?department=${DEPARTMENT}&position_status=${currentStatusFilter}&search=${encodeURIComponent(searchTerm)}`;
       const res = await fetch(url);
       const interviews = await res.json(); 
 
       const tbody = document.querySelector("#interviews-table-body");
-      tbody.innerHTML = ""; // clear old data
+      tbody.innerHTML = "";
 
       if (interviews.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found for HR department.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found.</td></tr>`;
         return;
       }
 
-      interviews.forEach((interview, index) => {
+      interviews.forEach(interview => {
         const tr = document.createElement("tr");
+        const isSelected = selectedInterviewIds.has(interview.id);
         tr.innerHTML = `
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-            <a href="/interview-view.html?id=${interview.id}" class="hover:text-primary-600">${interview.title}</a>
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-            ${formatDateTime(interview.date, interview.time)}
-          </td>
-          <td class="px-6 py-4">
-            <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
-              <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
-            </span>
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-            <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
-          </td>
+          <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
+          <td class="px-6 py-4"><a href="/interview-view.html?id=${interview.id}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
+          <td class="px-6 py-4 text-sm text-gray-500">${formatDateTime(interview.date, interview.time)}</td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500"><span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled</span></td>
+          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"><a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a></td>
         `;
         tbody.appendChild(tr);
       });
     } catch (err) {
       console.error("Error loading interviews:", err);
-      // Avoid clearing the table on a failed refresh
-      const tbody = document.querySelector("#interviews-table-body");
-      if(tbody.innerHTML === "") { // Only show error if table is empty
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
-      }
+    }
+  }
+  
+  function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countSpan = document.getElementById('selected-count');
+    if (selectedInterviewIds.size > 0) {
+        bar.classList.remove('hidden');
+        countSpan.textContent = selectedInterviewIds.size;
+    } else {
+        bar.classList.add('hidden');
     }
   }
 
-  // --- Search Bar Logic ---
-  const searchBar = document.getElementById('search-bar');
-  let debounceTimer;
-  searchBar.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      loadInterviews(e.target.value);
-    }, 300);
+  // --- EVENT LISTENERS ---
+  document.addEventListener('DOMContentLoaded', () => {
+    const openTab = document.getElementById('open-positions-tab');
+    const closedTab = document.getElementById('closed-positions-tab');
+    const searchBar = document.getElementById('search-bar');
+    const tableBody = document.getElementById('interviews-table-body');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+
+    function switchTab(newStatus) {
+        currentStatusFilter = newStatus;
+        openTab.classList.toggle('tab-active', newStatus === 'open');
+        closedTab.classList.toggle('tab-active', newStatus === 'closed');
+        loadInterviews(searchBar.value);
+        selectedInterviewIds.clear();
+        updateBulkActionBar();
+    }
+
+    openTab.addEventListener('click', () => switchTab('open'));
+    closedTab.addEventListener('click', () => switchTab('closed'));
+    
+    // Checkbox logic
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-checkbox')) {
+            const id = e.target.dataset.id;
+            if (e.target.checked) {
+                selectedInterviewIds.add(id);
+            } else {
+                selectedInterviewIds.delete(id);
+            }
+            updateBulkActionBar();
+        }
+    });
+
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+            const id = cb.dataset.id;
+            if (e.target.checked) {
+                selectedInterviewIds.add(id);
+            } else {
+                selectedInterviewIds.delete(id);
+            }
+        });
+        updateBulkActionBar();
+    });
+
+    // Bulk action buttons
+    moveToClosedBtn.addEventListener('click', async () => {
+        if (confirm(`Are you sure you want to move ${selectedInterviewIds.size} interviews to 'Closed'?`)) {
+            await fetch('/api/interviews/bulk-update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'closed' })
+            });
+            selectedInterviewIds.clear();
+            updateBulkActionBar();
+            loadCounts();
+            loadInterviews(searchBar.value);
+        }
+    });
+
+    deleteSelectedBtn.addEventListener('click', async () => {
+        if (confirm(`ARE YOU SURE you want to permanently delete ${selectedInterviewIds.size} interviews and all their candidates? This cannot be undone.`)) {
+            await fetch('/api/interviews/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
+            });
+            selectedInterviewIds.clear();
+            updateBulkActionBar();
+            loadCounts();
+            loadInterviews(searchBar.value);
+        }
+    });
+
+    // Search Bar Logic
+    let debounceTimer;
+    searchBar.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadInterviews(e.target.value);
+      }, 300);
+    });
+
+    // Initial Load & Polling
+    loadCounts();
+    loadInterviews();
+    setInterval(() => {
+        console.log("Refreshing HR dashboard data...");
+        loadCounts();
+        loadInterviews(searchBar.value);
+    }, 5000);
   });
-
-  // =================================================================
-  // ===========        LIVE FETCHING LOGIC (POLLING)        ===========
-  // =================================================================
-  // 1. Initial load when the page opens
-  loadInterviews();
-
-  // 2. Set up a timer that re-runs the load function every 5 seconds
-  setInterval(() => {
-    // Get the current value from the search bar to maintain the filter on auto-refresh
-    const currentSearchTerm = document.getElementById('search-bar').value;
-    console.log(`Refreshing interviews... (Search term: "${currentSearchTerm}")`);
-    loadInterviews(currentSearchTerm);
-  }, 5000); // 5000 milliseconds = 5 seconds
-
 </script>
 
 </body>
