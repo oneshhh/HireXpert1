@@ -111,7 +111,7 @@ app.post("/login", (req, res) => {
     if (user) {
         req.session.user = user;
         if (user.department === 'Admin') {
-            return res.redirect('/admin_dashboard.html');
+            return res.redirect('/admin_Dashboard.html');
         }
         res.redirect(`/${user.department}_Dashboard.html`);
     } else {
@@ -123,9 +123,9 @@ app.post("/login", (req, res) => {
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
-app.get("/admin_dashboard.html", (req, res) => {
+app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.department === 'Admin') {
-        return res.sendFile(path.join(__dirname, "views", "admin_dashboard.html"));
+        return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1>");
 });
