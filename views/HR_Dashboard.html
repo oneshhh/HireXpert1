@@ -27,14 +27,12 @@
         color: var(--primary-600);
         font-weight: 600;
       }
-      /* Styles for the new confirmation modal */
       .modal-hidden { display: none; }
 </style>
 </head>
 <body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
 <div class="flex min-h-screen w-full flex-col">
 
-  <!-- Header -->
   <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-3 text-gray-800">
@@ -60,7 +58,6 @@
 
   <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
     <div class="mx-auto max-w-7xl">
-
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">HR Interviews</h2>
         <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=HR_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
@@ -106,7 +103,6 @@
   </main>
 </div>
 
-<!-- =========== NEW: CUSTOM CONFIRMATION MODAL =========== -->
 <div id="confirm-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl">
         <h3 id="confirm-modal-title" class="text-lg font-medium text-gray-900">Are you sure?</h3>
@@ -119,14 +115,17 @@
         </div>
     </div>
 </div>
-<!-- ======================================================= -->
 
 <script>
   let currentStatusFilter = 'open';
   let selectedInterviewIds = new Set();
   const DEPARTMENT = 'HR';
 
-  // FIX: Added the missing formatDateTime function
+  // =================================================================
+  // ===========        THIS IS THE COMPLETE SCRIPT        ===========
+  // =================================================================
+
+  // --- HELPER FUNCTION ---
   function formatDateTime(dateStr, timeStr) {
     const date = new Date(dateStr);
     const day = date.getDate();
@@ -140,7 +139,17 @@
     return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
   }
 
-  async function loadCounts() { /* ... existing correct code ... */ }
+  // --- API CALLS ---
+  async function loadCounts() {
+      try {
+          const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
+          const counts = await res.json();
+          document.getElementById('open-count').textContent = counts.open || 0;
+          document.getElementById('closed-count').textContent = counts.closed || 0;
+      } catch (err) {
+          console.error("Error loading counts:", err);
+      }
+  }
 
   async function loadInterviews(searchTerm = '') {
     try {
@@ -168,9 +177,23 @@
     } catch (err) { console.error("Error loading interviews:", err); }
   }
   
-  function updateBulkActionBar() { /* ... existing correct code ... */ }
+  // --- UI MANAGEMENT ---
+  function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countSpan = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
 
-  // --- NEW: Custom Confirmation Modal Logic ---
+    if (selectedInterviewIds.size > 0) {
+        bar.classList.remove('hidden');
+        countSpan.textContent = selectedInterviewIds.size;
+        selectAllCheckbox.checked = selectedInterviewIds.size === rowCheckboxes.length && rowCheckboxes.length > 0;
+    } else {
+        bar.classList.add('hidden');
+        selectAllCheckbox.checked = false;
+    }
+  }
+
   const confirmModal = document.getElementById('confirm-modal');
   const confirmModalTitle = document.getElementById('confirm-modal-title');
   const confirmModalText = document.getElementById('confirm-modal-text');
@@ -190,15 +213,7 @@
       confirmCallback = null;
   }
 
-  confirmBtn.addEventListener('click', () => {
-      if (typeof confirmCallback === 'function') {
-          confirmCallback();
-      }
-      hideConfirmModal();
-  });
-  cancelBtn.addEventListener('click', hideConfirmModal);
-  // --- End of New Modal Logic ---
-
+  // --- EVENT LISTENERS ---
   document.addEventListener('DOMContentLoaded', () => {
     const openTab = document.getElementById('open-positions-tab');
     const closedTab = document.getElementById('closed-positions-tab');
@@ -208,13 +223,44 @@
     const moveToClosedBtn = document.getElementById('move-to-closed-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
 
-    function switchTab(newStatus) { /* ... existing correct code ... */ }
+    confirmBtn.addEventListener('click', () => {
+        if (typeof confirmCallback === 'function') confirmCallback();
+        hideConfirmModal();
+    });
+    cancelBtn.addEventListener('click', hideConfirmModal);
+
+    function switchTab(newStatus) {
+        currentStatusFilter = newStatus;
+        openTab.classList.toggle('tab-active', newStatus === 'open');
+        closedTab.classList.toggle('tab-active', newStatus === 'closed');
+        loadInterviews(searchBar.value);
+        selectedInterviewIds.clear();
+        updateBulkActionBar();
+    }
+
     openTab.addEventListener('click', () => switchTab('open'));
     closedTab.addEventListener('click', () => switchTab('closed'));
-    tableBody.addEventListener('change', (e) => { /* ... existing correct code ... */ });
-    selectAllCheckbox.addEventListener('change', (e) => { /* ... existing correct code ... */ });
+    
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-checkbox')) {
+            const id = e.target.dataset.id;
+            if (e.target.checked) selectedInterviewIds.add(id);
+            else selectedInterviewIds.delete(id);
+            updateBulkActionBar();
+        }
+    });
 
-    // UPDATED: Bulk action buttons now use the custom modal
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+            const id = cb.dataset.id;
+            if (e.target.checked) selectedInterviewIds.add(id);
+            else selectedInterviewIds.delete(id);
+        });
+        updateBulkActionBar();
+    });
+
     moveToClosedBtn.addEventListener('click', () => {
         showConfirmModal(
             `Move ${selectedInterviewIds.size} interviews?`,
@@ -236,7 +282,7 @@
     deleteSelectedBtn.addEventListener('click', () => {
         showConfirmModal(
             `Delete ${selectedInterviewIds.size} interviews?`,
-            "This action is permanent and cannot be undone. All associated candidate data will also be deleted.",
+            "This action is permanent. All associated candidate data will also be deleted.",
             async () => {
                 await fetch('/api/interviews/bulk-delete', {
                     method: 'POST',
@@ -251,7 +297,22 @@
         );
     });
 
-    // ... (Search Bar Logic and Polling remain the same) ...
+    let debounceTimer;
+    searchBar.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadInterviews(e.target.value);
+      }, 300);
+    });
+
+    // Initial Load & Polling
+    loadCounts();
+    loadInterviews();
+    setInterval(() => {
+        console.log("Refreshing HR dashboard data...");
+        loadCounts();
+        loadInterviews(searchBar.value);
+    }, 5000);
   });
 </script>
 
