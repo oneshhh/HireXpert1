@@ -105,15 +105,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// =================================================================
-// ===========        UPDATED LOGIN ROUTE        ===========
-// =================================================================
 app.post("/login", (req, res) => {
     const { email, password, department } = req.body;
     const user = users.find(u => u.email === email && u.password === password && u.department === department);
     if (user) {
         req.session.user = user;
-        // NEW: Check for Admin department and redirect accordingly
         if (user.department === 'Admin') {
             return res.redirect('/admin_Dashboard.html');
         }
@@ -146,9 +142,6 @@ app.get("/GTA_Dashboard.html", (req, res) => {
 });
 
 
-// =================================================================
-// ===========        NEW ROUTES FOR ADMIN DASHBOARD       ===========
-// =================================================================
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.department === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
@@ -162,11 +155,7 @@ app.get("/api/users", (req, res) => {
 
 app.get("/api/analytics/status-counts", async (req, res) => {
     try {
-        const result = await pool.query(
-            `SELECT status, COUNT(*) AS count 
-             FROM candidate_sessions 
-             GROUP BY status`
-        );
+        const result = await pool.query(`SELECT status, COUNT(*) AS count FROM candidate_sessions GROUP BY status`);
         res.json(result.rows);
     } catch (err) {
         console.error("Error fetching status counts:", err);
@@ -178,11 +167,7 @@ app.get("/api/analytics/interviews-over-time", async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 7;
         const result = await pool.query(
-            `SELECT DATE(created_at) AS date, COUNT(*) AS count
-             FROM interviews
-             WHERE created_at >= NOW() - INTERVAL '${days} days'
-             GROUP BY DATE(created_at)
-             ORDER BY date ASC`
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count FROM interviews WHERE created_at >= NOW() - INTERVAL '${days} days' GROUP BY DATE(created_at) ORDER BY date ASC`
         );
         res.json(result.rows);
     } catch (err) {
@@ -190,18 +175,16 @@ app.get("/api/analytics/interviews-over-time", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
-// =================================================================
-
 
 // ---------- Core API Routes ----------
 app.get("/api/session/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const sessionResult = await pool.query(`SELECT * FROM candidate_sessions WHERE session_id = $1`, [sessionId]);
-    if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found or has expired." });
+    if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found." });
     const session = sessionResult.rows[0];
     const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [session.interview_id]);
-    if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details could not be found." });
+    if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details not found." });
     const interview = interviewResult.rows[0];
     res.json({
       sessionId: session.session_id, candidateEmail: session.candidate_email, status: session.status,
@@ -217,7 +200,7 @@ app.get("/api/session/:sessionId", async (req, res) => {
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
-    if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized. Please log in again." });
+    if (!req.session.user?.department) return res.status(401).json({ message: "Unauthorized." });
     const { department } = req.session.user;
     await client.query('BEGIN');
     let { title, questions, timeLimits, date, time, emails } = req.body;
@@ -226,40 +209,60 @@ app.post("/schedule", async (req, res) => {
     while (timeLimits.length < questions.length) timeLimits.push(0);
     const interviewId = uuidv4();
     await client.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`,
       [interviewId, title, questions, timeLimits, date, time, department]
     );
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
       await client.query(
-        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department)
-         VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`,
         [sessionId, interviewId, email, department]
       );
       const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-      if (!emailResult.success) throw new Error(`Failed to send email to ${email}. Aborting schedule.`);
+      if (!emailResult.success) throw new Error(`Failed to send email to ${email}.`);
     }
     await client.query('COMMIT');
-    res.json({ success: true, message: `Interview scheduled successfully for ${candidateEmails.length} candidate(s).` });
+    res.json({ success: true, message: `Interview scheduled.` });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error("❌ Error in /schedule route:", err.message);
-    res.status(500).json({ message: err.message || "Failed to schedule interview." });
+    res.status(500).json({ message: err.message || "Failed to schedule." });
   } finally {
     client.release();
   }
 });
 
+// =================================================================
+// ===========        THIS IS THE CORRECTED API ROUTE        ===========
+// =================================================================
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search, department } = req.query;
-    let queryParams = [], whereClauses = [], baseQuery = "SELECT * FROM interviews";
-    if (department) { queryParams.push(department); whereClauses.push(`department = $${queryParams.length}`); }
-    if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(title ILIKE $${queryParams.length})`); }
-    if (whereClauses.length > 0) baseQuery += " WHERE " + whereClauses.join(" AND ");
+    const { search, department, position_status } = req.query; 
+    
+    let queryParams = [];
+    let whereClauses = [];
+    let baseQuery = "SELECT * FROM interviews";
+
+    if (department) {
+        queryParams.push(department);
+        whereClauses.push(`department = $${queryParams.length}`);
+    }
+    if (position_status) {
+        queryParams.push(position_status);
+        whereClauses.push(`position_status = $${queryParams.length}`);
+    }
+    if (search) {
+        queryParams.push(`%${search}%`);
+        whereClauses.push(`(title ILIKE $${queryParams.length})`);
+    }
+
+    if (whereClauses.length > 0) {
+        baseQuery += " WHERE " + whereClauses.join(" AND ");
+    }
     baseQuery += " ORDER BY created_at DESC";
+
     const result = await pool.query(baseQuery, queryParams);
     res.json(result.rows);
   } catch (err) {
@@ -268,7 +271,7 @@ app.get("/api/interviews", async (req, res) => {
   }
 });
 
-// --- UPDATED CANDIDATES ROUTE to include department ---
+
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department } = req.query;
@@ -340,7 +343,6 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
     res.status(500).json({ message: "Failed to fetch candidate list." });
   }
 });
@@ -349,7 +351,6 @@ app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, 
 app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-edit.html")));
 app.get("/candidates.html", (req, res) => res.sendFile(path.join(__dirname, "views", "candidates.html")));
 
-// ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
