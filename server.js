@@ -123,23 +123,61 @@ app.post("/login", (req, res) => {
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
+
+// =================================================================
+// ===========        ROUTES FOR ADMIN DASHBOARD       ===========
+// =================================================================
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.department === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
-    res.status(401).send("<h1>Unauthorized</h1>");
+    res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
 });
 
-// ---------- NEW ROUTE FOR CANDIDATE PORTAL SESSIONS ----------
+app.get("/api/users", (req, res) => {
+    res.json(users);
+});
+
+app.get("/api/analytics/status-counts", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT status, COUNT(*) AS count FROM candidate_sessions GROUP BY status`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching status counts:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+app.get("/api/analytics/interviews-over-time", async (req, res) => {
+    try {
+        const days = parseInt(req.query.days) || 7;
+        const result = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM interviews
+             WHERE created_at >= NOW() - INTERVAL '${days} days'
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching interviews over time data:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+// =================================================================
+
+
+// ---------- Core API Routes ----------
 app.get("/api/session/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const sessionResult = await pool.query(`SELECT * FROM candidate_sessions WHERE session_id = $1`, [sessionId]);
-    if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found or has expired." });
+    if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found." });
     const session = sessionResult.rows[0];
-    const interviewId = session.interview_id;
-    const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [interviewId]);
-    if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details could not be found." });
+    const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [session.interview_id]);
+    if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details not found." });
     const interview = interviewResult.rows[0];
     res.json({
       sessionId: session.session_id, candidateEmail: session.candidate_email, status: session.status,
@@ -152,8 +190,6 @@ app.get("/api/session/:sessionId", async (req, res) => {
   }
 });
 
-
-// ---------- Schedule interview ----------
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -165,13 +201,11 @@ app.post("/schedule", async (req, res) => {
     if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
     const interviewId = uuidv4();
-    // ADDED BACK: position_status is now set to 'open' on creation
     await client.query(
       `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`,
       [interviewId, title, questions, timeLimits, date, time, department]
     );
-    console.log(`✅ Master interview template saved for ${department}:`, title);
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
@@ -194,9 +228,8 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-
 // =================================================================
-// ===========        NEW API ROUTES FOR HR DASHBOARD FEATURES (RESTORED)       ===========
+// ===========        ROUTES FOR HR DASHBOARD FEATURES (RESTORED)       ===========
 // =================================================================
 app.get("/api/interviews/counts", async (req, res) => {
     try {
@@ -261,7 +294,7 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
 // --- UPDATED /api/interviews to handle position_status filter ---
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search, department, position_status } = req.query; // Now accepts position_status
+    const { search, department, position_status } = req.query; 
     
     let queryParams = [];
     let whereClauses = [];
@@ -301,9 +334,8 @@ app.get("/api/candidates/all", async (req, res) => {
         let queryParams = [];
         let whereClauses = [];
         let baseQuery = `
-            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title 
-            FROM candidate_sessions cs
-            JOIN interviews i ON cs.interview_id = i.id
+            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url 
+            FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id
         `;
         if (department) { queryParams.push(department); whereClauses.push(`cs.department = $${queryParams.length}`); }
         if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); }
