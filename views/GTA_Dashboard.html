@@ -10,46 +10,29 @@
 <style type="text/tailwindcss">
       :root {
         --primary-50: #eff6ff;
-        --primary-100: #dbeafe;
-        --primary-200: #bfdbfe;
-        --primary-500: #3b82f6;
         --primary-600: #2563eb;
-        --primary-700: #1d4ed8;
-        --primary-900: #1e3a8a;
-        --gray-50: #f9fafb;
-        --gray-100: #f3f4f6;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-400: #9ca3af;
         --gray-500: #6b7280;
-        --gray-600: #4b5563;
-        --gray-700: #374151;
-        --gray-800: #1f2937;
-        --gray-900: #111827;
-        --success-50: #f0fdf4;
-        --success-500: #22c55e;
-        --warning-50: #fffbeb;
-        --warning-500: #f59e0b;
         --info-50: #ecfeff;
         --info-500: #06b6d4;
       }
       .material-symbols-outlined {
-        font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
       #create-interview-btn {
         background-color: var(--primary-600) !important;
         color: white !important;
       }
+      .tab-active {
+        border-bottom-color: var(--primary-600);
+        color: var(--primary-600);
+        font-weight: 600;
+      }
+      .modal-hidden { display: none; }
 </style>
 </head>
 <body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
 <div class="flex min-h-screen w-full flex-col">
 
-  <!-- Header -->
   <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-3 text-gray-800">
@@ -73,11 +56,8 @@
     </div>
   </header>
 
-  <!-- Main -->
   <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
     <div class="mx-auto max-w-7xl">
-
-      <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">GTA Interviews</h2>
         <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=GTA_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
@@ -86,124 +66,275 @@
         </button>
       </div>
 
-      <!-- Table -->
+      <div class="border-b border-gray-200 mb-6">
+          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button id="open-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
+                  Open Positions <span id="open-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600">0</span>
+              </button>
+              <button id="closed-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                  Closed Positions <span id="closed-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
+              </button>
+          </nav>
+      </div>
+
+      <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
+          <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
+          <div>
+              <button id="move-to-closed-btn" class="mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Move to Closed</button>
+              <button id="move-to-open-btn" class="hidden mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Re-open Positions</button>
+              <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
+          </div>
+      </div>
+
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">#</th>
+              <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
               <th class="relative px-6 py-3" scope="col"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
-          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white">
-            <!-- Dynamic rows will load here -->
-          </tbody>
+          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
         </table>
       </div>
     </div>
   </main>
 </div>
 
+<div id="confirm-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl">
+        <h3 id="confirm-modal-title" class="text-lg font-medium text-gray-900">Are you sure?</h3>
+        <div class="mt-2">
+            <p id="confirm-modal-text" class="text-sm text-gray-500">This action cannot be undone.</p>
+        </div>
+        <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+            <button id="confirm-modal-confirm-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2">Confirm</button>
+            <button id="confirm-modal-cancel-btn" type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
+        </div>
+    </div>
+</div>
 
-<!-- Script to fetch and display interviews -->
 <script>
-  // Helper function to format date and time
+  let currentStatusFilter = 'open';
+  let selectedInterviewIds = new Set();
+  const DEPARTMENT = 'GTA'; // The only change needed for this dashboard
+
   function formatDateTime(dateStr, timeStr) {
     const date = new Date(dateStr);
     const day = date.getDate();
     const month = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
-    
     if (!timeStr) return `${month} ${day}, ${year}`;
-
     let [hours, minutes] = timeStr.split(':');
     let ampm = 'AM';
-    if (hours >= 12) {
-      ampm = 'PM';
-      if (hours > 12) {
-        hours -= 12;
-      }
-    }
-    if (hours == 0) {
-      hours = 12;
-    }
+    if (hours >= 12) { ampm = 'PM'; if (hours > 12) { hours -= 12; } }
+    if (hours == 0) { hours = 12; }
     return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
   }
 
-  // Main function to load interviews
+  async function loadCounts() {
+      try {
+          const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
+          const counts = await res.json();
+          document.getElementById('open-count').textContent = counts.open || 0;
+          document.getElementById('closed-count').textContent = counts.closed || 0;
+      } catch (err) { console.error("Error loading counts:", err); }
+  }
+
   async function loadInterviews(searchTerm = '') {
     try {
-      const url = searchTerm 
-        ? `/api/interviews?department=GTA&search=${encodeURIComponent(searchTerm)}` 
-        : "/api/interviews?department=GTA";
-      
+      const url = `/api/interviews?department=${DEPARTMENT}&position_status=${currentStatusFilter}&search=${encodeURIComponent(searchTerm)}`;
       const res = await fetch(url);
       const interviews = await res.json(); 
-
       const tbody = document.querySelector("#interviews-table-body");
-      tbody.innerHTML = ""; // clear old data
-
+      tbody.innerHTML = "";
       if (interviews.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No interviews found for GTA department.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found for ${DEPARTMENT}.</td></tr>`;
         return;
       }
-
-      interviews.forEach((interview, index) => {
+      interviews.forEach(interview => {
         const tr = document.createElement("tr");
+        const isSelected = selectedInterviewIds.has(interview.id);
         tr.innerHTML = `
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">${index + 1}</td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-            <a href="/interview-view.html?id=${interview.id}" class="hover:text-primary-600">${interview.title}</a>
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-            ${formatDateTime(interview.date, interview.time)}
-          </td>
-          <td class="px-6 py-4">
-            <span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500">
-              <span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled
-            </span>
-          </td>
-          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-            <a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a>
-          </td>
+          <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
+          <td class="px-6 py-4"><a href="/interview-view.html?id=${interview.id}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
+          <td class="px-6 py-4 text-sm text-gray-500">${formatDateTime(interview.date, interview.time)}</td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500"><span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled</span></td>
+          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"><a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a></td>
         `;
         tbody.appendChild(tr);
       });
-    } catch (err) {
-      console.error("Error loading interviews:", err);
-      const tbody = document.querySelector("#interviews-table-body");
-       if(tbody.innerHTML === "") {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load interviews.</td></tr>';
-      }
+    } catch (err) { console.error("Error loading interviews:", err); }
+  }
+  
+  function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countSpan = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
+
+    if (selectedInterviewIds.size > 0) {
+        bar.classList.remove('hidden');
+        countSpan.textContent = selectedInterviewIds.size;
+        
+        if (currentStatusFilter === 'open') {
+            moveToClosedBtn.classList.remove('hidden');
+            moveToOpenBtn.classList.add('hidden');
+        } else {
+            moveToClosedBtn.classList.add('hidden');
+            moveToOpenBtn.classList.remove('hidden');
+        }
+        
+        selectAllCheckbox.checked = selectedInterviewIds.size === rowCheckboxes.length && rowCheckboxes.length > 0;
+    } else {
+        bar.classList.add('hidden');
+        selectAllCheckbox.checked = false;
     }
   }
 
-  // --- Search Bar Logic ---
-  const searchBar = document.getElementById('search-bar');
-  let debounceTimer;
-  searchBar.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      loadInterviews(e.target.value);
-    }, 300);
+  const confirmModal = document.getElementById('confirm-modal');
+  const confirmModalTitle = document.getElementById('confirm-modal-title');
+  const confirmModalText = document.getElementById('confirm-modal-text');
+  const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+  const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+  let confirmCallback = null;
+
+  function showConfirmModal(title, text, onConfirm) {
+      confirmModalTitle.textContent = title;
+      confirmModalText.textContent = text;
+      confirmCallback = onConfirm;
+      confirmModal.classList.remove('modal-hidden');
+  }
+
+  function hideConfirmModal() {
+      confirmModal.classList.add('modal-hidden');
+      confirmCallback = null;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const openTab = document.getElementById('open-positions-tab');
+    const closedTab = document.getElementById('closed-positions-tab');
+    const searchBar = document.getElementById('search-bar');
+    const tableBody = document.getElementById('interviews-table-body');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+
+    confirmBtn.addEventListener('click', () => {
+        if (typeof confirmCallback === 'function') confirmCallback();
+        hideConfirmModal();
+    });
+    cancelBtn.addEventListener('click', hideConfirmModal);
+
+    function switchTab(newStatus) {
+        currentStatusFilter = newStatus;
+        openTab.classList.toggle('tab-active', newStatus === 'open');
+        closedTab.classList.toggle('tab-active', newStatus === 'closed');
+        loadInterviews(searchBar.value);
+        selectedInterviewIds.clear();
+        updateBulkActionBar();
+    }
+
+    openTab.addEventListener('click', () => switchTab('open'));
+    closedTab.addEventListener('click', () => switchTab('closed'));
+    
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-checkbox')) {
+            const id = e.target.dataset.id;
+            if (e.target.checked) selectedInterviewIds.add(id);
+            else selectedInterviewIds.delete(id);
+            updateBulkActionBar();
+        }
+    });
+
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+            const id = cb.dataset.id;
+            if (e.target.checked) selectedInterviewIds.add(id);
+            else selectedInterviewIds.delete(id);
+        });
+        updateBulkActionBar();
+    });
+
+    moveToClosedBtn.addEventListener('click', () => {
+        showConfirmModal(
+            `Move ${selectedInterviewIds.size} interviews?`,
+            "Are you sure you want to move the selected interviews to 'Closed'?",
+            async () => {
+                await fetch('/api/interviews/bulk-update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'closed' })
+                });
+                selectedInterviewIds.clear();
+                updateBulkActionBar();
+                loadCounts();
+                loadInterviews(searchBar.value);
+            }
+        );
+    });
+
+    moveToOpenBtn.addEventListener('click', () => {
+        showConfirmModal(
+            `Re-open ${selectedInterviewIds.size} interviews?`,
+            "Are you sure you want to move the selected interviews back to 'Open'?",
+            async () => {
+                await fetch('/api/interviews/bulk-update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'open' })
+                });
+                selectedInterviewIds.clear();
+                updateBulkActionBar();
+                loadCounts();
+                loadInterviews(searchBar.value);
+            }
+        );
+    });
+
+    deleteSelectedBtn.addEventListener('click', () => {
+        showConfirmModal(
+            `Delete ${selectedInterviewIds.size} interviews?`,
+            "This action is permanent. All associated candidate data will also be deleted.",
+            async () => {
+                await fetch('/api/interviews/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
+                });
+                selectedInterviewIds.clear();
+                updateBulkActionBar();
+                loadCounts();
+                loadInterviews(searchBar.value);
+            }
+        );
+    });
+
+    let debounceTimer;
+    searchBar.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadInterviews(e.target.value);
+      }, 300);
+    });
+
+    // Initial Load & Polling
+    loadCounts();
+    loadInterviews();
+    setInterval(() => {
+        console.log("Refreshing GTA dashboard data...");
+        loadCounts();
+        loadInterviews(searchBar.value);
+    }, 5000);
   });
-
-  // =================================================================
-  // ===========        LIVE FETCHING LOGIC (POLLING)        ===========
-  // =================================================================
-  // 1. Initial load when the page opens
-  loadInterviews();
-
-  // 2. Set up a timer that re-runs the load function every 5 seconds
-  setInterval(() => {
-    const currentSearchTerm = document.getElementById('search-bar').value;
-    console.log(`Refreshing GTA interviews... (Search term: "${currentSearchTerm}")`);
-    loadInterviews(currentSearchTerm);
-  }, 5000); // 5000 milliseconds = 5 seconds
-
 </script>
 
 </body>
