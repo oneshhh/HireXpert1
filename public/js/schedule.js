@@ -86,10 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
       backLink.href = redirectUrl;
   }
   
-  // =================================================================
-  // ===========        THIS IS THE CORRECTED LOGIC        ===========
-  // =================================================================
-  // --- "Apply Time to All" Logic ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
       applyTimeButton.addEventListener('click', () => {
@@ -98,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
               showNotification(
                   'Apply Time to All?',
                   "This will apply the time limit from the first question to all other questions.",
-                  { // This is the 'options' object
+                  { 
                       isError: false,
                       onConfirm: () => {
                           const firstTimeLimit = timeLimitSelects[0].value;
@@ -130,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
       date: formData.get("date"),
       time: formData.get("time"),
       emails: formData.get("emails"),
+      schedulerEmail: formData.get("schedulerEmail"),
     };
 
     try {
@@ -161,7 +158,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- Date/Time Restriction Logic ---
   const dateInput = document.getElementById('interview-date');
   const timeInput = document.getElementById('interview-time');
   const today = new Date();
@@ -189,9 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   }
   dateInput.addEventListener('change', handleDateChange);
-  handleDateChange(); // Initial check on page load
+  handleDateChange();
   if(typeof manageAddQuestionButton === 'function') {
     manageAddQuestionButton();
   }
 });
-

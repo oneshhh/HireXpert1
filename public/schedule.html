@@ -97,6 +97,18 @@
 </div>
 </div>
 <div>
+    <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="scheduler-email">Your Email (for confirmation and calendar invite)</label>
+    <input
+        class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
+        id="scheduler-email"
+        name="schedulerEmail"
+        type="email"
+        placeholder="e.g., your.email@company.com"
+        required
+    />
+    <p class="mt-1 text-xs text-[var(--text-secondary)]">The interview confirmation and calendar file will be sent here.</p>
+</div>
+<div>
     <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="candidate-emails">Candidate Emails</label>
     <textarea
         class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
@@ -271,7 +283,6 @@ function showNotification(title, text, options = {}) {
     } else { // This is a simple notification with one button
         const okBtn = document.createElement('button');
         okBtn.type = 'button';
-        // ADDED h-10 for fixed height, REMOVED py-2 as it's no longer needed for alignment
         okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
         okBtn.textContent = 'Got it';
         okBtn.onclick = () => {
