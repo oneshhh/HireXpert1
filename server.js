@@ -190,23 +190,34 @@ app.get("/api/session/:sessionId", async (req, res) => {
   }
 });
 
+// ========== CORRECTED /schedule ROUTE ==========
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
     if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
     const { department } = req.session.user;
     await client.query('BEGIN');
-    let { title, questions, timeLimits, date, time, emails } = req.body;
+    
+    let { title, questions, timeLimits, date, time, emails, schedulerEmail } = req.body;
+
+    if (!schedulerEmail) {
+        throw new Error("Scheduler email is required.");
+    }
+    
     if (!Array.isArray(questions)) questions = [String(questions || '')];
     if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
     while (timeLimits.length < questions.length) timeLimits.push(0);
+
     const interviewId = uuidv4();
     await client.query(
       `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`,
       [interviewId, title, questions, timeLimits, date, time, department]
     );
+
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
+
+    // Email candidates
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
       await client.query(
@@ -215,8 +226,15 @@ app.post("/schedule", async (req, res) => {
         [sessionId, interviewId, email, department]
       );
       const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-      if (!emailResult.success) throw new Error(`Failed to send email to ${email}.`);
+      if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
     }
+
+    // Email the scheduler with the calendar invite AND CHECK FOR SUCCESS
+    const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
+    if (!schedulerEmailResult.success) {
+        throw new Error("Failed to send confirmation email to scheduler.");
+    }
+    
     await client.query('COMMIT');
     res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
   } catch (err) {
