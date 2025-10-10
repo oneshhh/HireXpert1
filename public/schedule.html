@@ -163,7 +163,6 @@
 </main>
 </div>
 
-<!-- This modal is now correctly hidden by default -->
 <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center">
         <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -173,9 +172,8 @@
         <div class="mt-2">
             <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
         </div>
-        <div class="mt-5 sm:mt-6">
-            <button id="notification-modal-close-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90">Got it</button>
-        </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+            </div>
     </div>
 </div>
 
@@ -285,10 +283,8 @@ function showNotification(title, text, options = {}) {
 }
 </script>
 
-<!-- All other logic is now in external files -->
 <script src="js/schedule.js"></script>
 <script src="js/generate.js"></script>
 
 </body>
 </html>
-
