@@ -16,9 +16,11 @@
          --text-primary: #111418;
          --text-secondary: #617589;
      }
-     /* Style for the new custom modal */
-     .modal-hidden {
+     /* This CSS hides the browser's default calendar and clock icons */
+     input[type="date"]::-webkit-calendar-picker-indicator,
+     input[type="time"]::-webkit-calendar-picker-indicator {
         display: none;
+        -webkit-appearance: none;
      }
     </style>
 </head>
@@ -83,16 +85,24 @@
 </div>
 </div>
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+<!-- =========== THIS IS THE CORRECTED AND FINAL DATE INPUT =========== -->
 <div>
-    <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-date">Date</label>
-    <div>
-        <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-date" name="date" placeholder="Select Date" type="date" required>
+    <label for="interview-date" class="mb-2 block text-sm font-medium text-[var(--text-primary)]">Date</label>
+    <div class="relative">
+        <input class="w-full rounded-md border border-gray-300 bg-white p-3 pr-10 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-date" name="date" placeholder="Select Date" type="date" required>
+        <label for="interview-date" class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer">
+            <span class="material-symbols-outlined text-xl text-[var(--text-secondary)]">calendar_today</span>
+        </label>
     </div>
 </div>
+<!-- =========== THIS IS THE CORRECTED AND FINAL TIME INPUT =========== -->
 <div>
-    <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-time">Time</label>
-    <div>
-        <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-time" name="time" type="time" value="09:00" required>
+    <label for="interview-time" class="mb-2 block text-sm font-medium text-[var(--text-primary)]">Time</label>
+    <div class="relative">
+        <input class="w-full rounded-md border border-gray-300 bg-white p-3 pr-10 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-time" name="time" placeholder="Select Time" type="time" value="09:00" required>
+        <label for="interview-time" class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer">
+            <span class="material-symbols-outlined text-xl text-[var(--text-secondary)]">schedule</span>
+        </label>
     </div>
 </div>
 </div>
@@ -114,7 +124,7 @@
 </form>
 </div>
 <div class="lg:col-span-1">
-<div class="sticky top-24 rounded-lg border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm">
+    <div class="sticky top-24 rounded-lg border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm">
 <div class="flex items-center gap-3">
 <span class="material-symbols-outlined text-indigo-500">auto_awesome</span>
 <h3 class="text-base font-semibold text-indigo-800">Generate Questions with AI</h3>
@@ -164,7 +174,7 @@
 </div>
 
 <!-- =========== NEW: CUSTOM NOTIFICATION MODAL =========== -->
-<div id="notification-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center">
         <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
              <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
@@ -181,7 +191,7 @@
 <!-- ======================================================= -->
 
 <script>
-    // This script block contains all the necessary JavaScript for this page to function
+    // These functions need to be global for the external scripts to find them
     function manageAddQuestionButton() {
         const container = document.getElementById("questions-container");
         const addButton = document.querySelector('button[onclick="addQuestion()"]');
@@ -197,7 +207,6 @@
     function addQuestion(questionText = '') {
       const container = document.getElementById("questions-container");
       if (container.children.length >= 15) return;
-      
       const div = document.createElement("div");
       div.classList.add("flex", "items-start", "gap-4");
       div.innerHTML = `
@@ -217,103 +226,42 @@
       container.appendChild(div);
       manageAddQuestionButton();
     }
+    
+    // The notification function is now also global
+    function showNotification(title, text, isError = false, onConfirm = null) {
+        const modal = document.getElementById('notification-modal');
+        const modalTitle = document.getElementById('notification-modal-title');
+        const modalText = document.getElementById('notification-modal-text');
+        const modalIcon = document.getElementById('notification-modal-icon');
+        const closeBtn = document.getElementById('notification-modal-close-btn');
 
-    // --- Main script that runs after the page is loaded ---
-    document.addEventListener('DOMContentLoaded', () => {
-        
-        // --- NEW: Custom Modal Logic ---
-        const notificationModal = document.getElementById('notification-modal');
-        const notificationTitle = document.getElementById('notification-modal-title');
-        const notificationText = document.getElementById('notification-modal-text');
-        const notificationIconContainer = document.getElementById('notification-modal-icon');
-        const notificationCloseBtn = document.getElementById('notification-modal-close-btn');
-
-        function showNotification(title, text, isError = false) {
-            notificationTitle.textContent = title;
-            notificationText.textContent = text;
-            if (isError) {
-                notificationIconContainer.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
-                notificationIconContainer.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
-            } else {
-                notificationIconContainer.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
-                notificationIconContainer.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
-            }
-            notificationModal.classList.remove('modal-hidden');
+        if (!modal) {
+            alert(`${title}: ${text}`); return;
         }
 
-        notificationCloseBtn.addEventListener('click', () => {
-            notificationModal.classList.add('modal-hidden');
-        });
-        // --- End of Modal Logic ---
-
-
-        // --- "Apply Time to All" Logic (now uses the custom modal) ---
-        const applyTimeButton = document.getElementById('apply-time-to-all');
-        if (applyTimeButton) {
-            applyTimeButton.addEventListener('click', () => {
-                const questionsContainer = document.getElementById('questions-container');
-                const timeLimitSelects = questionsContainer.querySelectorAll('select[name="timeLimits[]"]');
-                if (timeLimitSelects.length > 1) {
-                    // This is a simple browser confirm, which is fine for this action
-                    if (confirm('Apply the time limit from the first question to all other questions?')) {
-                        const firstTimeLimit = timeLimitSelects[0].value;
-                        for (let i = 1; i < timeLimitSelects.length; i++) {
-                            timeLimitSelects[i].value = firstTimeLimit;
-                        }
-                    }
-                } else {
-                    showNotification('Cannot Apply Time', 'Please add at least two questions to use this feature.', true);
-                }
-            });
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+        if (isError) {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+        } else {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
         }
-
-        // --- Date/Time Logic ---
-        // ... (This logic remains exactly the same as your provided file) ...
+        modal.classList.remove('hidden');
         
-        // --- Form Submission & AI Generation (from external files) ---
-        // All the logic from schedule.js and generate.js would go here.
-        // For brevity, only showing the updated parts for the modal.
-
-        // UPDATED Form Submission (from schedule.js)
-        const form = document.getElementById("scheduleForm");
-        form.addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const data = { /* ... form data collection ... */ };
-            try {
-                const res = await fetch("/schedule", { /* ... fetch options ... */ });
-                const result = await res.json();
-                if (res.ok) {
-                    showNotification('Interview Scheduled!', result.message, false);
-                    // We'll redirect after the user closes the modal
-                    notificationCloseBtn.onclick = () => {
-                         const urlParams = new URLSearchParams(window.location.search);
-                         const originDashboard = urlParams.get('from');
-                         const redirectUrl = originDashboard ? `/${originDashboard}` : '/HR_Dashboard.html';
-                         window.location.href = redirectUrl;
-                    };
-                } else {
-                    showNotification('Error!', result.message || "Something went wrong", true);
-                }
-            } catch (err) {
-                showNotification('Network Error', "Failed to schedule interview. Please try again.", true);
+        closeBtn.onclick = () => {
+            modal.classList.add('hidden');
+            if (typeof onConfirm === 'function') {
+                onConfirm();
             }
-        });
-        
-        // UPDATED AI Generation (from generate.js)
-        const generateBtn = document.getElementById('generate-questions-btn');
-        generateBtn.addEventListener('click', async () => {
-             // ... (existing setup code for job desc, num questions etc.) ...
-             try {
-                // ... (existing fetch logic) ...
-             } catch (error) {
-                showNotification('Generation Error', error.message, true);
-             } finally {
-                // ... (reset button state) ...
-             }
-        });
-    });
+        };
+    }
 </script>
+
+<script src="js/schedule.js"></script>
+<script src="js/generate.js"></script>
+
 </body>
 </html>
 
