@@ -36,9 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   }
   dateInput.addEventListener('change', handleDateChange);
-  handleDateChange(); // Initial check
-  manageAddQuestionButton(); // Initial check for the add button
-
+  handleDateChange(); // Initial check on page load
+  
   // --- "Apply Time to All" Logic ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
@@ -52,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
               }
           } else {
-              showNotification('Cannot Apply Time', 'Please add at least two questions to use this feature.', true);
+              alert('Please add at least two questions to use this feature.');
           }
       });
   }
@@ -77,21 +76,22 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+
       const result = await res.json();
+
       if (res.ok) {
-        showNotification(
-            'Interview Scheduled!', 
-            result.message, 
-            false, 
-            () => { window.location.href = redirectUrl; }
-        );
+        alert(`Interview scheduled successfully! Message: ${result.message}`);
+        window.location.href = redirectUrl;
       } else {
-        showNotification('Error', result.message || "Something went wrong", true);
+        alert(`Error: ${result.message || "Something went wrong"}`);
       }
     } catch (err) {
       console.error("Critical Error:", err);
-      showNotification('Network Error', "Failed to schedule interview.", true);
+      alert("Failed to schedule interview. Check the console.");
     }
   });
+
+  // Also manage the add question button on initial load
+  manageAddQuestionButton();
 });
 
