@@ -8,6 +8,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
+const ics = require('ics'); // Dependency for calendar invites
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -41,7 +42,7 @@ function parseQuestionsField(q) {
 }
 
 // =================================================================
-// =========== EMAIL SENDER USING SEND GRID===========
+// ===========        EMAIL SENDING FUNCTIONS          ===========
 // =================================================================
 async function sendInterviewEmail(to, interviewId, title, date, time) { 
   const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
@@ -69,6 +70,57 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
     }
     return { success: false, error: err };
   }
+}
+
+// ========== NEW FUNCTION TO SEND SCHEDULER CONFIRMATION & CALENDAR INVITE ==========
+async function sendSchedulerConfirmationEmail(to, title, date, time, candidates) {
+    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+    
+    // 1. Create the .ics file content
+    const [year, month, day] = date.split('-').map(Number);
+    const [hour, minute] = time.split(':').map(Number);
+
+    const event = {
+        title: `Interview: ${title}`,
+        description: `Interview scheduled with the following candidates: ${candidates.join(', ')}`,
+        start: [year, month, day, hour, minute],
+        duration: { hours: 1 },
+        status: 'CONFIRMED',
+        organizer: { name: 'HireXpert', email: verifiedSenderEmail },
+        attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
+    };
+
+    const { error, value } = ics.createEvent(event);
+    if (error) {
+        console.error("❌ CRITICAL: Failed to create .ics file:", error);
+        return { success: false, error };
+    }
+
+    // 2. Prepare the email
+    const attachment = Buffer.from(value).toString('base64');
+    const msg = {
+        to: to,
+        from: verifiedSenderEmail,
+        subject: `CONFIRMATION: Interview Scheduled for ${title}`,
+        html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p><p>A calendar invite (.ics file) is attached to this email.</p>`,
+        attachments: [{
+            content: attachment,
+            filename: 'invite.ics',
+            type: 'text/calendar',
+            disposition: 'attachment'
+        }]
+    };
+
+    // 3. Send the email
+    try {
+        await sgMail.send(msg);
+        console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
+        return { success: true };
+    } catch (err) {
+        console.error(`❌ CRITICAL: Error sending scheduler confirmation:`, err);
+        if (err.response) console.error(err.response.body);
+        return { success: false, error: err };
+    }
 }
 
 
@@ -190,7 +242,7 @@ app.get("/api/session/:sessionId", async (req, res) => {
   }
 });
 
-// ========== CORRECTED /schedule ROUTE ==========
+// ========== UPDATED AND CORRECTED /schedule ROUTE ==========
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -247,7 +299,7 @@ app.post("/schedule", async (req, res) => {
 });
 
 // =================================================================
-// ===========        ROUTES FOR HR DASHBOARD FEATURES (RESTORED)       ===========
+// ===========        ROUTES FOR HR DASHBOARD FEATURES       ===========
 // =================================================================
 app.get("/api/interviews/counts", async (req, res) => {
     try {
@@ -399,7 +451,8 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
     await client.query("DELETE FROM interviews WHERE id = $1", [interviewId]);
     await client.query('COMMIT');
     res.json({ message: "Interview and all associated sessions deleted successfully" });
-  } catch (err) {
+  } catch (err)
+    {
     await client.query('ROLLBACK');
     console.error("Delete failed:", err);
     res.status(500).json({ message: "Delete failed" });
@@ -431,4 +484,3 @@ app.get("/candidates.html", (req, res) => res.sendFile(path.join(__dirname, "vie
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
