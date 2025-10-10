@@ -1,6 +1,6 @@
-// This function must be defined globally or be accessible to other scripts
+// This function is defined globally so it can be used by other scripts.
 function showNotification(title, text, options = {}) {
-    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
+    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', onClose = null } = options;
 
     const modal = document.getElementById('notification-modal');
     const modalTitle = document.getElementById('notification-modal-title');
@@ -33,6 +33,8 @@ function showNotification(title, text, options = {}) {
     btnContainer.innerHTML = ''; // Clear previous buttons
     
     if (onConfirm) { // This is a confirmation dialog with two buttons
+        btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
+
         const confirmBtn = document.createElement('button');
         confirmBtn.type = 'button';
         confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
@@ -54,12 +56,18 @@ function showNotification(title, text, options = {}) {
         btnContainer.appendChild(confirmBtn);
 
     } else { // This is a simple notification with one button
+        // When there's only one button, remove the grid layout to allow centering
+        btnContainer.className = 'mt-5 sm:mt-6';
+
         const okBtn = document.createElement('button');
         okBtn.type = 'button';
         okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
         okBtn.textContent = 'Got it';
         okBtn.onclick = () => {
             modal.classList.add('hidden');
+            if(typeof onClose === 'function'){
+                onClose();
+            }
         };
         btnContainer.appendChild(okBtn);
     }
@@ -139,9 +147,9 @@ document.addEventListener("DOMContentLoaded", () => {
         showNotification(
             'Interview Scheduled!', 
             result.message, 
-            { // Correctly passing options object
+            {
                 isError: false, 
-                onConfirm: () => { window.location.href = redirectUrl; }
+                onClose: () => { window.location.href = redirectUrl; }
             }
         );
       } else {
@@ -152,5 +160,38 @@ document.addEventListener("DOMContentLoaded", () => {
       showNotification('Network Error', "Failed to schedule interview. Please try again.", { isError: true });
     }
   });
+
+  // --- Date/Time Restriction Logic ---
+  const dateInput = document.getElementById('interview-date');
+  const timeInput = document.getElementById('interview-time');
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  const todayString = today.toISOString().split('T')[0];
+  dateInput.min = todayString;
+
+  function handleDateChange() {
+      const selectedDate = dateInput.value;
+      const todayForCheck = new Date();
+      todayForCheck.setMinutes(todayForCheck.getMinutes() - todayForCheck.getTimezoneOffset());
+      const todayStringForCheck = todayForCheck.toISOString().split('T')[0];
+
+      if (selectedDate === todayStringForCheck) {
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const currentTime = `${hours}:${minutes}`;
+          timeInput.min = currentTime;
+          if (timeInput.value < currentTime) {
+              timeInput.value = currentTime;
+          }
+      } else {
+          timeInput.min = '';
+      }
+  }
+  dateInput.addEventListener('change', handleDateChange);
+  handleDateChange(); // Initial check on page load
+  if(typeof manageAddQuestionButton === 'function') {
+    manageAddQuestionButton();
+  }
 });
 

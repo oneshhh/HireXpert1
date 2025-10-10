@@ -271,15 +271,14 @@ function showNotification(title, text, options = {}) {
     } else { // This is a simple notification with one button
         const okBtn = document.createElement('button');
         okBtn.type = 'button';
-        okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+        // ADDED h-10 for fixed height, REMOVED py-2 as it's no longer needed for alignment
+        okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
         okBtn.textContent = 'Got it';
         okBtn.onclick = () => {
             modal.classList.add('hidden');
         };
         btnContainer.appendChild(okBtn);
     }
-    
-    modal.classList.remove('hidden');
 }
 </script>
 
