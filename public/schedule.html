@@ -216,30 +216,73 @@
       manageAddQuestionButton();
     }
     
-    function showNotification(title, text, isError = false, onConfirm = null) {
-        const modal = document.getElementById('notification-modal');
-        const modalTitle = document.getElementById('notification-modal-title');
-        const modalText = document.getElementById('notification-modal-text');
-        const modalIcon = document.getElementById('notification-modal-icon');
-        const closeBtn = document.getElementById('notification-modal-close-btn');
+function showNotification(title, text, options = {}) {
+    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
 
-        if (!modal) { alert(`${title}: ${text}`); return; }
-        modalTitle.textContent = title;
-        modalText.textContent = text;
-        if (isError) {
-            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
-            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+    const modal = document.getElementById('notification-modal');
+    const modalTitle = document.getElementById('notification-modal-title');
+    const modalText = document.getElementById('notification-modal-text');
+    const modalIcon = document.getElementById('notification-modal-icon');
+    const btnContainer = document.getElementById('notification-modal-buttons');
+    
+    if (!modal) {
+        if (onConfirm) {
+            if (confirm(`${title}\n${text}`)) {
+                onConfirm();
+            }
         } else {
-            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
-            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+            alert(`${title}: ${text}`);
         }
-        modal.classList.remove('hidden');
-        
-        closeBtn.onclick = () => {
-            modal.classList.add('hidden');
-            if (typeof onConfirm === 'function') onConfirm();
-        };
+        return;
     }
+
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    
+    if (isError) {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+    } else {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+    }
+
+    btnContainer.innerHTML = ''; // Clear previous buttons
+    
+    if (onConfirm) { // This is a confirmation dialog with two buttons
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+        confirmBtn.textContent = confirmText;
+        confirmBtn.onclick = () => {
+            modal.classList.add('hidden');
+            onConfirm();
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+        cancelBtn.textContent = cancelText;
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+        };
+        
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(confirmBtn);
+
+    } else { // This is a simple notification with one button
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+        okBtn.textContent = 'Got it';
+        okBtn.onclick = () => {
+            modal.classList.add('hidden');
+        };
+        btnContainer.appendChild(okBtn);
+    }
+    
+    modal.classList.remove('hidden');
+}
 </script>
 
 <!-- All other logic is now in external files -->
