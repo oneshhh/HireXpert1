@@ -38,32 +38,32 @@ document.addEventListener("DOMContentLoaded", () => {
   dateInput.addEventListener('change', handleDateChange);
   handleDateChange(); // Initial check on page load
   
-// --- "Apply Time to All" Logic ---
-const applyTimeButton = document.getElementById('apply-time-to-all');
-if (applyTimeButton) {
-    applyTimeButton.addEventListener('click', () => {
-        const timeLimitSelects = document.querySelectorAll('select[name="timeLimits[]"]');
-        if (timeLimitSelects.length > 1) {
-            // This now uses the custom pop-up as a confirmation dialog
-            showNotification(
-                'Apply Time to All?', 
-                'This will apply the time limit from the first question to all other questions.', 
-                { 
-                    isError: false, 
-                    onConfirm: () => {
-                        const firstTimeLimit = timeLimitSelects[0].value;
-                        for (let i = 1; i < timeLimitSelects.length; i++) {
-                            timeLimitSelects[i].value = firstTimeLimit;
-                        }
-                    }
-                }
-            );
-        } else {
-            // The "info" message also uses the custom pop-up
-            showNotification('Cannot Apply Time', 'Please add at least two questions to use this feature.', { isError: true });
-        }
-    });
-}
+  // --- "Apply Time to All" Logic ---
+  const applyTimeButton = document.getElementById('apply-time-to-all');
+  if (applyTimeButton) {
+      applyTimeButton.addEventListener('click', () => {
+          const timeLimitSelects = document.querySelectorAll('select[name="timeLimits[]"]');
+          if (timeLimitSelects.length > 1) {
+              showNotification(
+                  'Apply Time to All?',
+                  "This will apply the time limit from the first question to all other questions.",
+                  {
+                      isError: false,
+                      onConfirm: () => {
+                          const firstTimeLimit = timeLimitSelects[0].value;
+                          for (let i = 1; i < timeLimitSelects.length; i++) {
+                              timeLimitSelects[i].value = firstTimeLimit;
+                          }
+                      },
+                      confirmText: 'Yes',
+                      cancelText: 'No'
+                  }
+              );
+          } else {
+              showNotification('Cannot Apply Time', 'Please add at least two questions to use this feature.', { isError: true });
+          }
+      });
+  }
 
   // --- Form Submission Logic ---
   const form = document.getElementById("scheduleForm");
