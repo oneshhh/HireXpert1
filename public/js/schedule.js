@@ -1,43 +1,86 @@
+// This function must be defined globally or be accessible to other scripts
+function showNotification(title, text, options = {}) {
+    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
+
+    const modal = document.getElementById('notification-modal');
+    const modalTitle = document.getElementById('notification-modal-title');
+    const modalText = document.getElementById('notification-modal-text');
+    const modalIcon = document.getElementById('notification-modal-icon');
+    const btnContainer = document.getElementById('notification-modal-buttons');
+    
+    if (!modal) {
+        if (onConfirm) {
+            if (confirm(`${title}\n${text}`)) {
+                onConfirm();
+            }
+        } else {
+            alert(`${title}: ${text}`);
+        }
+        return;
+    }
+
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    
+    if (isError) {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+    } else {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+    }
+
+    btnContainer.innerHTML = ''; // Clear previous buttons
+    
+    if (onConfirm) { // This is a confirmation dialog with two buttons
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+        confirmBtn.textContent = confirmText;
+        confirmBtn.onclick = () => {
+            modal.classList.add('hidden');
+            onConfirm();
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+        cancelBtn.textContent = cancelText;
+        cancelBtn.onclick = () => {
+            modal.classList.add('hidden');
+        };
+        
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(confirmBtn);
+
+    } else { // This is a simple notification with one button
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+        okBtn.textContent = 'Got it';
+        okBtn.onclick = () => {
+            modal.classList.add('hidden');
+        };
+        btnContainer.appendChild(okBtn);
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
-  // --- Dynamic Redirect Logic ---
   const urlParams = new URLSearchParams(window.location.search);
   const originDashboard = urlParams.get('from');
   const redirectUrl = originDashboard ? `/${originDashboard}` : '/HR_Dashboard.html';
+
   const backLink = document.getElementById('back-to-dashboard-link');
   if (backLink) {
       backLink.href = redirectUrl;
   }
-
-  // --- Date/Time Restriction Logic ---
-  const dateInput = document.getElementById('interview-date');
-  const timeInput = document.getElementById('interview-time');
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-  const todayString = today.toISOString().split('T')[0];
-  dateInput.min = todayString;
-
-  function handleDateChange() {
-      const selectedDate = dateInput.value;
-      const todayForCheck = new Date();
-      todayForCheck.setMinutes(todayForCheck.getMinutes() - todayForCheck.getTimezoneOffset());
-      const todayStringForCheck = todayForCheck.toISOString().split('T')[0];
-
-      if (selectedDate === todayStringForCheck) {
-          const now = new Date();
-          const hours = String(now.getHours()).padStart(2, '0');
-          const minutes = String(now.getMinutes()).padStart(2, '0');
-          const currentTime = `${hours}:${minutes}`;
-          timeInput.min = currentTime;
-          if (timeInput.value < currentTime) {
-              timeInput.value = currentTime;
-          }
-      } else {
-          timeInput.min = '';
-      }
-  }
-  dateInput.addEventListener('change', handleDateChange);
-  handleDateChange(); // Initial check on page load
   
+  // =================================================================
+  // ===========        THIS IS THE CORRECTED LOGIC        ===========
+  // =================================================================
   // --- "Apply Time to All" Logic ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
@@ -47,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
               showNotification(
                   'Apply Time to All?',
                   "This will apply the time limit from the first question to all other questions.",
-                  {
+                  { // This is the 'options' object
                       isError: false,
                       onConfirm: () => {
                           const firstTimeLimit = timeLimitSelects[0].value;
@@ -65,11 +108,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // --- Form Submission Logic ---
   const form = document.getElementById("scheduleForm");
+
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
+
     const formData = new FormData(form);
+    
     const data = {
       title: formData.get("title"),
       questions: formData.getAll("questions[]"),
@@ -82,27 +127,30 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/schedule", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
+
       const result = await res.json();
+
       if (res.ok) {
         showNotification(
             'Interview Scheduled!', 
             result.message, 
-            false, 
-            () => { window.location.href = redirectUrl; }
+            { // Correctly passing options object
+                isError: false, 
+                onConfirm: () => { window.location.href = redirectUrl; }
+            }
         );
       } else {
-        showNotification('Error', result.message || "Something went wrong", true);
+        showNotification('Error', result.message || "Something went wrong", { isError: true });
       }
     } catch (err) {
-      console.error("Critical Error:", err);
-      showNotification('Network Error', "Failed to schedule interview.", true);
+      console.error("❌ Critical Error: Failed to schedule interview:", err);
+      showNotification('Network Error', "Failed to schedule interview. Please try again.", { isError: true });
     }
   });
-
-  // Also manage the add question button on initial load
-  manageAddQuestionButton();
 });
 
