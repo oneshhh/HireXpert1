@@ -16,6 +16,10 @@
          --text-primary: #111418;
          --text-secondary: #617589;
      }
+     /* This style is for the custom modal */
+     .modal-hidden {
+        display: none;
+     }
     </style>
 </head>
 <body class="bg-gray-50 text-[var(--text-primary)]" style='font-family: "Inter", "Noto Sans", sans-serif;'>
@@ -78,7 +82,6 @@
     <button type="button" id="apply-time-to-all" class="text-sm font-medium text-[var(--primary-color)] hover:underline">Apply first time limit to all</button>
 </div>
 </div>
-<!-- =========== THIS IS THE REVERTED AND WORKING DATE/TIME SECTION =========== -->
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 <div>
     <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-date">Date</label>
@@ -93,7 +96,6 @@
     </div>
 </div>
 </div>
-<!-- =============================================================================== -->
 <div>
     <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="candidate-emails">Candidate Emails</label>
     <textarea
@@ -112,7 +114,7 @@
 </form>
 </div>
 <div class="lg:col-span-1">
-        <div class="sticky top-24 rounded-lg border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm">
+<div class="sticky top-24 rounded-lg border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm">
 <div class="flex items-center gap-3">
 <span class="material-symbols-outlined text-indigo-500">auto_awesome</span>
 <h3 class="text-base font-semibold text-indigo-800">Generate Questions with AI</h3>
@@ -161,11 +163,24 @@
 </main>
 </div>
 
-<!-- All external scripts are loaded here -->
-<script src="js/schedule.js"></script>
-<script src="js/generate.js"></script>
+<!-- This modal is now correctly hidden by default -->
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+        </div>
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
+        </div>
+        <div class="mt-5 sm:mt-6">
+            <button id="notification-modal-close-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90">Got it</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // These helper functions need to be global for the other scripts to find them
+    // These functions need to be global for the external scripts to find them
     function manageAddQuestionButton() {
         const container = document.getElementById("questions-container");
         const addButton = document.querySelector('button[onclick="addQuestion()"]');
@@ -200,7 +215,37 @@
       container.appendChild(div);
       manageAddQuestionButton();
     }
+    
+    function showNotification(title, text, isError = false, onConfirm = null) {
+        const modal = document.getElementById('notification-modal');
+        const modalTitle = document.getElementById('notification-modal-title');
+        const modalText = document.getElementById('notification-modal-text');
+        const modalIcon = document.getElementById('notification-modal-icon');
+        const closeBtn = document.getElementById('notification-modal-close-btn');
+
+        if (!modal) { alert(`${title}: ${text}`); return; }
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+        if (isError) {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+        } else {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+        }
+        modal.classList.remove('hidden');
+        
+        closeBtn.onclick = () => {
+            modal.classList.add('hidden');
+            if (typeof onConfirm === 'function') onConfirm();
+        };
+    }
 </script>
+
+<!-- All other logic is now in external files -->
+<script src="js/schedule.js"></script>
+<script src="js/generate.js"></script>
+
 </body>
 </html>
 

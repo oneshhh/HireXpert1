@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
               }
           } else {
-              alert('Please add at least two questions to use this feature.');
+              showNotification('Cannot Apply Time', 'Please add at least two questions to use this feature.', true);
           }
       });
   }
@@ -76,18 +76,20 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       const result = await res.json();
-
       if (res.ok) {
-        alert(`Interview scheduled successfully! Message: ${result.message}`);
-        window.location.href = redirectUrl;
+        showNotification(
+            'Interview Scheduled!', 
+            result.message, 
+            false, 
+            () => { window.location.href = redirectUrl; }
+        );
       } else {
-        alert(`Error: ${result.message || "Something went wrong"}`);
+        showNotification('Error', result.message || "Something went wrong", true);
       }
     } catch (err) {
       console.error("Critical Error:", err);
-      alert("Failed to schedule interview. Check the console.");
+      showNotification('Network Error', "Failed to schedule interview.", true);
     }
   });
 

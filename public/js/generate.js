@@ -1,8 +1,8 @@
-const generateBtn = document.getElementById('generate-questions-btn');
-const jobDescriptionEl = document.getElementById('job-description');
-const numQuestionsEl = document.getElementById('num-questions');
-const questionsContainer = document.getElementById('questions-container');
-const difficultyEl = document.getElementById('difficulty');
+document.addEventListener('DOMContentLoaded', () => {
+    const generateBtn = document.getElementById('generate-questions-btn');
+    const jobDescriptionEl = document.getElementById('job-description');
+    const numQuestionsEl = document.getElementById('num-questions');
+    const difficultyEl = document.getElementById('difficulty');
 
 // This is the hardcoded API key from your file.
 const GEMINI_API_KEY = 'AIzaSyBonRjkMwCmh5kxIOgrDLrcNFYdT7h2h9U';
@@ -39,75 +39,59 @@ function addQuestion(questionText = '') {
 // =================================================================
 
 
-// Function to set the loading/disabled state for the form
-function setFormState(isLoading) {
-    generateBtn.disabled = isLoading;
-    jobDescriptionEl.disabled = isLoading;
-    numQuestionsEl.disabled = isLoading;
-    difficultyEl.disabled = isLoading;
-    generateBtn.textContent = isLoading ? 'Generating...' : 'Generate';
-}
-
-// Event listener for the "Generate" button
-generateBtn.addEventListener('click', async () => {
-    const jobDescription = jobDescriptionEl.value.trim();
-    const numQuestions = numQuestionsEl.value;
-    const difficulty = difficultyEl.value;
-
-
-    if (!jobDescription || numQuestions < 1) {
-        // UPDATED: Use the custom pop-up
-        showNotification('Input Required', 'Please enter a job description and select the number of questions.', true);
-        return;
+    function setFormState(isLoading) {
+        generateBtn.disabled = isLoading;
+        jobDescriptionEl.disabled = isLoading;
+        numQuestionsEl.disabled = isLoading;
+        difficultyEl.disabled = isLoading;
+        generateBtn.textContent = isLoading ? 'Generating...' : 'Generate';
     }
 
-    setFormState(true);
+    generateBtn.addEventListener('click', async () => {
+        const jobDescription = jobDescriptionEl.value.trim();
+        const numQuestions = numQuestionsEl.value;
+        const difficulty = difficultyEl.value;
 
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`
-                    }]
-                }]
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`HTTP error! Status: ${response.status} - ${errorData.error.message}`);
+        if (!jobDescription || !numQuestions || numQuestions < 1) {
+            showNotification('Input Required', 'Please enter a job description and select the number of questions.', true);
+            return;
         }
 
-        const data = await response.json();
+        setFormState(true);
 
-        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            throw new Error('Invalid API response format from the AI model.');
+        try {
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobDescription, numQuestions, difficulty })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to generate questions');
+            }
+            
+            const data = await response.json();
+            
+            if (!data.candidates || !data.candidates[0].content) {
+                throw new Error("Invalid response format from the AI model.");
+            }
+
+            const responseText = data.candidates[0].content.parts[0].text;
+            const cleanJsonString = responseText.trim().replace(/^```json\n?/, '').replace(/```$/, '');
+            const questionsArray = JSON.parse(cleanJsonString);
+            
+            document.getElementById('questions-container').innerHTML = '';
+            questionsArray.forEach(question => {
+                addQuestion(question);
+            });
+
+        } catch (error) {
+            console.error('Generation Error:', error);
+            showNotification('Generation Error', error.message, true);
+        } finally {
+            setFormState(false);
         }
-
-        const responseText = data.candidates[0].content.parts[0].text;
-        const cleanJsonString = responseText
-            .trim()
-            .replace(/^```json\n?/, '')
-            .replace(/```$/, '');
-
-        const questionsArray = JSON.parse(cleanJsonString);
-
-        questionsContainer.innerHTML = '';
-        questionsArray.forEach(question => {
-            addQuestion(question);
-        });
-
-    } catch (error) {
-        // UPDATED: Use the custom pop-up for errors
-        showNotification('Generation Error', error.message, true);
-        console.error('Generation Error:', error);
-    } finally {
-        setFormState(false);
-    }
+    });
 });
 
