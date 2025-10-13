@@ -8,7 +8,8 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
-const ics = require('ics'); // Dependency for calendar invites
+const ics = require('ics');
+const bcrypt = require('bcrypt'); // For password hashing
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -17,55 +18,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(cors({ origin: "*" })); // Consider restricting this to your frontend URL in production
+app.use(cors({ origin: "*" }));
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development", // It's better to use an environment variable
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
     resave: false,
     saveUninitialized: true,
   })
 );
 
-// ---------- Fake user database (with Admin user) ----------
-const users = [
-  { email: "admin@company.com", password: "admin123", department: "Admin" },
-  { email: "hr@company.com", password: "hr123", department: "HR" },
-  { email: "pmo@company.com", password: "pmo123", department: "PMO" },
-  { email: "gta@company.com", password: "gta123", department: "GTA" },
-];
-
-
-
-// =================================================================
-// ===========        NEW ROUTE TO ADD A USER (IN-MEMORY)       ===========
-// =================================================================
-app.post("/api/add-user", (req, res) => {
-    // Basic security check: only an admin can add users
-    if (req.session.user?.department !== 'Admin') {
-        return res.status(403).json({ message: "Forbidden: Only admins can add users." });
-    }
-
-    const { email, department, password } = req.body;
-    
-    if (!email || !department || !password) {
-        return res.status(400).json({ message: "Email, department, and password are required." });
-    }
-
-    // Check if user already exists
-    const userExists = users.find(u => u.email === email);
-    if (userExists) {
-        return res.status(409).json({ message: "A user with this email already exists." });
-    }
-
-    // Add the new user to the in-memory array
-    const newUser = { email, password, department };
-    users.push(newUser);
-
-    console.log("New user added:", newUser);
-    console.log("Current users:", users);
-
-    res.status(201).json({ success: true, message: "User created successfully.", user: newUser });
-});
+// ---------- REMOVED: Fake user database is now in the DB ----------
 
 // ---------- Helper: robust questions parser ----------
 function parseQuestionsField(q) {
@@ -81,8 +43,8 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
   const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
   const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
   const msg = {
-    to: to, // Recipient
-    from: verifiedSenderEmail, // Verified Sender
+    to: to,
+    from: verifiedSenderEmail,
     subject: `Interview Scheduled: ${title}`,
     html: `
       <p>Dear Candidate,</p>
@@ -105,11 +67,9 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
   }
 }
 
-// ========== NEW FUNCTION TO SEND SCHEDULER CONFIRMATION & CALENDAR INVITE ==========
 async function sendSchedulerConfirmationEmail(to, title, date, time, candidates) {
     const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
     
-    // 1. Create the .ics file content
     const [year, month, day] = date.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
 
@@ -129,7 +89,6 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         return { success: false, error };
     }
 
-    // 2. Prepare the email
     const attachment = Buffer.from(value).toString('base64');
     const msg = {
         to: to,
@@ -144,7 +103,6 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         }]
     };
 
-    // 3. Send the email
     try {
         await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
@@ -190,28 +148,46 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-app.post("/login", (req, res) => {
+// ========== MODIFIED: /login route to use database ==========
+app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
-    const user = users.find(u => u.email === email && u.password === password && u.department === department);
-    if (user) {
-        req.session.user = user;
-        if (user.department === 'Admin') {
-            return res.redirect('/admin_Dashboard.html');
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE email = $1 AND department = $2", [email, department]);
+        const user = result.rows[0];
+
+        if (user) {
+            // Compare submitted password with the stored hash
+            const isMatch = await bcrypt.compare(password, user.password_hash);
+            if (isMatch) {
+                // Passwords match, create session (without password hash)
+                req.session.user = { 
+                    id: user.id, 
+                    email: user.email, 
+                    department: user.department 
+                };
+
+                if (user.department === 'Admin') {
+                    return res.redirect('/admin_Dashboard.html');
+                }
+                return res.redirect(`/${user.department}_Dashboard.html`);
+            }
         }
-        res.redirect(`/${user.department}_Dashboard.html`);
-    } else {
+        // If user not found or password doesn't match
         res.status(401).send("Invalid credentials or department.");
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).send("An internal server error occurred.");
     }
 });
+
 
 // Dashboards
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
 
-// =================================================================
-// ===========        ROUTES FOR ADMIN DASHBOARD       ===========
-// =================================================================
+
+// ========== MODIFIED: Admin Dashboard and User API Routes ==========
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.department === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
@@ -219,10 +195,51 @@ app.get("/admin_Dashboard.html", (req, res) => {
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
 });
 
-app.get("/api/users", (req, res) => {
-    res.json(users);
+// MODIFIED: Fetches users from the database
+app.get("/api/users", async (req, res) => {
+    try {
+        const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at FROM users ORDER BY created_at DESC");
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Failed to fetch users." });
+    }
 });
 
+// MODIFIED: Adds a user to the database with a hashed password
+app.post("/api/add-user", async (req, res) => {
+    if (req.session.user?.department !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can add users." });
+    }
+
+    const { firstName, lastName, email, department, password } = req.body;
+    
+    if (!firstName || !lastName || !email || !department || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+    }
+
+    try {
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        const newUserResult = await pool.query(
+            `INSERT INTO users (first_name, last_name, email, password_hash, department)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id, email, department`,
+            [firstName, lastName, email, passwordHash, department]
+        );
+        
+        res.status(201).json({ success: true, message: "User created successfully.", user: newUserResult.rows[0] });
+    } catch (error) {
+        console.error("Error creating user:", error);
+        if (error.code === '23505') { // Unique constraint violation for email
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+// Analytics routes
 app.get("/api/analytics/status-counts", async (req, res) => {
     try {
         const result = await pool.query(
@@ -251,7 +268,6 @@ app.get("/api/analytics/interviews-over-time", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
-// =================================================================
 
 
 // ---------- Core API Routes ----------
@@ -275,7 +291,6 @@ app.get("/api/session/:sessionId", async (req, res) => {
   }
 });
 
-// ========== UPDATED AND CORRECTED /schedule ROUTE ==========
 app.post("/schedule", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -302,7 +317,6 @@ app.post("/schedule", async (req, res) => {
 
     const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
 
-    // Email candidates
     for (const email of candidateEmails) {
       const sessionId = uuidv4();
       await client.query(
@@ -314,7 +328,6 @@ app.post("/schedule", async (req, res) => {
       if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
     }
 
-    // Email the scheduler with the calendar invite AND CHECK FOR SUCCESS
     const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
     if (!schedulerEmailResult.success) {
         throw new Error("Failed to send confirmation email to scheduler.");
@@ -331,9 +344,6 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-// =================================================================
-// ===========        ROUTES FOR HR DASHBOARD FEATURES       ===========
-// =================================================================
 app.get("/api/interviews/counts", async (req, res) => {
     try {
         const { department } = req.query;
@@ -391,13 +401,9 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
         client.release();
     }
 });
-// =================================================================
 
-
-// --- UPDATED /api/interviews to handle position_status filter AND PAGINATION ---
 app.get("/api/interviews", async (req, res) => {
   try {
-    // Now accepting page and limit for pagination
     const { search, department, position_status, page = 1, limit = 10 } = req.query; 
     
     let queryParams = [];
@@ -422,7 +428,6 @@ app.get("/api/interviews", async (req, res) => {
     }
     baseQuery += " ORDER BY created_at DESC";
 
-    // Add pagination logic to the query
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const offset = (pageNum - 1) * limitNum;
@@ -441,8 +446,6 @@ app.get("/api/interviews", async (req, res) => {
   }
 });
 
-
-// --- ALL OTHER API ROUTES ---
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department } = req.query;
