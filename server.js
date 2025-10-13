@@ -9,70 +9,49 @@ const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
 const ics = require('ics');
-const bcrypt = require('bcrypt'); // For password hashing
+const bcrypt = require('bcrypt');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-// ---------- Middleware ----------
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
-    resave: false,
-    saveUninitialized: true,
-  })
-);
+app.use(session({ secret: process.env.SESSION_SECRET || "a-default-secret-for-development", resave: false, saveUninitialized: true }));
 
-// ---------- REMOVED: Fake user database is now in the DB ----------
-
-// ---------- Helper: robust questions parser ----------
+// Helper functions
 function parseQuestionsField(q) {
-  if (!q) return [];
-  if (Array.isArray(q)) return q;
-  return [String(q)];
+    if (!q) return [];
+    if (Array.isArray(q)) return q;
+    return [String(q)];
 }
 
-// =================================================================
-// ===========        EMAIL SENDING FUNCTIONS          ===========
-// =================================================================
-async function sendInterviewEmail(to, interviewId, title, date, time) { 
-  const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
-  const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
-  const msg = {
-    to: to,
-    from: verifiedSenderEmail,
-    subject: `Interview Scheduled: ${title}`,
-    html: `
-      <p>Dear Candidate,</p>
-      <p>You have an interview scheduled for <b>${title}</b>.</p>
-      <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-      <p>Click <a href="${link}">here</a> to join your interview.</p>
-      <p>Regards,<br>HireXpert Team</p>
-    `,
-  };
-  try {
-    await sgMail.send(msg);
-    console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
-    return { success: true };
-  } catch (err) {
-    console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
-    if (err.response) {
-      console.error(err.response.body)
+async function sendInterviewEmail(to, interviewId, title, date, time) {
+    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+    const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+    const msg = {
+        to: to,
+        from: verifiedSenderEmail,
+        subject: `Interview Scheduled: ${title}`,
+        html: `<p>Dear Candidate,</p><p>You have an interview scheduled for <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p>Click <a href="${link}">here</a> to join your interview.</p><p>Regards,<br>HireXpert Team</p>`,
+    };
+    try {
+        await sgMail.send(msg);
+        console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
+        return { success: true };
+    } catch (err) {
+        console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
+        if (err.response) { console.error(err.response.body) }
+        return { success: false, error: err };
     }
-    return { success: false, error: err };
-  }
 }
 
 async function sendSchedulerConfirmationEmail(to, title, date, time, candidates) {
     const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
-    
     const [year, month, day] = date.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
-
     const event = {
         title: `Interview: ${title}`,
         description: `Interview scheduled with the following candidates: ${candidates.join(', ')}`,
@@ -82,13 +61,11 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         organizer: { name: 'HireXpert', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
-
     const { error, value } = ics.createEvent(event);
     if (error) {
         console.error("❌ CRITICAL: Failed to create .ics file:", error);
         return { success: false, error };
     }
-
     const attachment = Buffer.from(value).toString('base64');
     const msg = {
         to: to,
@@ -102,7 +79,6 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
             disposition: 'attachment'
         }]
     };
-
     try {
         await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
@@ -114,65 +90,40 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
     }
 }
 
-
-// ---------- NEW GEMINI QUESTION GENERATOR ROUTE ----------
+// AI Question Generator Route
 app.post('/api/generate', async (req, res) => {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
-        return res.status(500).json({ error: 'API key is not configured on the server.' });
-    }
+    if (!GEMINI_API_KEY) { return res.status(500).json({ error: 'API key is not configured on the server.' }); }
     const { jobDescription, numQuestions, difficulty } = req.body;
-    if (!jobDescription || !numQuestions || !difficulty) {
-        return res.status(400).json({ error: 'jobDescription, numQuestions, and difficulty are required.' });
-    }
+    if (!jobDescription || !numQuestions || !difficulty) { return res.status(400).json({ error: 'jobDescription, numQuestions, and difficulty are required.' }); }
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
     const prompt = `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`;
     try {
-        const geminiResponse = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
+        const geminiResponse = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
         const data = await geminiResponse.json();
-        if (!geminiResponse.ok) {
-            return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' });
-        }
+        if (!geminiResponse.ok) { return res.status(geminiResponse.status).json({ error: data.error.message || 'Failed to generate questions.' }); }
         res.json(data);
     } catch (error) {
         res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-// ---------- Routes ----------
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
+// Auth and Page Routes
+app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
-// ========== MODIFIED: /login route to use database ==========
 app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
     try {
         const result = await pool.query("SELECT * FROM users WHERE email = $1 AND department = $2", [email, department]);
         const user = result.rows[0];
-
         if (user) {
-            // Compare submitted password with the stored hash
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                // Passwords match, create session (without password hash)
-                req.session.user = { 
-                    id: user.id, 
-                    email: user.email, 
-                    department: user.department 
-                };
-
-                if (user.department === 'Admin') {
-                    return res.redirect('/admin_Dashboard.html');
-                }
+                req.session.user = { id: user.id, email: user.email, department: user.department };
+                if (user.department === 'Admin') { return res.redirect('/admin_Dashboard.html'); }
                 return res.redirect(`/${user.department}_Dashboard.html`);
             }
         }
-        // If user not found or password doesn't match
         res.status(401).send("Invalid credentials or department.");
     } catch (error) {
         console.error("Login error:", error);
@@ -180,14 +131,9 @@ app.post("/login", async (req, res) => {
     }
 });
 
-
-// Dashboards
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
-
-
-// ========== MODIFIED: Admin Dashboard and User API Routes ==========
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.department === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
@@ -195,7 +141,7 @@ app.get("/admin_Dashboard.html", (req, res) => {
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
 });
 
-// MODIFIED: Fetches users from the database
+// User Management API Routes
 app.get("/api/users", async (req, res) => {
     try {
         const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at FROM users ORDER BY created_at DESC");
@@ -206,45 +152,63 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
-// MODIFIED: Adds a user to the database with a hashed password
 app.post("/api/add-user", async (req, res) => {
     if (req.session.user?.department !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add users." });
     }
-
     const { firstName, lastName, email, department, password } = req.body;
-    
     if (!firstName || !lastName || !email || !department || !password) {
         return res.status(400).json({ message: "All fields are required." });
     }
-
     try {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
-
         const newUserResult = await pool.query(
-            `INSERT INTO users (first_name, last_name, email, password_hash, department)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, email, department`,
+            `INSERT INTO users (first_name, last_name, email, password_hash, department) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, department`,
             [firstName, lastName, email, passwordHash, department]
         );
-        
         res.status(201).json({ success: true, message: "User created successfully.", user: newUserResult.rows[0] });
     } catch (error) {
         console.error("Error creating user:", error);
-        if (error.code === '23505') { // Unique constraint violation for email
+        if (error.code === '23505') {
             return res.status(409).json({ message: "A user with this email already exists." });
         }
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
-// Analytics routes
+app.post("/api/users/bulk-delete", async (req, res) => {
+    if (req.session.user?.department !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can delete users." });
+    }
+    const { userIds } = req.body;
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ error: "An array of userIds is required." });
+    }
+
+    const filteredUserIds = userIds.filter(id => id !== req.session.user.id);
+    if (filteredUserIds.length !== userIds.length) {
+        console.warn(`Admin user ${req.session.user.email} attempted to self-delete.`);
+    }
+
+    if (filteredUserIds.length === 0) {
+        return res.json({ success: true, message: "No users were deleted. Admin cannot delete their own account." });
+    }
+
+    try {
+        await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [filteredUserIds]);
+        res.json({ success: true, message: `${filteredUserIds.length} user(s) deleted.` });
+    } catch (err) {
+        console.error("Failed to delete users:", err);
+        res.status(500).json({ error: "Failed to delete users." });
+    }
+});
+
+
+// Analytics API Routes
 app.get("/api/analytics/status-counts", async (req, res) => {
     try {
-        const result = await pool.query(
-            `SELECT status, COUNT(*) AS count FROM candidate_sessions GROUP BY status`
-        );
+        const result = await pool.query(`SELECT status, COUNT(*) AS count FROM candidate_sessions GROUP BY status`);
         res.json(result.rows);
     } catch (err) {
         console.error("Error fetching status counts:", err);
@@ -255,13 +219,7 @@ app.get("/api/analytics/status-counts", async (req, res) => {
 app.get("/api/analytics/interviews-over-time", async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 7;
-        const result = await pool.query(
-            `SELECT DATE(created_at) AS date, COUNT(*) AS count
-             FROM interviews
-             WHERE created_at >= NOW() - INTERVAL '${days} days'
-             GROUP BY DATE(created_at)
-             ORDER BY date ASC`
-        );
+        const result = await pool.query(`SELECT DATE(created_at) AS date, COUNT(*) AS count FROM interviews WHERE created_at >= NOW() - INTERVAL '${days} days' GROUP BY DATE(created_at) ORDER BY date ASC`);
         res.json(result.rows);
     } catch (err) {
         console.error("Error fetching interviews over time data:", err);
@@ -269,92 +227,61 @@ app.get("/api/analytics/interviews-over-time", async (req, res) => {
     }
 });
 
-
-// ---------- Core API Routes ----------
+// Core Interview/Candidate API Routes
 app.get("/api/session/:sessionId", async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const sessionResult = await pool.query(`SELECT * FROM candidate_sessions WHERE session_id = $1`, [sessionId]);
-    if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found." });
-    const session = sessionResult.rows[0];
-    const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [session.interview_id]);
-    if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details not found." });
-    const interview = interviewResult.rows[0];
-    res.json({
-      sessionId: session.session_id, candidateEmail: session.candidate_email, status: session.status,
-      interviewId: interview.id, title: interview.title, questions: interview.questions || [],
-      timeLimits: interview.time_limits || [], date: interview.date, time: interview.time
-    });
-  } catch (err) {
-    console.error("Error fetching session details:", err);
-    res.status(500).json({ message: "An internal server error occurred." });
-  }
+    try {
+        const { sessionId } = req.params;
+        const sessionResult = await pool.query(`SELECT * FROM candidate_sessions WHERE session_id = $1`, [sessionId]);
+        if (sessionResult.rows.length === 0) return res.status(404).json({ message: "Interview session not found." });
+        const session = sessionResult.rows[0];
+        const interviewResult = await pool.query(`SELECT * FROM interviews WHERE id = $1`, [session.interview_id]);
+        if (interviewResult.rows.length === 0) return res.status(404).json({ message: "Interview details not found." });
+        const interview = interviewResult.rows[0];
+        res.json({ sessionId: session.session_id, candidateEmail: session.candidate_email, status: session.status, interviewId: interview.id, title: interview.title, questions: interview.questions || [], timeLimits: interview.time_limits || [], date: interview.date, time: interview.time });
+    } catch (err) {
+        console.error("Error fetching session details:", err);
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
 });
 
 app.post("/schedule", async (req, res) => {
-  const client = await pool.connect();
-  try {
-    if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
-    const { department } = req.session.user;
-    await client.query('BEGIN');
-    
-    let { title, questions, timeLimits, date, time, emails, schedulerEmail } = req.body;
-
-    if (!schedulerEmail) {
-        throw new Error("Scheduler email is required.");
+    const client = await pool.connect();
+    try {
+        if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
+        const { department } = req.session.user;
+        await client.query('BEGIN');
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail } = req.body;
+        if (!schedulerEmail) { throw new Error("Scheduler email is required."); }
+        if (!Array.isArray(questions)) questions = [String(questions || '')];
+        if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
+        while (timeLimits.length < questions.length) timeLimits.push(0);
+        const interviewId = uuidv4();
+        await client.query(`INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`, [interviewId, title, questions, timeLimits, date, time, department]);
+        const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
+        for (const email of candidateEmails) {
+            const sessionId = uuidv4();
+            await client.query(`INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`, [sessionId, interviewId, email, department]);
+            const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
+            if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
+        }
+        const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
+        if (!schedulerEmailResult.success) { throw new Error("Failed to send confirmation email to scheduler."); }
+        await client.query('COMMIT');
+        res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error("❌ Error in /schedule route:", err.message);
+        res.status(500).json({ message: err.message || "Failed to schedule interview." });
+    } finally {
+        client.release();
     }
-    
-    if (!Array.isArray(questions)) questions = [String(questions || '')];
-    if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
-    while (timeLimits.length < questions.length) timeLimits.push(0);
-
-    const interviewId = uuidv4();
-    await client.query(
-      `INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`,
-      [interviewId, title, questions, timeLimits, date, time, department]
-    );
-
-    const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
-
-    for (const email of candidateEmails) {
-      const sessionId = uuidv4();
-      await client.query(
-        `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department)
-         VALUES ($1, $2, $3, $4)`,
-        [sessionId, interviewId, email, department]
-      );
-      const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-      if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
-    }
-
-    const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
-    if (!schedulerEmailResult.success) {
-        throw new Error("Failed to send confirmation email to scheduler.");
-    }
-    
-    await client.query('COMMIT');
-    res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error("❌ Error in /schedule route:", err.message);
-    res.status(500).json({ message: err.message || "Failed to schedule interview." });
-  } finally {
-    client.release();
-  }
 });
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
         const { department } = req.query;
         if (!department) return res.status(400).json({ error: "Department is required." });
-        const result = await pool.query(
-            `SELECT position_status, COUNT(*) AS count 
-             FROM interviews 
-             WHERE department = $1
-             GROUP BY position_status`,
-            [department]
-        );
+        const result = await pool.query(`SELECT position_status, COUNT(*) AS count FROM interviews WHERE department = $1 GROUP BY position_status`, [department]);
         const counts = { open: 0, closed: 0 };
         result.rows.forEach(row => {
             if (row.position_status === 'open') counts.open = parseInt(row.count, 10);
@@ -369,13 +296,8 @@ app.get("/api/interviews/counts", async (req, res) => {
 app.post("/api/interviews/bulk-update-status", async (req, res) => {
     try {
         const { interviewIds, status } = req.body;
-        if (!interviewIds || !Array.isArray(interviewIds) || !status) {
-            return res.status(400).json({ error: "interviewIds and status are required." });
-        }
-        await pool.query(
-            `UPDATE interviews SET position_status = $1 WHERE id = ANY($2::uuid[])`,
-            [status, interviewIds]
-        );
+        if (!interviewIds || !Array.isArray(interviewIds) || !status) { return res.status(400).json({ error: "interviewIds and status are required." }); }
+        await pool.query(`UPDATE interviews SET position_status = $1 WHERE id = ANY($2::uuid[])`, [status, interviewIds]);
         res.json({ success: true, message: `${interviewIds.length} interviews updated.` });
     } catch (err) {
         res.status(500).json({ error: "Failed to update interviews." });
@@ -384,9 +306,7 @@ app.post("/api/interviews/bulk-update-status", async (req, res) => {
 
 app.post("/api/interviews/bulk-delete", async (req, res) => {
     const { interviewIds } = req.body;
-    if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) {
-        return res.status(400).json({ error: "interviewIds array is required." });
-    }
+    if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) { return res.status(400).json({ error: "interviewIds array is required." }); }
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -403,47 +323,49 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
 });
 
 app.get("/api/interviews", async (req, res) => {
-  try {
-    const { search, department, position_status, page = 1, limit = 10 } = req.query; 
-    
-    let queryParams = [];
-    let whereClauses = [];
-    let baseQuery = "SELECT * FROM interviews";
-
-    if (department) {
-        queryParams.push(department);
-        whereClauses.push(`department = $${queryParams.length}`);
+    try {
+        const { search, department, position_status, page = 1, limit = 10 } = req.query;
+        let queryParams = [];
+        let whereClauses = [];
+        let baseQuery = "SELECT * FROM interviews";
+        if (department) { queryParams.push(department); whereClauses.push(`department = $${queryParams.length}`); }
+        if (position_status) { queryParams.push(position_status); whereClauses.push(`position_status = $${queryParams.length}`); }
+        if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(title ILIKE $${queryParams.length})`); }
+        if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
+        baseQuery += " ORDER BY created_at DESC";
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const offset = (pageNum - 1) * limitNum;
+        queryParams.push(limitNum);
+        baseQuery += ` LIMIT $${queryParams.length}`;
+        queryParams.push(offset);
+        baseQuery += ` OFFSET $${queryParams.length}`;
+        const result = await pool.query(baseQuery, queryParams);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error fetching interviews:", err);
+        res.status(500).json({ error: "Database error" });
     }
-    if (position_status) {
-        queryParams.push(position_status);
-        whereClauses.push(`position_status = $${queryParams.length}`);
+});
+
+app.post("/api/interview/:id/toggle-status", async (req, res) => {
+    if (req.session.user?.department !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can change status." });
     }
-    if (search) {
-        queryParams.push(`%${search}%`);
-        whereClauses.push(`(title ILIKE $${queryParams.length})`);
+    const { id } = req.params;
+    try {
+        const interviewResult = await pool.query("SELECT position_status FROM interviews WHERE id = $1", [id]);
+        if (interviewResult.rows.length === 0) {
+            return res.status(404).json({ message: "Interview not found." });
+        }
+        const currentStatus = interviewResult.rows[0].position_status;
+        const newStatus = currentStatus === 'open' ? 'closed' : 'open';
+        await pool.query("UPDATE interviews SET position_status = $1 WHERE id = $2", [newStatus, id]);
+        res.json({ success: true, message: `Interview status changed to ${newStatus}.`, newStatus: newStatus });
+    } catch (err) {
+        console.error("Failed to toggle interview status:", err);
+        res.status(500).json({ error: "Failed to toggle interview status." });
     }
-
-    if (whereClauses.length > 0) {
-        baseQuery += " WHERE " + whereClauses.join(" AND ");
-    }
-    baseQuery += " ORDER BY created_at DESC";
-
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const offset = (pageNum - 1) * limitNum;
-
-    queryParams.push(limitNum);
-    baseQuery += ` LIMIT $${queryParams.length}`;
-    
-    queryParams.push(offset);
-    baseQuery += ` OFFSET $${queryParams.length}`;
-
-    const result = await pool.query(baseQuery, queryParams);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching interviews:", err);
-    res.status(500).json({ error: "Database error" });
-  }
 });
 
 app.get("/api/candidates/all", async (req, res) => {
@@ -451,13 +373,10 @@ app.get("/api/candidates/all", async (req, res) => {
         const { search, department } = req.query;
         let queryParams = [];
         let whereClauses = [];
-        let baseQuery = `
-            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url 
-            FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id
-        `;
+        let baseQuery = ` SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id `;
         if (department) { queryParams.push(department); whereClauses.push(`cs.department = $${queryParams.length}`); }
         if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); }
-        if (whereClauses.length > 0) baseQuery += " WHERE " + whereClauses.join(" AND ");
+        if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
         baseQuery += " ORDER BY cs.created_at DESC";
         const result = await pool.query(baseQuery, queryParams);
         res.json(result.rows);
@@ -474,53 +393,46 @@ app.get("/api/interview/:id", async (req, res) => {
 });
 
 app.post("/api/interview/:id/update", async (req, res) => {
-  try {
-    let { title, questions, timeLimits, date, time } = req.body;
-    if (!Array.isArray(questions)) questions = [String(questions || '')];
-    if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
-    while (timeLimits.length < questions.length) timeLimits.push(0);
-    await pool.query(
-      `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5 WHERE id=$6`,
-      [title, questions, timeLimits, date, time, req.params.id]
-    );
-    res.json({ message: "Interview template updated successfully" });
-  } catch (err) {
-    console.error("Update failed:", err);
-    res.status(500).json({ message: "Update failed" });
-  }
+    try {
+        let { title, questions, timeLimits, date, time } = req.body;
+        if (!Array.isArray(questions)) questions = [String(questions || '')];
+        if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
+        while (timeLimits.length < questions.length) timeLimits.push(0);
+        await pool.query(`UPDATE interviews SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5 WHERE id=$6`, [title, questions, timeLimits, date, time, req.params.id]);
+        res.json({ message: "Interview template updated successfully" });
+    } catch (err) {
+        console.error("Update failed:", err);
+        res.status(500).json({ message: "Update failed" });
+    }
 });
 
 app.delete("/api/interview/:id/delete", async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const interviewId = req.params.id;
-    await client.query("DELETE FROM candidate_sessions WHERE interview_id = $1", [interviewId]);
-    await client.query("DELETE FROM interviews WHERE id = $1", [interviewId]);
-    await client.query('COMMIT');
-    res.json({ message: "Interview and all associated sessions deleted successfully" });
-  } catch (err)
-    {
-    await client.query('ROLLBACK');
-    console.error("Delete failed:", err);
-    res.status(500).json({ message: "Delete failed" });
-  } finally {
-    client.release();
-  }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const interviewId = req.params.id;
+        await client.query("DELETE FROM candidate_sessions WHERE interview_id = $1", [interviewId]);
+        await client.query("DELETE FROM interviews WHERE id = $1", [interviewId]);
+        await client.query('COMMIT');
+        res.json({ message: "Interview and all associated sessions deleted successfully" });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error("Delete failed:", err);
+        res.status(500).json({ message: "Delete failed" });
+    } finally {
+        client.release();
+    }
 });
 
 app.get("/api/interview/:id/candidates", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      `SELECT session_id, candidate_email, status FROM candidate_sessions WHERE interview_id = $1 ORDER BY created_at DESC`,
-      [id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
-    res.status(500).json({ message: "Failed to fetch candidate list." });
-  }
+    try {
+        const { id } = req.params;
+        const result = await pool.query(`SELECT session_id, candidate_email, status FROM candidate_sessions WHERE interview_id = $1 ORDER BY created_at DESC`, [id]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);
+        res.status(500).json({ message: "Failed to fetch candidate list." });
+    }
 });
 
 // --- Static Page Routes ---
