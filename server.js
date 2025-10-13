@@ -361,10 +361,11 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
 // =================================================================
 
 
-// --- UPDATED /api/interviews to handle position_status filter ---
+// --- UPDATED /api/interviews to handle position_status filter AND PAGINATION ---
 app.get("/api/interviews", async (req, res) => {
   try {
-    const { search, department, position_status } = req.query; 
+    // Now accepting page and limit for pagination
+    const { search, department, position_status, page = 1, limit = 10 } = req.query; 
     
     let queryParams = [];
     let whereClauses = [];
@@ -387,6 +388,17 @@ app.get("/api/interviews", async (req, res) => {
         baseQuery += " WHERE " + whereClauses.join(" AND ");
     }
     baseQuery += " ORDER BY created_at DESC";
+
+    // Add pagination logic to the query
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    queryParams.push(limitNum);
+    baseQuery += ` LIMIT $${queryParams.length}`;
+    
+    queryParams.push(offset);
+    baseQuery += ` OFFSET $${queryParams.length}`;
 
     const result = await pool.query(baseQuery, queryParams);
     res.json(result.rows);
