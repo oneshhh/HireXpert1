@@ -21,7 +21,6 @@
       .status-dot { @apply h-2 w-2 rounded-full; }
       .tab-btn { @apply rounded-md px-4 py-2 text-sm font-medium text-gray-600 transition; }
       .tab-btn-active { @apply bg-white text-gray-900 shadow-sm; }
-      /* Toggle Switch Styles */
       .toggle-label { @apply relative inline-flex cursor-pointer items-center; }
       .toggle-bg { @apply h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white; }
     </style>
@@ -225,7 +224,7 @@
                 department: formData.get('department'),
                 password: tempPassword
             };
-
+            
             try {
                 const response = await fetch('/api/add-user', {
                     method: 'POST',
@@ -332,7 +331,6 @@
         }
     }
 
-
     // --- Data Loading Functions ---
     async function loadUsers(isBackgroundRefresh = false) {
         const tbody = document.getElementById("users-table-body");
@@ -387,7 +385,7 @@
                 `;
             } else {
                 tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first_name} ${user.last_name}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first__name} ${user.last_name}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
                     <td class="whitespace-nowrap px-6 py-4"><div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div></td>
@@ -429,7 +427,9 @@
                 const tr = document.createElement('tr');
                 const isChecked = interview.position_status === 'open' ? 'checked' : '';
                 tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${interview.title}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                        <a href="interview-view.html?id=${interview.id}" class="text-[var(--primary-color)] hover:underline">${interview.title}</a>
+                    </td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>
                     <td class="px-6 py-4">
                         <label class="toggle-label">
@@ -437,8 +437,9 @@
                             <div class="toggle-bg"></div>
                         </label>
                     </td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm">
-                        <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition">Delete</button>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4">
+                        <a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</a>
+                        <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </td>
                 `;
                 tbody.appendChild(tr);

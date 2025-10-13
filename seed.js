@@ -5,6 +5,7 @@ const pool = require('./db'); // Assumes your db.js file is in the same director
 // I've added placeholder first and last names as required by the new table structure.
 const originalUsers = [
     { email: "admin@company.com", password: "admin123", department: "Admin", firstName: "Admin", lastName: "User" },
+    { email: "amit@globalxperts.org", password: "AKS123", department: "Admin", firstName: "Admin", lastName: "User" },
     { email: "hr@company.com", password: "hr123", department: "HR", firstName: "HR", lastName: "User" },
     { email: "pmo@company.com", password: "pmo123", department: "PMO", firstName: "PMO", lastName: "User" },
     { email: "gta@company.com", password: "gta123", department: "GTA", firstName: "GTA", lastName: "User" },
