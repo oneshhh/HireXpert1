@@ -34,6 +34,39 @@ const users = [
   { email: "gta@company.com", password: "gta123", department: "GTA" },
 ];
 
+
+
+// =================================================================
+// ===========        NEW ROUTE TO ADD A USER (IN-MEMORY)       ===========
+// =================================================================
+app.post("/api/add-user", (req, res) => {
+    // Basic security check: only an admin can add users
+    if (req.session.user?.department !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can add users." });
+    }
+
+    const { email, department, password } = req.body;
+    
+    if (!email || !department || !password) {
+        return res.status(400).json({ message: "Email, department, and password are required." });
+    }
+
+    // Check if user already exists
+    const userExists = users.find(u => u.email === email);
+    if (userExists) {
+        return res.status(409).json({ message: "A user with this email already exists." });
+    }
+
+    // Add the new user to the in-memory array
+    const newUser = { email, password, department };
+    users.push(newUser);
+
+    console.log("New user added:", newUser);
+    console.log("Current users:", users);
+
+    res.status(201).json({ success: true, message: "User created successfully.", user: newUser });
+});
+
 // ---------- Helper: robust questions parser ----------
 function parseQuestionsField(q) {
   if (!q) return [];
