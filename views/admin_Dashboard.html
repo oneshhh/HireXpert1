@@ -35,10 +35,10 @@
             <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
             Dashboard
         </a>
-        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="add-user.html">
+        <button id="add-user-btn" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100">
             <span class="material-symbols-outlined">person_add</span>
             Add a User
-        </a>
+        </button>
         <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="settings.html">
             <span class="material-symbols-outlined">settings</span>
             Settings
@@ -51,19 +51,11 @@
 </aside>
 <main class="flex-1 bg-gray-50 p-8">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
-    
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-semibold text-gray-800">Interviews Scheduled</h3>
-                    <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
-                        <button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow">7D</button>
-                        <button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">14D</button>
-                        <button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">30D</button>
-                    </div>
-                </div>
+                <div class="flex justify-between items-center mb-4"><h3 class="font-semibold text-gray-800">Interviews Scheduled</h3><div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1"><button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow">7D</button><button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">14D</button><button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">30D</button></div></div>
                 <div class="relative h-64"><canvas id="interviewsLineChart"></canvas></div>
             </div>
             <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
@@ -72,87 +64,74 @@
             </div>
         </div>
     </div>
-
     <div class="mt-12">
-        <div class="mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2>
-                <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0">
-                    <button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button>
-                    <button id="closed-interviews-btn" class="tab-btn">Closed</button>
-                </div>
-            </div>
-            <div class="mt-4 border-b border-gray-200">
-                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button>
-                    <button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">HR</button>
-                    <button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">PMO</button>
-                    <button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">GTA</button>
-                </nav>
-            </div>
-        </div>
-        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table class="min-w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody>
-            </table>
-        </div>
+        <div class="mb-6"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between"><h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2><div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0"><button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button><button id="closed-interviews-btn" class="tab-btn">Closed</button></div></div><div class="mt-4 border-b border-gray-200"><nav class="-mb-px flex space-x-6" aria-label="Tabs"><button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button><button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">HR</button><button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">PMO</button><button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">GTA</button></nav></div></div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Date</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody></table></div>
         <div id="show-more-container" class="mt-4 text-center"></div>
     </div>
-
     <div class="mt-12">
-        <h2 class="mb-6 text-2xl font-bold text-[var(--text-primary)]">System Users</h2>
-        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department / Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="users-table-body" class="divide-y divide-gray-200"></tbody>
-            </table>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-[var(--text-primary)]">System Users</h2>
+            <button onclick="document.getElementById('add-user-btn').click()" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">
+                <span class="material-symbols-outlined">add</span>
+                New User
+            </button>
         </div>
+        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"><table class="w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th></tr></thead><tbody id="users-table-body" class="divide-y divide-gray-200"></tbody></table></div>
     </div>
-    
     <div class="mt-12">
         <h2 class="mb-6 text-2xl font-bold text-[var(--text-primary)]">All Candidates</h2>
-        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody>
-            </table>
-        </div>
+        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"><table class="w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th></tr></thead><tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody></table></div>
     </div>
 </main>
 </div>
 </div>
 
-<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
-    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center">
-        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
-        </div>
-        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
-        <div class="mt-2"><p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed.</p></div>
-        <div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3"></div>
+<div id="add-user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+    <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl">
+        <form id="add-user-form">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-900">Add New System User</h3>
+                    <button type="button" id="close-add-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="mt-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                            <input type="text" id="firstName" name="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                        </div>
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                            <input type="text" id="lastName" name="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                    </div>
+                    <div>
+                        <label for="department" class="block text-sm font-medium text-gray-700">Department</label>
+                        <select id="department" name="department" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                            <option value="HR">HR</option>
+                            <option value="PMO">PMO</option>
+                            <option value="GTA">GTA</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 border-t bg-gray-50 px-6 py-4">
+                <button type="button" id="cancel-add-user" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" class="rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">Create User</button>
+            </div>
+        </form>
     </div>
+</div>
+
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center"><div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"><span class="material-symbols-outlined text-3xl text-green-600">check_circle</span></div><h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3><div class="mt-2"><p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed.</p></div><div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3"></div></div>
 </div>
 
 <script>
@@ -161,9 +140,9 @@
     let pieChartInstance = null;
     let currentDays = 7;
     let currentInterviewStatus = 'open';
-    let currentInterviewDepartment = null; // null for 'All'
+    let currentInterviewDepartment = null;
     let currentInterviewPage = 1;
-    const INTERVIEWS_PER_PAGE = 5; // For the "show more" functionality
+    const INTERVIEWS_PER_PAGE = 5;
 
     // --- Utility and Notification Functions ---
     function showNotification(title, text, options = {}) {
@@ -183,197 +162,125 @@
     }
 
     // --- Data Loading Functions ---
-    async function loadLineChartData(days, withAnimation = true) { /* ... unchanged ... */ }
-    async function loadPieChartData(withAnimation = true) { /* ... unchanged ... */ }
-    async function loadUsers() { /* ... unchanged ... */ }
-    async function loadCandidates(isBackgroundRefresh = false) {
-        const tbody = document.getElementById("candidates-table-body");
-        if (tbody.childElementCount === 0 && !isBackgroundRefresh) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
-        }
+    async function loadUsers(isBackgroundRefresh = false) {
+        const tbody = document.getElementById("users-table-body");
+        if (tbody.childElementCount === 0 && !isBackgroundRefresh) tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
         try {
-            const response = await fetch('/api/candidates/all');
-            if (!response.ok) throw new Error('Failed to fetch candidate data');
-            const candidates = await response.json();
+            const response = await fetch('/api/users');
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            const users = await response.json();
             
-            tbody.innerHTML = ""; // Clear only after successful fetch
-            if (candidates.length === 0) {
-                 tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>';
-                 return;
-            }
-            candidates.forEach(candidate => {
+            tbody.innerHTML = "";
+            users.forEach(user => {
                 const tr = document.createElement('tr');
+                // MODIFIED: Display name and align columns
                 tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
-                    <td class="whitespace-nowrap px-6 py-4">
-                         <div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">
-                            ${candidate.status}
-                         </div>
-                    </td>
-                `;
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first_name} ${user.last_name}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4"><div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div></td>`;
                 tbody.appendChild(tr);
             });
-        } catch (error) {
-            console.error("Failed to load candidates:", error);
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
-        }
+        } catch (error) { console.error("Failed to load users:", error); tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>'; }
     }
 
-    async function loadInterviews(isLoadMore = false, isBackgroundRefresh = false) {
-        const tbody = document.getElementById("interviews-table-body");
-        const showMoreContainer = document.getElementById("show-more-container");
-        
-        let limit = isLoadMore ? INTERVIEWS_PER_PAGE : 10;
-        
-        if (!isLoadMore && !isBackgroundRefresh) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">Loading...</td></tr>';
-        }
-        
-        let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`;
-        if (currentInterviewDepartment) {
-            apiUrl += `&department=${currentInterviewDepartment}`;
-        }
-        
-        try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('Failed to fetch interviews');
-            const interviews = await response.json();
-            
-            if (!isLoadMore) {
-                tbody.innerHTML = ""; // Clear table only on new filter/initial load
-            }
-            
-            if (interviews.length === 0 && !isLoadMore) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
-            }
+    // ========================================================================
+    // ========== RESTORED: Functions for the Add User Modal ==========
+    // ========================================================================
+    function setupAddUserModal() {
+        const addUserModal = document.getElementById('add-user-modal');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const closeBtn = document.getElementById('close-add-user-modal');
+        const cancelBtn = document.getElementById('cancel-add-user');
+        const addUserForm = document.getElementById('add-user-form');
 
-            interviews.forEach(interview => {
-                const tr = document.createElement('tr');
-                const interviewDate = new Date(interview.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${interview.title}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interviewDate}</td>
-                    <td class="whitespace-nowrap px-6 py-4">
-                        <div class="status-badge ${interview.position_status === 'open' ? 'status-active' : 'status-inactive'}">
-                            <span class="status-dot ${interview.position_status === 'open' ? 'bg-green-500' : 'bg-red-500'}"></span>
-                            ${interview.position_status.charAt(0).toUpperCase() + interview.position_status.slice(1)}
-                        </div>
-                    </td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm">
-                        <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+        const openModal = () => addUserModal.classList.remove('hidden');
+        const closeModal = () => {
+            addUserModal.classList.add('hidden');
+            addUserForm.reset(); // Clear the form on close
+        };
 
-            // Handle "Show More" button visibility
-            showMoreContainer.innerHTML = ""; // Clear previous button
-            if (interviews.length === limit) {
-                const showMoreBtn = document.createElement('button');
-                showMoreBtn.id = 'show-more-btn';
-                showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
-                showMoreBtn.textContent = 'Show More';
-                showMoreContainer.appendChild(showMoreBtn);
-                showMoreBtn.addEventListener('click', () => {
-                    currentInterviewPage++;
-                    loadInterviews(true); // isLoadMore = true
+        addUserBtn.addEventListener('click', openModal);
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(addUserForm);
+            
+            // Generate a simple temporary password.
+            // NOTE: For a real application, you would either let the user set this
+            // or generate a more secure random password.
+            const tempPassword = `${formData.get('firstName').toLowerCase().replace(/\s/g, '')}123`;
+
+            const data = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email'),
+                department: formData.get('department'),
+                password: tempPassword 
+            };
+            
+            try {
+                const response = await fetch('/api/add-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to create user.');
+                }
+
+                // Show success message with the temporary password
+                showNotification('Success!', `User ${data.email} created. Temporary password is "${tempPassword}".`);
+                closeModal();
+                loadUsers(true); // Refresh the users table
+            } catch (error) {
+                showNotification('Error', error.message, { isError: true });
             }
-
-        } catch (error) {
-            console.error("Failed to load interviews:", error);
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`;
-        }
+        });
     }
 
-    function confirmDeleteInterview(id, title) {
-        showNotification(
-            'Delete Interview?',
-            `Are you sure you want to delete the interview "${title}"? This will also delete all associated candidate sessions and cannot be undone.`,
-            { isError: true, onConfirm: () => deleteInterview(id), confirmText: 'Yes, Delete', cancelText: 'Cancel' }
-        );
-    }
 
-    async function deleteInterview(id) {
-        try {
-            const response = await fetch(`/api/interview/${id}/delete`, { method: 'DELETE' });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Failed to delete interview.');
-            showNotification('Success', 'The interview has been deleted successfully.');
-            currentInterviewPage = 1; // Reset to first page
-            loadInterviews();
-        } catch (error) {
-            showNotification('Error', error.message, { isError: true });
-        }
-    }
-
-    // --- Event Listeners and Initial Load ---
+    // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Initial data load
+        // ... (all other initial load functions and listeners)
+        setupAddUserModal(); // RESTORED: Initialize the modal listeners
+
+        // The rest of the script is the same as the full version from the previous response...
         loadPieChartData();
         loadUsers();
         loadCandidates();
         loadLineChartData(currentDays);
         loadInterviews();
-
-        // Set up polling interval for live refreshes
         setInterval(() => {
             console.log("Refreshing admin dashboard data...");
-            loadPieChartData(false); // withAnimation = false
-            loadUsers();
-            loadCandidates(true); // isBackgroundRefresh = true
-            loadLineChartData(currentDays, false);
-            // Don't auto-refresh the interviews table to prevent jumps and respect pagination
+            loadPieChartData(false);
+            loadUsers(true);
+            loadCandidates(true);
         }, 5000);
-
-        // --- Event Listeners for Interview Filters ---
         const statusBtns = { open: document.getElementById('open-interviews-btn'), closed: document.getElementById('closed-interviews-btn') };
         const deptBtns = { all: document.getElementById('dept-all-btn'), hr: document.getElementById('dept-hr-btn'), pmo: document.getElementById('dept-pmo-btn'), gta: document.getElementById('dept-gta-btn') };
-
-        const handleFilterChange = () => {
-            currentInterviewPage = 1; // Reset to page 1 on any filter change
-            loadInterviews();
-        };
-
-        // Status Tabs (Open/Closed)
-        Object.entries(statusBtns).forEach(([key, btn]) => {
-            btn.addEventListener('click', () => {
-                currentInterviewStatus = key;
-                Object.values(statusBtns).forEach(b => b.classList.remove('tab-btn-active'));
-                btn.classList.add('tab-btn-active');
-                handleFilterChange();
-            });
-        });
-
-        // Department Tabs
+        const handleFilterChange = () => { currentInterviewPage = 1; loadInterviews(); };
+        Object.entries(statusBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewStatus = key; Object.values(statusBtns).forEach(b => b.classList.remove('tab-btn-active')); btn.classList.add('tab-btn-active'); handleFilterChange(); }); });
         const departmentMap = { all: null, hr: 'HR', pmo: 'PMO', gta: 'GTA' };
-        Object.entries(deptBtns).forEach(([key, btn]) => {
-            btn.addEventListener('click', () => {
-                currentInterviewDepartment = departmentMap[key];
-                Object.values(deptBtns).forEach(b => {
-                    b.classList.remove('border-[var(--primary-color)]', 'text-[var(--primary-color)]');
-                    b.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
-                });
-                btn.classList.add('border-[var(--primary-color)]', 'text-[var(--primary-color)]');
-                btn.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
-                handleFilterChange();
-            });
-        });
-
-        // Line chart button listeners (unchanged)
+        Object.entries(deptBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewDepartment = departmentMap[key]; Object.values(deptBtns).forEach(b => { b.classList.remove('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); b.classList.add('border-transparent', 'text-gray-500'); }); btn.classList.add('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); btn.classList.remove('border-transparent', 'text-gray-500'); handleFilterChange(); }); });
         const lineChartButtons = { '7d': document.getElementById('7d-btn'), '14d': document.getElementById('14d-btn'), '30d': document.getElementById('30d-btn') };
         const handleLineChartClick = (days, clickedBtnKey) => { currentDays = days; Object.keys(lineChartButtons).forEach(key => { lineChartButtons[key].classList.remove('bg-white', 'shadow', 'text-gray-700'); lineChartButtons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow'); }); lineChartButtons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700'); lineChartButtons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow'); loadLineChartData(days); };
         lineChartButtons['7d'].addEventListener('click', () => handleLineChartClick(7, '7d'));
         lineChartButtons['14d'].addEventListener('click', () => handleLineChartClick(14, '14d'));
         lineChartButtons['30d'].addEventListener('click', () => handleLineChartClick(30, '30d'));
     });
-    // --- Unchanged Functions (for reference if needed) ---
+
+    // (All other functions like loadInterviews, deleteInterview, loadCandidates, charts, etc. are included below without change)
+    async function loadInterviews(isLoadMore = false, isBackgroundRefresh = false) { const tbody = document.getElementById("interviews-table-body"); const showMoreContainer = document.getElementById("show-more-container"); let limit = isLoadMore ? INTERVIEWS_PER_PAGE : 10; if (!isLoadMore && !isBackgroundRefresh) { tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">Loading...</td></tr>'; } let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`; if (currentInterviewDepartment) { apiUrl += `&department=${currentInterviewDepartment}`; } try { const response = await fetch(apiUrl); if (!response.ok) throw new Error('Failed to fetch interviews'); const interviews = await response.json(); if (!isLoadMore) { tbody.innerHTML = ""; } if (interviews.length === 0 && !isLoadMore) { tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`; } interviews.forEach(interview => { const tr = document.createElement('tr'); const interviewDate = new Date(interview.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${interview.title}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interviewDate}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${interview.position_status === 'open' ? 'status-active' : 'status-inactive'}"><span class="status-dot ${interview.position_status === 'open' ? 'bg-green-500' : 'bg-red-500'}"></span>${interview.position_status.charAt(0).toUpperCase() + interview.position_status.slice(1)}</div></td><td class="whitespace-nowrap px-6 py-4 text-sm"><button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition">Delete</button></td>`; tbody.appendChild(tr); }); showMoreContainer.innerHTML = ""; if (interviews.length === limit) { const showMoreBtn = document.createElement('button'); showMoreBtn.id = 'show-more-btn'; showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200'; showMoreBtn.textContent = 'Show More'; showMoreContainer.appendChild(showMoreBtn); showMoreBtn.addEventListener('click', () => { currentInterviewPage++; loadInterviews(true); }); } } catch (error) { console.error("Failed to load interviews:", error); tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`; } }
+    function confirmDeleteInterview(id, title) { showNotification( 'Delete Interview?', `Are you sure you want to delete the interview "${title}"? This will also delete all associated candidate sessions and cannot be undone.`, { isError: true, onConfirm: () => deleteInterview(id), confirmText: 'Yes, Delete', cancelText: 'Cancel' } ); }
+    async function deleteInterview(id) { try { const response = await fetch(`/api/interview/${id}/delete`, { method: 'DELETE' }); const result = await response.json(); if (!response.ok) throw new Error(result.message || 'Failed to delete interview.'); showNotification('Success', 'The interview has been deleted successfully.'); currentInterviewPage = 1; loadInterviews(); } catch (error) { showNotification('Error', error.message, { isError: true }); } }
+    async function loadCandidates(isBackgroundRefresh = false) { const tbody = document.getElementById("candidates-table-body"); if (tbody.childElementCount === 0 && !isBackgroundRefresh) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>'; } try { const response = await fetch('/api/candidates/all'); if (!response.ok) throw new Error('Failed to fetch candidate data'); const candidates = await response.json(); tbody.innerHTML = ""; if (candidates.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>'; return; } candidates.forEach(candidate => { const tr = document.createElement('tr'); tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</div></td>`; tbody.appendChild(tr); }); } catch (error) { console.error("Failed to load candidates:", error); tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>'; } }
     async function loadLineChartData(days, withAnimation = true) { try { const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`); if (!response.ok) throw new Error('Failed to fetch line chart data'); const data = await response.json(); const labels = [], counts = []; const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count])); for (let i = days - 1; i >= 0; i--) { const date = new Date(); date.setDate(date.getDate() - i); const dateString = date.toISOString().split('T')[0]; labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })); counts.push(parseInt(dataMap.get(dateString) || 0)); } const ctx = document.getElementById('interviewsLineChart').getContext('2d'); if (interviewsLineChartInstance && !withAnimation) { interviewsLineChartInstance.data.labels = labels; interviewsLineChartInstance.data.datasets[0].data = counts; interviewsLineChartInstance.update('none'); return; } if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); } interviewsLineChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, } }); } catch (error) { console.error(`Failed to load line chart data for ${days} days:`, error); } }
     async function loadPieChartData(withAnimation = true) { try { const response = await fetch('/api/analytics/status-counts'); if (!response.ok) throw new Error('Failed to fetch pie chart data'); const data = await response.json(); const ctx = document.getElementById('statusPieChart').getContext('2d'); const labels = data.map(item => item.status); const counts = data.map(item => item.count); if (pieChartInstance && !withAnimation) { pieChartInstance.data.labels = labels; pieChartInstance.data.datasets[0].data = counts; pieChartInstance.update('none'); return; } if(pieChartInstance){ pieChartInstance.destroy(); } pieChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, } }); } catch (error) { console.error("Failed to load pie chart data:", error); const chartCanvas = document.getElementById('statusPieChart'); if (chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>'; } }
-    async function loadUsers() { const tbody = document.getElementById("users-table-body"); try { const response = await fetch('/api/users'); if (!response.ok) throw new Error('Failed to fetch user data'); const users = await response.json(); tbody.innerHTML = ""; users.forEach(user => { const tr = document.createElement('tr'); tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.email}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div></td>`; tbody.appendChild(tr); }); } catch (error) { console.error("Failed to load users:", error); if(tbody.innerHTML.includes('Loading')) tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>'; } }
 </script>
 </body>
 </html>
