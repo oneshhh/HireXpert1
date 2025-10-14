@@ -56,7 +56,6 @@ function showNotification(title, text, options = {}) {
         btnContainer.appendChild(confirmBtn);
 
     } else { // This is a simple notification with one button
-        // When there's only one button, remove the grid layout to allow centering
         btnContainer.className = 'mt-5 sm:mt-6';
 
         const okBtn = document.createElement('button');
@@ -119,9 +118,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const formData = new FormData(form);
     
+    // ========== MODIFIED: data object now includes customIdText and jobDescription ==========
     const data = {
       title: formData.get("title"),
-      jobDescription: document.getElementById('job-description').value,
       customIdText: formData.get("customIdText"),
       questions: formData.getAll("questions[]"),
       timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
@@ -129,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       time: formData.get("time"),
       emails: formData.get("emails"),
       schedulerEmail: formData.get("schedulerEmail"),
+      jobDescription: document.getElementById('job-description').value,
     };
 
     try {
@@ -160,6 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- Date/Time Restriction Logic ---
   const dateInput = document.getElementById('interview-date');
   const timeInput = document.getElementById('interview-time');
   const today = new Date();

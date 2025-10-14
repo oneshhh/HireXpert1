@@ -51,11 +51,11 @@
                     <p id="time" class="text-gray-900 font-semibold"></p>
                 </div>
                 <div>
-                    <p class="text-gray-500 font-medium">Scheduler</p>
+                    <p class="text-gray-500 font-medium">Created By</p>
                     <p id="scheduler-name" class="text-gray-900 font-semibold"></p>
                 </div>
                 <div>
-                    <p class="text-gray-500 font-medium">Scheduler Email</p>
+                    <p class="text-gray-500 font-medium">Creator's Email</p>
                     <p id="scheduler-email" class="text-gray-900 font-semibold"></p>
                 </div>
             </div>
@@ -111,7 +111,7 @@
         document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
         document.getElementById("date").textContent = new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById("time").textContent = data.time;
-        document.getElementById("scheduler-name").textContent = `${data.first_name || ''} ${data.last_name || ''}`;
+        document.getElementById("scheduler-name").textContent = `${data.first_name || 'N/A'} ${data.last_name || ''}`;
         document.getElementById("scheduler-email").textContent = data.scheduler_email || 'N/A';
         
         const statusBadge = document.getElementById("status-badge");
