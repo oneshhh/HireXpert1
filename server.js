@@ -518,6 +518,29 @@ app.get("/api/candidates/all", async (req, res) => {
     }
 });
 
+// ========== NEW: API Route to get users by the logged-in user's department ==========
+app.get("/api/users-by-dept", async (req, res) => {
+    if (!req.session.user || !req.session.user.department) {
+        return res.status(401).json({ message: "Unauthorized." });
+    }
+    const { department } = req.session.user;
+
+    try {
+        // PostgreSQL query to find users where the department array contains the specified department
+        const result = await pool.query(
+            "SELECT id, first_name, last_name, email FROM users WHERE department @> ARRAY[$1::TEXT] ORDER BY first_name, last_name", 
+            [department]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error fetching users by department:", error);
+        res.status(500).json({ message: "Failed to fetch users." });
+    }
+});
+
+
+
+
 app.get("/api/interview/:id", async (req, res) => {
     try {
         const { id } = req.params;
