@@ -23,6 +23,10 @@
       .tab-btn-active { @apply bg-white text-gray-900 shadow-sm; }
       .toggle-label { @apply relative inline-flex cursor-pointer items-center; }
       .toggle-bg { @apply h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white; }
+      /* Custom styles for multi-select checkboxes */
+      .dept-checkbox-group label { @apply flex items-center space-x-3 rounded-md border border-gray-300 px-4 py-3 cursor-pointer hover:bg-gray-50; }
+      .dept-checkbox-group input:checked + span { @apply text-[var(--primary-color)] font-semibold; }
+      .dept-checkbox-group label:has(input:checked) { @apply border-[var(--primary-color)] bg-blue-50 ring-1 ring-[var(--primary-color)]; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans" style='font-family: Inter, "Noto Sans", sans-serif;'>
@@ -69,28 +73,19 @@
         <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
             <table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody></table>
         </div>
-        <div id="show-more-container" class="mt-4 text-center"></div>
+        <div id="show-more-interviews-container" class="mt-4 text-center"></div>
     </div>
 
     <div class="mt-12">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-[var(--text-primary)]">System Users</h2>
             <div id="user-actions-normal" class="flex items-center gap-4">
-                <button id="remove-user-mode-btn" class="flex items-center gap-2 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200">
-                    <span class="material-symbols-outlined">delete</span>
-                    Remove User(s)
-                </button>
-                <button id="add-user-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">
-                    <span class="material-symbols-outlined">add</span>
-                    New User
-                </button>
+                <button id="remove-user-mode-btn" class="flex items-center gap-2 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200"><span class="material-symbols-outlined">delete</span>Remove User(s)</button>
+                <button id="add-user-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90"><span class="material-symbols-outlined">add</span>New User</button>
             </div>
             <div id="user-actions-delete" class="hidden flex items-center gap-4">
                 <button id="cancel-delete-mode-btn" class="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300">Cancel</button>
-                <button id="delete-selected-users-btn" class="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
-                    <span class="material-symbols-outlined">delete_forever</span>
-                    Delete Selected
-                </button>
+                <button id="delete-selected-users-btn" class="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700"><span class="material-symbols-outlined">delete_forever</span>Delete Selected</button>
             </div>
         </div>
         <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -99,8 +94,8 @@
                     <tr id="users-table-header">
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Departments</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="users-table-body" class="divide-y divide-gray-200"></tbody>
@@ -109,28 +104,66 @@
     </div>
     
     <div class="mt-12">
-        <h2 class="mb-6 text-2xl font-bold text-[var(--text-primary)]">All Candidates</h2>
-        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"><table class="w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th></tr></thead><tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody></table></div>
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-2xl font-bold text-[var(--text-primary)]">All Candidates</h2>
+            <div class="relative mt-4 sm:mt-0">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                <input type="text" id="candidate-search" placeholder="Search by email or title..." class="w-full sm:w-64 rounded-md border-gray-300 pl-10 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+            </div>
+        </div>
+        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+        <div id="show-more-candidates-container" class="mt-4 text-center"></div>
     </div>
 </main>
 </div>
 </div>
 
-<div id="add-user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+<div id="user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
     <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl">
-        <form id="add-user-form">
+        <form id="user-form">
+            <input type="hidden" id="userId" name="userId">
             <div class="p-6">
-                <div class="flex items-center justify-between"><h3 class="text-xl font-semibold text-gray-900">Add New System User</h3><button type="button" id="close-add-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600"><span class="material-symbols-outlined">close</span></button></div>
+                <div class="flex items-center justify-between">
+                    <h3 id="user-modal-title" class="text-xl font-semibold text-gray-900">Add New System User</h3>
+                    <button type="button" id="close-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600"><span class="material-symbols-outlined">close</span></button>
+                </div>
                 <div class="mt-6 space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label><input type="text" id="firstName" name="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
                         <div><label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label><input type="text" id="lastName" name="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
                     </div>
                     <div><label for="email" class="block text-sm font-medium text-gray-700">Email Address</label><input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
-                    <div><label for="department" class="block text-sm font-medium text-gray-700">Department</label><select id="department" name="department" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"><option value="HR">HR</option><option value="PMO">PMO</option><option value="GTA">GTA</option></select></div>
+                    <div id="password-container">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="text" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]" placeholder="Leave blank to keep unchanged">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Department Access</label>
+                        <div class="mt-2 grid grid-cols-2 gap-3 dept-checkbox-group">
+                            <label for="dept-hr"><input id="dept-hr" type="checkbox" name="departments" value="HR" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>HR</span></label>
+                            <label for="dept-pmo"><input id="dept-pmo" type="checkbox" name="departments" value="PMO" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>PMO</span></label>
+                            <label for="dept-gta"><input id="dept-gta" type="checkbox" name="departments" value="GTA" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>GTA</span></label>
+                            <label for="dept-admin"><input id="dept-admin" type="checkbox" name="departments" value="Admin" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>Admin</span></label>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 border-t bg-gray-50 px-6 py-4"><button type="button" id="cancel-add-user" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button><button type="submit" class="rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">Create User</button></div>
+            <div class="flex justify-end gap-3 border-t bg-gray-50 px-6 py-4">
+                <button type="button" id="cancel-user-modal" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" class="rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">Save</button>
+            </div>
         </form>
     </div>
 </div>
@@ -150,6 +183,10 @@
     const INTERVIEWS_PER_PAGE = 5;
     let isUserDeleteMode = false;
     let allUsers = [];
+    let currentCandidatePage = 1;
+    let currentCandidateSearch = '';
+    const CANDIDATES_PER_PAGE = 10;
+    let searchDebounceTimer;
 
     // --- Utility and Notification Functions ---
     function showNotification(title, text, options = {}) {
@@ -161,85 +198,117 @@
         const btnContainer = document.getElementById('notification-modal-buttons');
         modalTitle.textContent = title;
         modalText.textContent = text;
-        if (isError) {
-            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
-            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
-        } else {
-            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
-            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
-        }
+        if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; } else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; }
         btnContainer.innerHTML = '';
-        if (onConfirm) {
-            btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
-            const confirmBtn = document.createElement('button');
-            confirmBtn.type = 'button';
-            confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
-            confirmBtn.textContent = confirmText;
-            confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); };
-            const cancelBtn = document.createElement('button');
-            cancelBtn.type = 'button';
-            cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
-            cancelBtn.textContent = cancelText;
-            cancelBtn.onclick = () => { modal.classList.add('hidden'); };
-            btnContainer.appendChild(cancelBtn);
-            btnContainer.appendChild(confirmBtn);
-        } else {
-            btnContainer.className = 'mt-5 sm:mt-6';
-            const okBtn = document.createElement('button');
-            okBtn.type = 'button';
-            okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
-            okBtn.textContent = 'Got it';
-            okBtn.onclick = () => { modal.classList.add('hidden'); };
-            btnContainer.appendChild(okBtn);
-        }
+        if (onConfirm) { btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'; const confirmBtn = document.createElement('button'); confirmBtn.type = 'button'; confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2'; confirmBtn.textContent = confirmText; confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); }; const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0'; cancelBtn.textContent = cancelText; cancelBtn.onclick = () => { modal.classList.add('hidden'); }; btnContainer.appendChild(cancelBtn); btnContainer.appendChild(confirmBtn);
+        } else { btnContainer.className = 'mt-5 sm:mt-6'; const okBtn = document.createElement('button'); okBtn.type = 'button'; okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90'; okBtn.textContent = 'Got it'; okBtn.onclick = () => { modal.classList.add('hidden'); }; btnContainer.appendChild(okBtn); }
         modal.classList.remove('hidden');
     }
 
-    // --- Add User Modal Functions ---
-    function setupAddUserModal() {
-        const addUserModal = document.getElementById('add-user-modal');
+    // --- User Modal and Form Functions ---
+    function setupUserModal() {
+        const userModal = document.getElementById('user-modal');
         const addUserBtn = document.getElementById('add-user-btn');
-        const closeBtn = document.getElementById('close-add-user-modal');
-        const cancelBtn = document.getElementById('cancel-add-user');
-        const addUserForm = document.getElementById('add-user-form');
+        const closeBtn = document.getElementById('close-user-modal');
+        const cancelBtn = document.getElementById('cancel-user-modal');
+        const userForm = document.getElementById('user-form');
+        const modalTitle = document.getElementById('user-modal-title');
+        const passwordContainer = document.getElementById('password-container');
 
-        const openModal = () => addUserModal.classList.remove('hidden');
+        const openModal = () => userModal.classList.remove('hidden');
         const closeModal = () => {
-            addUserModal.classList.add('hidden');
-            addUserForm.reset();
+            userModal.classList.add('hidden');
+            userForm.reset();
+            document.querySelectorAll('input[name="departments"]').forEach(cb => cb.checked = false);
         };
+        
+        addUserBtn.addEventListener('click', () => {
+            userForm.reset();
+            modalTitle.textContent = 'Add New System User';
+            document.getElementById('userId').value = '';
+            passwordContainer.style.display = 'block';
+            document.getElementById('password').required = true;
+            document.getElementById('password').placeholder = 'Enter temporary password';
+            openModal();
+        });
 
-        addUserBtn.addEventListener('click', openModal);
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
 
-        addUserForm.addEventListener('submit', async (e) => {
+        userForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(addUserForm);
-            const tempPassword = `${formData.get('firstName').toLowerCase().replace(/\s/g, '')}123`;
+            const formData = new FormData(userForm);
+            const userId = formData.get('userId');
+            const departments = Array.from(userForm.querySelectorAll('input[name="departments"]:checked')).map(cb => cb.value);
+
             const data = {
                 firstName: formData.get('firstName'),
                 lastName: formData.get('lastName'),
                 email: formData.get('email'),
-                department: formData.get('department'),
-                password: tempPassword
+                departments: departments,
             };
-            
+
+            let url = '/api/add-user';
+            let method = 'POST';
+
+            if (userId) {
+                url = `/api/user/${userId}/update`;
+                const password = formData.get('password');
+                if (password) {
+                    data.password = password;
+                }
+            } else {
+                data.password = formData.get('password');
+                if (!data.password) {
+                    showNotification('Error', 'Password is required for new users.', { isError: true });
+                    return;
+                }
+            }
+
             try {
-                const response = await fetch('/api/add-user', {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'Failed to create user.');
-                showNotification('Success!', `User ${data.email} created. Temporary password is "${tempPassword}".`);
+                if (!response.ok) throw new Error(result.message || 'Failed to save user.');
+
+                showNotification('Success!', result.message);
                 closeModal();
-                loadUsers(true);
+                loadUsers();
             } catch (error) {
                 showNotification('Error', error.message, { isError: true });
             }
         });
+    }
+
+    function openEditUserModal(user) {
+        const userModal = document.getElementById('user-modal');
+        const userForm = document.getElementById('user-form');
+        const modalTitle = document.getElementById('user-modal-title');
+        const passwordContainer = document.getElementById('password-container');
+        
+        userForm.reset();
+        modalTitle.textContent = 'Edit User';
+        
+        document.getElementById('userId').value = user.id;
+        document.getElementById('firstName').value = user.first_name;
+        document.getElementById('lastName').value = user.last_name;
+        document.getElementById('email').value = user.email;
+
+        passwordContainer.style.display = 'block';
+        document.getElementById('password').required = false;
+        document.getElementById('password').placeholder = 'Leave blank to keep unchanged';
+        
+        document.querySelectorAll('input[name="departments"]').forEach(cb => cb.checked = false);
+        user.department.forEach(dept => {
+            const checkbox = document.getElementById(`dept-${dept.toLowerCase()}`);
+            if (checkbox) checkbox.checked = true;
+        });
+
+        userModal.classList.remove('hidden');
     }
 
     // --- User Deletion Functions ---
@@ -300,7 +369,22 @@
             const response = await fetch(`/api/interview/${id}/toggle-status`, { method: 'POST' });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to update status.');
-            loadInterviews();
+            
+            // To provide a smooth UX, we find the row and remove it instead of a full reload
+            const toggledRow = document.querySelector(`input[onchange="toggleInterviewStatus('${id}')"]`).closest('tr');
+            if (toggledRow) {
+                toggledRow.style.opacity = 0;
+                setTimeout(() => {
+                    toggledRow.remove();
+                    // Optional: Check if the table is now empty
+                    const tbody = document.getElementById("interviews-table-body");
+                    if (tbody.childElementCount === 0) {
+                         tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
+                    }
+                }, 300);
+            } else {
+                loadInterviews(); // Fallback to full reload
+            }
         } catch (error) {
             showNotification('Error', error.message, { isError: true });
         }
@@ -354,19 +438,9 @@
         tbody.innerHTML = "";
 
         if (isUserDeleteMode) {
-            theadRow.innerHTML = `
-                <th class="w-12 px-6 py-3"><input type="checkbox" id="select-all-users" class="rounded border-gray-300"></th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
-            `;
+            theadRow.innerHTML = `<th class="w-12 px-6 py-3"><input type="checkbox" id="select-all-users" class="rounded border-gray-300"></th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Departments</th>`;
         } else {
-            theadRow.innerHTML = `
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
-            `;
+            theadRow.innerHTML = `<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Departments</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>`;
         }
 
         if (allUsers.length === 0) {
@@ -376,20 +450,21 @@
 
         allUsers.forEach(user => {
             const tr = document.createElement('tr');
+            const departmentsHtml = user.department.map(d => `<span class="inline-block bg-gray-200 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">${d}</span>`).join('');
+            
             if (isUserDeleteMode) {
                 tr.innerHTML = `
                     <td class="px-6 py-4"><input type="checkbox" class="user-checkbox rounded border-gray-300" value="${user.id}"></td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first_name} ${user.last_name}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
-                `;
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${departmentsHtml}</td>`;
             } else {
                 tr.innerHTML = `
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first__name} ${user.last_name}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first_name} ${user.last_name}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.department}</td>
-                    <td class="whitespace-nowrap px-6 py-4"><div class="status-badge status-active"><span class="status-dot bg-green-500"></span>Active</div></td>
-                `;
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${departmentsHtml}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm"><button class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button></td>`;
+                tr.querySelector('button').addEventListener('click', () => openEditUserModal(user));
             }
             tbody.appendChild(tr);
         });
@@ -403,7 +478,7 @@
     
     async function loadInterviews(isLoadMore = false) {
         const tbody = document.getElementById("interviews-table-body");
-        const showMoreContainer = document.getElementById("show-more-container");
+        const showMoreContainer = document.getElementById("show-more-interviews-container");
         let limit = isLoadMore ? INTERVIEWS_PER_PAGE : 10;
         
         if (!isLoadMore) {
@@ -460,28 +535,51 @@
         }
     }
     
-    async function loadCandidates(isBackgroundRefresh = false) {
+    async function loadCandidates(isLoadMore = false, isSearch = false) {
         const tbody = document.getElementById("candidates-table-body");
-        if (tbody.childElementCount === 0 && !isBackgroundRefresh) {
+        const showMoreContainer = document.getElementById("show-more-candidates-container");
+        
+        if (isSearch) currentCandidatePage = 1;
+
+        if (!isLoadMore && !isSearch) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
         }
+        
+        let apiUrl = `/api/candidates/all?page=${currentCandidatePage}&limit=${CANDIDATES_PER_PAGE}`;
+        if (currentCandidateSearch) {
+            apiUrl += `&search=${encodeURIComponent(currentCandidateSearch)}`;
+        }
+        
         try {
-            const response = await fetch('/api/candidates/all');
-            if (!response.ok) throw new Error('Failed to fetch candidate data');
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Failed to fetch candidates');
             const candidates = await response.json();
-            tbody.innerHTML = "";
-            if (candidates.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found in the system.</td></tr>';
-                return;
+            
+            if (!isLoadMore) tbody.innerHTML = "";
+            if (candidates.length === 0 && !isLoadMore) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found.</td></tr>`;
             }
+
             candidates.forEach(candidate => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</div></td>`;
                 tbody.appendChild(tr);
             });
+
+            showMoreContainer.innerHTML = "";
+            if (candidates.length === CANDIDATES_PER_PAGE) {
+                const showMoreBtn = document.createElement('button');
+                showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
+                showMoreBtn.textContent = 'Show More';
+                showMoreContainer.appendChild(showMoreBtn);
+                showMoreBtn.addEventListener('click', () => {
+                    currentCandidatePage++;
+                    loadCandidates(true);
+                });
+            }
         } catch (error) {
             console.error("Failed to load candidates:", error);
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidate data.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidates.</td></tr>`;
         }
     }
 
@@ -500,20 +598,9 @@
                 counts.push(parseInt(dataMap.get(dateString) || 0));
             }
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
-            if (interviewsLineChartInstance && !withAnimation) {
-                interviewsLineChartInstance.data.labels = labels;
-                interviewsLineChartInstance.data.datasets[0].data = counts;
-                interviewsLineChartInstance.update('none');
-                return;
-            }
-            if (interviewsLineChartInstance) {
-                interviewsLineChartInstance.destroy();
-            }
-            interviewsLineChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, }
-            });
+            if (interviewsLineChartInstance && !withAnimation) { interviewsLineChartInstance.data.labels = labels; interviewsLineChartInstance.data.datasets[0].data = counts; interviewsLineChartInstance.update('none'); return; }
+            if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); }
+            interviewsLineChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, } });
         } catch (error) {
             console.error(`Failed to load line chart data for ${days} days:`, error);
         }
@@ -527,20 +614,9 @@
             const ctx = document.getElementById('statusPieChart').getContext('2d');
             const labels = data.map(item => item.status);
             const counts = data.map(item => item.count);
-            if (pieChartInstance && !withAnimation) {
-                pieChartInstance.data.labels = labels;
-                pieChartInstance.data.datasets[0].data = counts;
-                pieChartInstance.update('none');
-                return;
-            }
-            if(pieChartInstance){
-                pieChartInstance.destroy();
-            }
-            pieChartInstance = new Chart(ctx, {
-                type: 'pie',
-                data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, }
-            });
+            if (pieChartInstance && !withAnimation) { pieChartInstance.data.labels = labels; pieChartInstance.data.datasets[0].data = counts; pieChartInstance.update('none'); return; }
+            if(pieChartInstance){ pieChartInstance.destroy(); }
+            pieChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, } });
         } catch (error) {
             console.error("Failed to load pie chart data:", error);
             const chartCanvas = document.getElementById('statusPieChart');
@@ -550,7 +626,7 @@
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
-        setupAddUserModal();
+        setupUserModal();
         setupUserDeleteMode();
 
         loadPieChartData();
@@ -563,8 +639,16 @@
             console.log("Refreshing admin dashboard data...");
             loadPieChartData(false);
             if (!isUserDeleteMode) loadUsers(true);
-            loadCandidates(true);
-        }, 5000);
+        }, 15000);
+        
+        const candidateSearchInput = document.getElementById('candidate-search');
+        candidateSearchInput.addEventListener('keyup', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                currentCandidateSearch = e.target.value;
+                loadCandidates(false, true);
+            }, 500);
+        });
         
         const statusBtns = { open: document.getElementById('open-interviews-btn'), closed: document.getElementById('closed-interviews-btn') };
         const deptBtns = { all: document.getElementById('dept-all-btn'), hr: document.getElementById('dept-hr-btn'), pmo: document.getElementById('dept-pmo-btn'), gta: document.getElementById('dept-gta-btn') };
