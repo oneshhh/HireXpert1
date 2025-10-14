@@ -56,6 +56,16 @@
 <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="interview-title">Title of the Interview</label>
 <input class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="interview-title" name="title" placeholder="e.g., Senior Product Designer" type="text" required>
 </div>
+
+<div>
+    <label class="mb-2 text-sm font-medium text-[var(--text-primary)]" for="custom-id-text">Custom Interview ID Text</label>
+    <div class="flex items-center">
+        <span id="custom-id-prefix" class="whitespace-nowrap rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 py-3 text-gray-500 text-base">--/---/----/</span>
+        <input class="w-full rounded-r-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]" id="custom-id-text" name="customIdText" placeholder="e.g., IT Interview for Microsoft" type="text" required>
+    </div>
+    <p class="mt-1 text-xs text-[var(--text-secondary)]">This text will be part of the unique ID (e.g., 25/Oct/0001/Your Text).</p>
+</div>
+
 <div>
 <h3 class="mb-2 text-sm font-medium text-[var(--text-primary)]">Questions</h3>
 <div id="questions-container" class="space-y-4">
@@ -226,71 +236,55 @@
       manageAddQuestionButton();
     }
     
-function showNotification(title, text, options = {}) {
-    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
-
-    const modal = document.getElementById('notification-modal');
-    const modalTitle = document.getElementById('notification-modal-title');
-    const modalText = document.getElementById('notification-modal-text');
-    const modalIcon = document.getElementById('notification-modal-icon');
-    const btnContainer = document.getElementById('notification-modal-buttons');
-    
-    if (!modal) {
-        if (onConfirm) {
-            if (confirm(`${title}\n${text}`)) {
-                onConfirm();
+    function showNotification(title, text, options = {}) {
+        const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
+        const modal = document.getElementById('notification-modal');
+        const modalTitle = document.getElementById('notification-modal-title');
+        const modalText = document.getElementById('notification-modal-text');
+        const modalIcon = document.getElementById('notification-modal-icon');
+        const btnContainer = document.getElementById('notification-modal-buttons');
+        if (!modal) {
+            if (onConfirm) {
+                if (confirm(`${title}\n${text}`)) { onConfirm(); }
+            } else {
+                alert(`${title}: ${text}`);
             }
-        } else {
-            alert(`${title}: ${text}`);
+            return;
         }
-        return;
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+        if (isError) {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+        } else {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+        }
+        btnContainer.innerHTML = '';
+        if (onConfirm) {
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+            confirmBtn.textContent = confirmText;
+            confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); };
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+            cancelBtn.textContent = cancelText;
+            cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+            btnContainer.appendChild(cancelBtn);
+            btnContainer.appendChild(confirmBtn);
+        } else {
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+            okBtn.textContent = 'Got it';
+            okBtn.onclick = () => { modal.classList.add('hidden'); };
+            btnContainer.appendChild(okBtn);
+        }
     }
 
-    modalTitle.textContent = title;
-    modalText.textContent = text;
-    
-    if (isError) {
-        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
-        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
-    } else {
-        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
-        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
-    }
-
-    btnContainer.innerHTML = ''; // Clear previous buttons
-    
-    if (onConfirm) { // This is a confirmation dialog with two buttons
-        const confirmBtn = document.createElement('button');
-        confirmBtn.type = 'button';
-        confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
-        confirmBtn.textContent = confirmText;
-        confirmBtn.onclick = () => {
-            modal.classList.add('hidden');
-            onConfirm();
-        };
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.type = 'button';
-        cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
-        cancelBtn.textContent = cancelText;
-        cancelBtn.onclick = () => {
-            modal.classList.add('hidden');
-        };
-        
-        btnContainer.appendChild(cancelBtn);
-        btnContainer.appendChild(confirmBtn);
-
-    } else { // This is a simple notification with one button
-        const okBtn = document.createElement('button');
-        okBtn.type = 'button';
-        okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
-        okBtn.textContent = 'Got it';
-        okBtn.onclick = () => {
-            modal.classList.add('hidden');
-        };
-        btnContainer.appendChild(okBtn);
-    }
-
+    // ========== NEW: Script to update the custom ID prefix ==========
     document.addEventListener('DOMContentLoaded', () => {
         const prefixSpan = document.getElementById('custom-id-prefix');
         if (prefixSpan) {
@@ -299,7 +293,7 @@ function showNotification(title, text, options = {}) {
             const month = now.toLocaleString('en-US', { month: 'short' });
             prefixSpan.textContent = `${year}/${month}/----/`;
         }
-}
+    });
 </script>
 
 <script src="js/schedule.js"></script>
