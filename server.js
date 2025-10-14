@@ -111,20 +111,36 @@ app.post('/api/generate', async (req, res) => {
 // Auth and Page Routes
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
+// ========== MODIFIED: /login route to handle multiple departments ==========
 app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
     try {
-        const result = await pool.query("SELECT * FROM users WHERE email = $1 AND department = $2", [email, department]);
+        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const user = result.rows[0];
+
         if (user) {
+            // Check if the selected department is in the user's list of departments
+            const hasDepartmentAccess = user.department.includes(department);
+            if (!hasDepartmentAccess) {
+                 return res.status(401).send("User does not have access to the selected department.");
+            }
+
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                req.session.user = { id: user.id, email: user.email, department: user.department };
-                if (user.department === 'Admin') { return res.redirect('/admin_Dashboard.html'); }
-                return res.redirect(`/${user.department}_Dashboard.html`);
+                req.session.user = { 
+                    id: user.id, 
+                    email: user.email, 
+                    departments: user.department,
+                    activeDepartment: department 
+                };
+
+                if (department === 'Admin') {
+                    return res.redirect('/admin_Dashboard.html');
+                }
+                return res.redirect(`/${department}_Dashboard.html`);
             }
         }
-        res.status(401).send("Invalid credentials or department.");
+        res.status(401).send("Invalid credentials.");
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).send("An internal server error occurred.");
@@ -135,7 +151,7 @@ app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, 
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
 app.get("/admin_Dashboard.html", (req, res) => {
-    if (req.session.user?.department === 'Admin') {
+    if (req.session.user?.activeDepartment === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
@@ -152,21 +168,33 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
+// ========== MODIFIED: /api/add-user route to handle multiple departments ==========
 app.post("/api/add-user", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add users." });
     }
-    const { firstName, lastName, email, department, password } = req.body;
-    if (!firstName || !lastName || !email || !department || !password) {
-        return res.status(400).json({ message: "All fields are required." });
+
+    let { firstName, lastName, email, departments, password } = req.body;
+    
+    if (typeof departments === 'string') {
+        departments = [departments];
     }
+    
+    if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0 || !password) {
+        return res.status(400).json({ message: "All fields, including at least one department, are required." });
+    }
+
     try {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
+
         const newUserResult = await pool.query(
-            `INSERT INTO users (first_name, last_name, email, password_hash, department) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, department`,
-            [firstName, lastName, email, passwordHash, department]
+            `INSERT INTO users (first_name, last_name, email, password_hash, department)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id, email, department`,
+            [firstName, lastName, email, passwordHash, departments]
         );
+        
         res.status(201).json({ success: true, message: "User created successfully.", user: newUserResult.rows[0] });
     } catch (error) {
         console.error("Error creating user:", error);
@@ -177,21 +205,66 @@ app.post("/api/add-user", async (req, res) => {
     }
 });
 
+// ========== NEW: API Route to Edit a User ==========
+app.post("/api/user/:id/update", async (req, res) => {
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can edit users." });
+    }
+    const { id } = req.params;
+    let { firstName, lastName, email, departments, password } = req.body;
+
+    if (typeof departments === 'string') {
+        departments = [departments];
+    }
+
+    if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0) {
+        return res.status(400).json({ message: "Name, email, and department are required." });
+    }
+
+    try {
+        if (password) {
+            // If a new password is provided, hash it and update it
+            const saltRounds = 10;
+            const passwordHash = await bcrypt.hash(password, saltRounds);
+            await pool.query(
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, password_hash = $5 WHERE id = $6`,
+                [firstName, lastName, email, departments, passwordHash, id]
+            );
+        } else {
+            // If no password is provided, update other details only
+            await pool.query(
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4 WHERE id = $5`,
+                [firstName, lastName, email, departments, id]
+            );
+        }
+        res.json({ success: true, message: "User updated successfully." });
+    } catch (error) {
+        console.error("Error updating user:", error);
+        if (error.code === '23505') {
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
 app.post("/api/users/bulk-delete", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can delete users." });
     }
     const { userIds } = req.body;
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ error: "An array of userIds is required." });
     }
+
     const filteredUserIds = userIds.filter(id => id !== req.session.user.id);
     if (filteredUserIds.length !== userIds.length) {
         console.warn(`Admin user ${req.session.user.email} attempted to self-delete.`);
     }
+
     if (filteredUserIds.length === 0) {
         return res.json({ success: true, message: "No users were deleted. Admin cannot delete their own account." });
     }
+
     try {
         await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [filteredUserIds]);
         res.json({ success: true, message: `${filteredUserIds.length} user(s) deleted.` });
@@ -244,11 +317,10 @@ app.get("/api/session/:sessionId", async (req, res) => {
 app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
-        if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
-        const { department } = req.session.user;
+        if (!req.session.user || !req.session.user.activeDepartment) return res.status(401).json({ message: "Unauthorized." });
+        const department = req.session.user.activeDepartment;
         await client.query('BEGIN');
         
-        // Receive the new customIdText field
         let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText } = req.body;
 
         if (!customIdText) {
@@ -256,21 +328,18 @@ app.post("/schedule", async (req, res) => {
         }
         if (!schedulerEmail) { throw new Error("Scheduler email is required."); }
 
-        // --- Custom ID Generation Logic ---
         const now = new Date();
-        const year = now.getFullYear().toString().slice(-2); // e.g., 25
-        const month = now.toLocaleString('en-US', { month: 'short' }); // e.g., Oct
+        const year = now.getFullYear().toString().slice(-2);
+        const month = now.toLocaleString('en-US', { month: 'short' });
 
-        // Get the count of interviews for the current month and year to determine the next serial number
         const serialResult = await client.query(
             `SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`,
             [now.getFullYear(), now.getMonth() + 1]
         );
         const serialNumber = parseInt(serialResult.rows[0].count) + 1;
-        const paddedSerialNumber = serialNumber.toString().padStart(4, '0'); // e.g., 0001
+        const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
 
         const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
-        // --- End of Custom ID Logic ---
         
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
@@ -278,7 +347,6 @@ app.post("/schedule", async (req, res) => {
         
         const interviewId = uuidv4();
         
-        // Add the new custom_interview_id to the INSERT statement
         await client.query(
           `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open')`,
@@ -306,7 +374,6 @@ app.post("/schedule", async (req, res) => {
         await client.query('ROLLBACK');
         console.error("❌ Error in /schedule route:", err.message);
 
-        // Check for unique violation error
         if (err.code === '23505' && err.constraint === 'interviews_custom_interview_id_key') {
             return res.status(409).json({ message: "An interview with this custom ID text already exists for this month/year. Please use a different text." });
         }
@@ -389,7 +456,7 @@ app.get("/api/interviews", async (req, res) => {
 });
 
 app.post("/api/interview/:id/toggle-status", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can change status." });
     }
     const { id } = req.params;
@@ -408,6 +475,7 @@ app.post("/api/interview/:id/toggle-status", async (req, res) => {
     }
 });
 
+// ========== MODIFIED: /api/candidates/all route for Search and Pagination ==========
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department, page = 1, limit = 10 } = req.query;
@@ -417,6 +485,7 @@ app.get("/api/candidates/all", async (req, res) => {
             SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url 
             FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id
         `;
+
         if (department) { 
             queryParams.push(department); 
             whereClauses.push(`cs.department = $${queryParams.length}`); 
@@ -425,18 +494,22 @@ app.get("/api/candidates/all", async (req, res) => {
             queryParams.push(`%${search}%`); 
             whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); 
         }
+
         if (whereClauses.length > 0) {
             baseQuery += " WHERE " + whereClauses.join(" AND ");
         }
         baseQuery += " ORDER BY cs.created_at DESC";
+
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
+
         queryParams.push(limitNum);
         baseQuery += ` LIMIT $${queryParams.length}`;
         
         queryParams.push(offset);
         baseQuery += ` OFFSET $${queryParams.length}`;
+
         const result = await pool.query(baseQuery, queryParams);
         res.json(result.rows);
     } catch (err) {
