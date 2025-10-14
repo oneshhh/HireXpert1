@@ -111,6 +111,7 @@ app.post('/api/generate', async (req, res) => {
 // Auth and Page Routes
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
+// ========== CORRECTED: /login route to handle department array properly ==========
 app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
     try {
@@ -125,11 +126,11 @@ app.post("/login", async (req, res) => {
 
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                // CORRECTED: Set the active department for the session
+                // Set the specific department for this session
                 req.session.user = { 
                     id: user.id, 
                     email: user.email, 
-                    department: department 
+                    department: department // This is the active department for this session
                 };
 
                 if (department === 'Admin') {
@@ -312,29 +313,27 @@ app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
         if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
-        const { department } = req.session.user;
+        const { department, id: createdByUserId } = req.session.user;
         await client.query('BEGIN');
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText } = req.body;
-        if (!schedulerEmail) { throw new Error("Scheduler email is required."); }
-        if (customIdText) {
-            const now = new Date();
-            const year = now.getFullYear().toString().slice(-2);
-            const month = now.toLocaleString('en-US', { month: 'short' });
-            const serialResult = await client.query(`SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`, [now.getFullYear(), now.getMonth() + 1]);
-            const serialNumber = parseInt(serialResult.rows[0].count) + 1;
-            const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
-            const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
-            req.body.custom_interview_id = customInterviewId;
-        }
-        
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+        if (!customIdText) throw new Error("The custom Interview ID text is required.");
+        if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
+        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one scheduler must be assigned.");
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2);
+        const month = now.toLocaleString('en-US', { month: 'short' });
+        const serialResult = await client.query(`SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`, [now.getFullYear(), now.getMonth() + 1]);
+        const serialNumber = parseInt(serialResult.rows[0].count) + 1;
+        const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
+        const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
         while (timeLimits.length < questions.length) timeLimits.push(0);
         const interviewId = uuidv4();
         await client.query(
-          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open')`,
-          [interviewId, req.body.custom_interview_id, title, questions, timeLimits, date, time, department]
+          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, scheduler_ids)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
+          [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
         );
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
@@ -479,7 +478,7 @@ app.get("/api/interview/:id", async (req, res) => {
     try {
         const { id } = req.params;
         const interviewQuery = `
-            SELECT i.*, u.first_name, u.last_name, u.email as scheduler_email
+            SELECT i.*, u.first_name, u.last_name, u.email as creator_email
             FROM interviews i
             LEFT JOIN users u ON i.created_by_user_id = u.id
             WHERE i.id = $1
@@ -489,14 +488,13 @@ app.get("/api/interview/:id", async (req, res) => {
             return res.status(404).json({ message: "Interview not found" });
         }
         const interviewData = interviewResult.rows[0];
-        const candidatesResult = await pool.query(
-            "SELECT candidate_email, status FROM candidate_sessions WHERE interview_id = $1",
-            [id]
-        );
-        const responseData = {
-            ...interviewData,
-            candidates: candidatesResult.rows
-        };
+        const candidatesResult = await pool.query("SELECT candidate_email, status FROM candidate_sessions WHERE interview_id = $1", [id]);
+        let schedulers = [];
+        if (interviewData.scheduler_ids && interviewData.scheduler_ids.length > 0) {
+            const schedulersResult = await pool.query("SELECT id, first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])", [interviewData.scheduler_ids]);
+            schedulers = schedulersResult.rows;
+        }
+        const responseData = { ...interviewData, candidates: candidatesResult.rows, schedulers: schedulers };
         res.json(responseData);
     } catch(err) {
         console.error("Error fetching full interview details:", err);
