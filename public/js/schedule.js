@@ -30,11 +30,10 @@ function showNotification(title, text, options = {}) {
         modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
     }
 
-    btnContainer.innerHTML = ''; // Clear previous buttons
+    btnContainer.innerHTML = '';
     
-    if (onConfirm) { // This is a confirmation dialog with two buttons
+    if (onConfirm) {
         btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
-
         const confirmBtn = document.createElement('button');
         confirmBtn.type = 'button';
         confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
@@ -43,7 +42,6 @@ function showNotification(title, text, options = {}) {
             modal.classList.add('hidden');
             onConfirm();
         };
-
         const cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
         cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
@@ -51,13 +49,10 @@ function showNotification(title, text, options = {}) {
         cancelBtn.onclick = () => {
             modal.classList.add('hidden');
         };
-        
         btnContainer.appendChild(cancelBtn);
         btnContainer.appendChild(confirmBtn);
-
-    } else { // This is a simple notification with one button
+    } else {
         btnContainer.className = 'mt-5 sm:mt-6';
-
         const okBtn = document.createElement('button');
         okBtn.type = 'button';
         okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
@@ -73,7 +68,6 @@ function showNotification(title, text, options = {}) {
     
     modal.classList.remove('hidden');
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -118,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const formData = new FormData(form);
     
-    // ========== MODIFIED: data object now includes customIdText and jobDescription ==========
+    // ========== CORRECTED: data object now correctly gathers all fields ==========
     const data = {
       title: formData.get("title"),
       customIdText: formData.get("customIdText"),
@@ -129,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
       emails: formData.get("emails"),
       schedulerEmail: formData.get("schedulerEmail"),
       jobDescription: document.getElementById('job-description').value,
+      schedulerIds: Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value) // Correct way to get multiple values
     };
 
     try {

@@ -191,24 +191,34 @@ app.post("/api/add-user", async (req, res) => {
     if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add users." });
     }
+
     let { firstName, lastName, email, departments, password } = req.body;
+    
     if (typeof departments === 'string') {
         departments = [departments];
     }
+    
     if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0 || !password) {
         return res.status(400).json({ message: "All fields, including at least one department, are required." });
     }
+
     try {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
+
         const newUserResult = await pool.query(
-            `INSERT INTO users (first_name, last_name, email, password_hash, department) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, department`,
+            `INSERT INTO users (first_name, last_name, email, password_hash, department)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id, email, department`,
             [firstName, lastName, email, passwordHash, departments]
         );
+        
         res.status(201).json({ success: true, message: "User created successfully.", user: newUserResult.rows[0] });
     } catch (error) {
         console.error("Error creating user:", error);
-        if (error.code === '23505') { return res.status(409).json({ message: "A user with this email already exists." }); }
+        if (error.code === '23505') {
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
@@ -219,12 +229,15 @@ app.post("/api/user/:id/update", async (req, res) => {
     }
     const { id } = req.params;
     let { firstName, lastName, email, departments, password } = req.body;
+
     if (typeof departments === 'string') {
         departments = [departments];
     }
+
     if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0) {
         return res.status(400).json({ message: "Name, email, and department are required." });
     }
+
     try {
         if (password) {
             const saltRounds = 10;
@@ -242,7 +255,9 @@ app.post("/api/user/:id/update", async (req, res) => {
         res.json({ success: true, message: "User updated successfully." });
     } catch (error) {
         console.error("Error updating user:", error);
-        if (error.code === '23505') { return res.status(409).json({ message: "A user with this email already exists." }); }
+        if (error.code === '23505') {
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
@@ -255,13 +270,16 @@ app.post("/api/users/bulk-delete", async (req, res) => {
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ error: "An array of userIds is required." });
     }
+
     const filteredUserIds = userIds.filter(id => id !== req.session.user.id);
     if (filteredUserIds.length !== userIds.length) {
         console.warn(`Admin user ${req.session.user.email} attempted to self-delete.`);
     }
+
     if (filteredUserIds.length === 0) {
         return res.json({ success: true, message: "No users were deleted. Admin cannot delete their own account." });
     }
+
     try {
         await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [filteredUserIds]);
         res.json({ success: true, message: `${filteredUserIds.length} user(s) deleted.` });
@@ -310,16 +328,23 @@ app.get("/api/session/:sessionId", async (req, res) => {
     }
 });
 
+// ========== CORRECTED: /schedule route to use activeDepartment ==========
 app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
-        if (!req.session.user || !req.session.user.activeDepartment) return res.status(401).json({ message: "Unauthorized." });
-        const { activeDepartment: department, id: createdByUserId } = req.session.user;
+        if (!req.session.user || !req.session.user.activeDepartment || !req.session.user.id) {
+            return res.status(401).json({ message: "Unauthorized." });
+        }
+        const department = req.session.user.activeDepartment;
+        const createdByUserId = req.session.user.id;
+        
         await client.query('BEGIN');
         let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
         if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
         if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one scheduler must be assigned.");
+        
         const now = new Date();
         const year = now.getFullYear().toString().slice(-2);
         const month = now.toLocaleString('en-US', { month: 'short' });
@@ -327,15 +352,18 @@ app.post("/schedule", async (req, res) => {
         const serialNumber = parseInt(serialResult.rows[0].count) + 1;
         const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
         const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
+        
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
         while (timeLimits.length < questions.length) timeLimits.push(0);
+        
         const interviewId = uuidv4();
         await client.query(
           `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, scheduler_ids)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
           [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
         );
+        
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
             const sessionId = uuidv4();
@@ -343,10 +371,13 @@ app.post("/schedule", async (req, res) => {
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
             if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
         }
+        
         const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
         if (!schedulerEmailResult.success) { throw new Error("Failed to send confirmation email to scheduler."); }
+        
         await client.query('COMMIT');
         res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
+
     } catch (err) {
         await client.query('ROLLBACK');
         console.error("❌ Error in /schedule route:", err.message);
@@ -358,6 +389,7 @@ app.post("/schedule", async (req, res) => {
         client.release();
     }
 });
+
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
