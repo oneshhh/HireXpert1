@@ -111,7 +111,7 @@ app.post('/api/generate', async (req, res) => {
 // Auth and Page Routes
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
-// ========== CORRECTED: /login route to handle department array properly ==========
+// ========== CORRECTED: /login route to handle multiple departments properly ==========
 app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
     try {
@@ -126,11 +126,11 @@ app.post("/login", async (req, res) => {
 
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                // Set the specific department for this session
                 req.session.user = { 
                     id: user.id, 
                     email: user.email, 
-                    department: department // This is the active department for this session
+                    departments: user.department,
+                    activeDepartment: department 
                 };
 
                 if (department === 'Admin') {
@@ -150,7 +150,7 @@ app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, 
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
 app.get("/admin_Dashboard.html", (req, res) => {
-    if (req.session.user?.department === 'Admin') {
+    if (req.session.user?.activeDepartment === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
@@ -167,17 +167,18 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
-// ========== ADDED: The missing API Route to get users by department ==========
+// ========== CORRECTED: /api/users-by-dept to correctly filter users ==========
 app.get("/api/users-by-dept", async (req, res) => {
-    if (!req.session.user || !req.session.user.department) {
+    if (!req.session.user || !req.session.user.activeDepartment) {
         return res.status(401).json({ message: "Unauthorized." });
     }
-    const { department } = req.session.user;
+    const { activeDepartment } = req.session.user;
 
     try {
+        // Find users who have access to the current department OR are Admins
         const result = await pool.query(
-            "SELECT id, first_name, last_name, email FROM users WHERE department @> ARRAY[$1::TEXT] ORDER BY first_name, last_name", 
-            [department]
+            "SELECT id, first_name, last_name, email FROM users WHERE department @> ARRAY[$1::TEXT] OR department @> ARRAY['Admin'::TEXT] ORDER BY first_name, last_name", 
+            [activeDepartment]
         );
         res.json(result.rows);
     } catch (error) {
@@ -187,7 +188,7 @@ app.get("/api/users-by-dept", async (req, res) => {
 });
 
 app.post("/api/add-user", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add users." });
     }
     let { firstName, lastName, email, departments, password } = req.body;
@@ -213,7 +214,7 @@ app.post("/api/add-user", async (req, res) => {
 });
 
 app.post("/api/user/:id/update", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can edit users." });
     }
     const { id } = req.params;
@@ -247,7 +248,7 @@ app.post("/api/user/:id/update", async (req, res) => {
 });
 
 app.post("/api/users/bulk-delete", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can delete users." });
     }
     const { userIds } = req.body;
@@ -312,8 +313,8 @@ app.get("/api/session/:sessionId", async (req, res) => {
 app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
-        if (!req.session.user || !req.session.user.department) return res.status(401).json({ message: "Unauthorized." });
-        const { department, id: createdByUserId } = req.session.user;
+        if (!req.session.user || !req.session.user.activeDepartment) return res.status(401).json({ message: "Unauthorized." });
+        const { activeDepartment: department, id: createdByUserId } = req.session.user;
         await client.query('BEGIN');
         let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
@@ -430,7 +431,7 @@ app.get("/api/interviews", async (req, res) => {
 });
 
 app.post("/api/interview/:id/toggle-status", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can change status." });
     }
     const { id } = req.params;
