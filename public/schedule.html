@@ -290,6 +290,15 @@ function showNotification(title, text, options = {}) {
         };
         btnContainer.appendChild(okBtn);
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const prefixSpan = document.getElementById('custom-id-prefix');
+        if (prefixSpan) {
+            const now = new Date();
+            const year = now.getFullYear().toString().slice(-2);
+            const month = now.toLocaleString('en-US', { month: 'short' });
+            prefixSpan.textContent = `${year}/${month}/----/`;
+        }
 }
 </script>
 

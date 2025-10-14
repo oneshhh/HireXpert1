@@ -313,33 +313,77 @@ app.get("/api/session/:sessionId", async (req, res) => {
     }
 });
 
+// ========== MODIFIED: /schedule route to generate custom ID ==========
 app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
         if (!req.session.user || !req.session.user.activeDepartment) return res.status(401).json({ message: "Unauthorized." });
         const department = req.session.user.activeDepartment;
         await client.query('BEGIN');
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail } = req.body;
+        
+        // Receive the new customIdText field
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText } = req.body;
+
+        if (!customIdText) {
+            throw new Error("The custom Interview ID text is required.");
+        }
         if (!schedulerEmail) { throw new Error("Scheduler email is required."); }
+
+        // --- Custom ID Generation Logic ---
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2); // e.g., 25
+        const month = now.toLocaleString('en-US', { month: 'short' }); // e.g., Oct
+
+        // Get the count of interviews for the current month and year to determine the next serial number
+        const serialResult = await client.query(
+            `SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`,
+            [now.getFullYear(), now.getMonth() + 1]
+        );
+        const serialNumber = parseInt(serialResult.rows[0].count) + 1;
+        const paddedSerialNumber = serialNumber.toString().padStart(4, '0'); // e.g., 0001
+
+        const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
+        // --- End of Custom ID Logic ---
+        
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
         while (timeLimits.length < questions.length) timeLimits.push(0);
+        
         const interviewId = uuidv4();
-        await client.query(`INSERT INTO interviews (id, title, questions, time_limits, date, time, department, created_at, position_status) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'open')`, [interviewId, title, questions, timeLimits, date, time, department]);
+        
+        // Add the new custom_interview_id to the INSERT statement
+        await client.query(
+          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open')`,
+          [interviewId, customInterviewId, title, questions, timeLimits, date, time, department]
+        );
+
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
             const sessionId = uuidv4();
-            await client.query(`INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`, [sessionId, interviewId, email, department]);
+            await client.query(
+              `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`,
+              [sessionId, interviewId, email, department]
+            );
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
             if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
         }
+        
         const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
         if (!schedulerEmailResult.success) { throw new Error("Failed to send confirmation email to scheduler."); }
+        
         await client.query('COMMIT');
         res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
+
     } catch (err) {
         await client.query('ROLLBACK');
         console.error("❌ Error in /schedule route:", err.message);
+
+        // Check for unique violation error
+        if (err.code === '23505' && err.constraint === 'interviews_custom_interview_id_key') {
+            return res.status(409).json({ message: "An interview with this custom ID text already exists for this month/year. Please use a different text." });
+        }
+        
         res.status(500).json({ message: err.message || "Failed to schedule interview." });
     } finally {
         client.release();
