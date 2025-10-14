@@ -121,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const data = {
       title: formData.get("title"),
+      jobDescription: document.getElementById('job-description').value,
       customIdText: formData.get("customIdText"),
       questions: formData.getAll("questions[]"),
       timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),

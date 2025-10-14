@@ -1,65 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Interview Details</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
+    <meta charset="UTF-8" />
+    <title>Interview Details</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+      :root {
+        --primary-color: #1173d4;
+        --secondary-color: #f0f2f4;
+        --text-primary: #111418;
+        --text-secondary: #617589;
+      }
+      body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto mt-10">
-    <div class="bg-white shadow-lg rounded-lg p-6 max-w-2xl mx-auto">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6">Interview Details</h1>
-
-      <div id="interview-details" class="space-y-4">
-        <p><span class="font-semibold">Title:</span> <span id="title">Loading...</span></p>
-        <p><span class="font-semibold">Date:</span> <span id="date">Loading...</span></p>
-        <p><span class="font-semibold">Time:</span> <span id="time">Loading...</span></p>
-        <p><span class="font-semibold">Candidate Email:</span> <span id="email">Loading...</span></p>
-        <div>
-          <span class="font-semibold">Questions:</span>
-          <ul id="questions" class="list-disc list-inside mt-2 text-gray-700"></ul>
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <a href="/HR_Dashboard.html" class="text-blue-600 hover:underline">&larr; Back to Dashboard</a>
-      </div>
+  <header class="bg-white shadow-sm">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-[var(--text-primary)]">HireXpert</h1>
+        <a href="/admin_Dashboard.html" class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--primary-color)]">&larr; Back to Dashboard</a>
     </div>
-  </div>
+  </header>
+
+  <main class="container mx-auto mt-8 px-6">
+    <div id="loading-state" class="text-center p-10">
+        <p class="text-gray-500">Loading interview details...</p>
+    </div>
+    <div id="error-state" class="hidden text-center p-10 bg-red-50 rounded-lg">
+        <p class="text-red-600 font-medium">Could not load interview details.</p>
+        <p id="error-message" class="text-red-500 text-sm mt-2"></p>
+    </div>
+
+    <div id="interview-content" class="hidden space-y-8">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex flex-col md:flex-row justify-between md:items-center">
+                <div>
+                    <h2 id="title" class="text-3xl font-bold text-gray-800"></h2>
+                    <p id="custom-id" class="text-sm text-gray-500 mt-1"></p>
+                </div>
+                <div id="status-badge" class="mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full"></div>
+            </div>
+            <div class="mt-6 border-t border-gray-200 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div>
+                    <p class="text-gray-500 font-medium">Date</p>
+                    <p id="date" class="text-gray-900 font-semibold"></p>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-medium">Time</p>
+                    <p id="time" class="text-gray-900 font-semibold"></p>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-medium">Scheduler</p>
+                    <p id="scheduler-name" class="text-gray-900 font-semibold"></p>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-medium">Scheduler Email</p>
+                    <p id="scheduler-email" class="text-gray-900 font-semibold"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
+                <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-60 overflow-y-auto"></pre>
+            </div>
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Invited Candidates</h3>
+                <ul id="candidate-list" class="space-y-3">
+                    </ul>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Interview Questions</h3>
+            <ul id="questions-list" class="space-y-4">
+                </ul>
+        </div>
+    </div>
+  </main>
 
   <script>
     async function fetchInterview() {
+      const content = document.getElementById('interview-content');
+      const loading = document.getElementById('loading-state');
+      const errorDiv = document.getElementById('error-state');
+      const errorMessage = document.getElementById('error-message');
+
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
 
       if (!id) {
-        document.getElementById("interview-details").innerHTML = "<p class='text-red-600'>No interview ID provided.</p>";
+        loading.style.display = 'none';
+        errorDiv.classList.remove('hidden');
+        errorMessage.textContent = "No interview ID provided in the URL.";
         return;
       }
 
       try {
         const res = await fetch(`/api/interview/${id}`);
-        if (!res.ok) throw new Error("Interview not found");
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.message || "Interview not found");
+        }
         const data = await res.json();
 
+        // Populate Header Card
         document.getElementById("title").textContent = data.title;
-        document.getElementById("date").textContent = data.date;
+        document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
+        document.getElementById("date").textContent = new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById("time").textContent = data.time;
-        document.getElementById("email").textContent = data.email;
+        document.getElementById("scheduler-name").textContent = `${data.first_name || ''} ${data.last_name || ''}`;
+        document.getElementById("scheduler-email").textContent = data.scheduler_email || 'N/A';
+        
+        const statusBadge = document.getElementById("status-badge");
+        if (data.position_status === 'open') {
+            statusBadge.textContent = 'Open';
+            statusBadge.className += ' bg-green-100 text-green-800';
+        } else {
+            statusBadge.textContent = 'Closed';
+            statusBadge.className += ' bg-red-100 text-red-800';
+        }
 
-        const qList = document.getElementById("questions");
+        // Populate Job Description
+        const jdElement = document.getElementById("job-description");
+        if (data.job_description) {
+            jdElement.textContent = data.job_description;
+        } else {
+            jdElement.textContent = "No job description was provided for this interview.";
+            jdElement.classList.add('italic', 'text-gray-500');
+        }
+        
+        // Populate Candidates
+        const candidateList = document.getElementById("candidate-list");
+        candidateList.innerHTML = "";
+        if (data.candidates && data.candidates.length > 0) {
+            data.candidates.forEach(candidate => {
+                const li = document.createElement("li");
+                li.className = 'flex items-center justify-between text-sm';
+                li.innerHTML = `
+                    <span class="text-gray-800">${candidate.candidate_email}</span>
+                    <span class="px-2 py-1 rounded-full text-xs ${candidate.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</span>
+                `;
+                candidateList.appendChild(li);
+            });
+        } else {
+            candidateList.innerHTML = '<li class="text-sm text-gray-500 italic">No candidates are associated with this interview.</li>';
+        }
+
+        // Populate Questions
+        const qList = document.getElementById("questions-list");
         qList.innerHTML = "";
         const questions = data.questions || [];
-        const timeLimits = data.timeLimits || [];
+        const timeLimits = data.time_limits || [];
+        if (questions.length > 0) {
+            questions.forEach((q, index) => {
+                const li = document.createElement("li");
+                li.className = "p-3 bg-gray-50 rounded-md flex items-start justify-between";
+                const time = timeLimits[index] || 0;
+                li.innerHTML = `
+                    <span class="text-gray-800">${q}</span>
+                    <span class="text-xs text-gray-500 whitespace-nowrap ml-4 pt-1">${time > 0 ? time + ' sec' : 'Untimed'}</span>
+                `;
+                qList.appendChild(li);
+            });
+        } else {
+            qList.innerHTML = '<li class="text-sm text-gray-500 italic">No questions were added to this interview.</li>';
+        }
 
-        questions.forEach((q, index) => {
-          const li = document.createElement("li");
-          const time = timeLimits[index] || 0;
-          li.textContent = `${q} (Time limit: ${time} sec)`; // display time limit
-          qList.appendChild(li);
-        });
+        // Show content
+        loading.style.display = 'none';
+        content.classList.remove('hidden');
+
       } catch (err) {
-        document.getElementById("interview-details").innerHTML = `<p class='text-red-600'>Error: ${err.message}</p>`;
+        loading.style.display = 'none';
+        errorDiv.classList.remove('hidden');
+        errorMessage.textContent = err.message;
       }
     }
 
