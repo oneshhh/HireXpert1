@@ -111,24 +111,32 @@ app.post('/api/generate', async (req, res) => {
 // Auth and Page Routes
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
+// ========== MODIFIED: /login route to handle multiple departments ==========
 app.post("/login", async (req, res) => {
     const { email, password, department } = req.body;
     try {
         const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const user = result.rows[0];
+
         if (user) {
+            // Check if the selected department is in the user's list of departments
             const hasDepartmentAccess = user.department.includes(department);
             if (!hasDepartmentAccess) {
-                return res.status(401).send("User does not have access to the selected department.");
+                 return res.status(401).send("User does not have access to the selected department.");
             }
+
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
                 req.session.user = { 
                     id: user.id, 
                     email: user.email, 
-                    department: department // Set active department for the session
+                    departments: user.department,
+                    activeDepartment: department 
                 };
-                if (department === 'Admin') { return res.redirect('/admin_Dashboard.html'); }
+
+                if (department === 'Admin') {
+                    return res.redirect('/admin_Dashboard.html');
+                }
                 return res.redirect(`/${department}_Dashboard.html`);
             }
         }
@@ -143,7 +151,7 @@ app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, 
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
 app.get("/admin_Dashboard.html", (req, res) => {
-    if (req.session.user?.department === 'Admin') {
+    if (req.session.user?.activeDepartment === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
@@ -160,63 +168,62 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
-app.get("/api/users-by-dept", async (req, res) => {
-    if (!req.session.user || !req.session.user.department) {
-        return res.status(401).json({ message: "Unauthorized." });
-    }
-    const { department } = req.session.user;
-    try {
-        const result = await pool.query(
-            "SELECT id, first_name, last_name FROM users WHERE department @> ARRAY[$1::TEXT] ORDER BY first_name, last_name",
-            [department]
-        );
-        res.json(result.rows);
-    } catch (error) {
-        console.error("Error fetching users by department:", error);
-        res.status(500).json({ message: "Failed to fetch users." });
-    }
-});
-
+// ========== MODIFIED: /api/add-user route to handle multiple departments ==========
 app.post("/api/add-user", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add users." });
     }
+
     let { firstName, lastName, email, departments, password } = req.body;
+    
     if (typeof departments === 'string') {
         departments = [departments];
     }
+    
     if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0 || !password) {
         return res.status(400).json({ message: "All fields, including at least one department, are required." });
     }
+
     try {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
+
         const newUserResult = await pool.query(
-            `INSERT INTO users (first_name, last_name, email, password_hash, department) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, department`,
+            `INSERT INTO users (first_name, last_name, email, password_hash, department)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id, email, department`,
             [firstName, lastName, email, passwordHash, departments]
         );
+        
         res.status(201).json({ success: true, message: "User created successfully.", user: newUserResult.rows[0] });
     } catch (error) {
         console.error("Error creating user:", error);
-        if (error.code === '23505') { return res.status(409).json({ message: "A user with this email already exists." }); }
+        if (error.code === '23505') {
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
+// ========== NEW: API Route to Edit a User ==========
 app.post("/api/user/:id/update", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can edit users." });
     }
     const { id } = req.params;
     let { firstName, lastName, email, departments, password } = req.body;
+
     if (typeof departments === 'string') {
         departments = [departments];
     }
+
     if (!firstName || !lastName || !email || !Array.isArray(departments) || departments.length === 0) {
         return res.status(400).json({ message: "Name, email, and department are required." });
     }
+
     try {
         if (password) {
+            // If a new password is provided, hash it and update it
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
             await pool.query(
@@ -224,6 +231,7 @@ app.post("/api/user/:id/update", async (req, res) => {
                 [firstName, lastName, email, departments, passwordHash, id]
             );
         } else {
+            // If no password is provided, update other details only
             await pool.query(
                 `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4 WHERE id = $5`,
                 [firstName, lastName, email, departments, id]
@@ -232,26 +240,32 @@ app.post("/api/user/:id/update", async (req, res) => {
         res.json({ success: true, message: "User updated successfully." });
     } catch (error) {
         console.error("Error updating user:", error);
-        if (error.code === '23505') { return res.status(409).json({ message: "A user with this email already exists." }); }
+        if (error.code === '23505') {
+            return res.status(409).json({ message: "A user with this email already exists." });
+        }
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
+
 app.post("/api/users/bulk-delete", async (req, res) => {
-    if (req.session.user?.department !== 'Admin') {
+    if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can delete users." });
     }
     const { userIds } = req.body;
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ error: "An array of userIds is required." });
     }
+
     const filteredUserIds = userIds.filter(id => id !== req.session.user.id);
     if (filteredUserIds.length !== userIds.length) {
         console.warn(`Admin user ${req.session.user.email} attempted to self-delete.`);
     }
+
     if (filteredUserIds.length === 0) {
         return res.json({ success: true, message: "No users were deleted. Admin cannot delete their own account." });
     }
+
     try {
         await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [filteredUserIds]);
         res.json({ success: true, message: `${filteredUserIds.length} user(s) deleted.` });
@@ -303,28 +317,30 @@ app.get("/api/session/:sessionId", async (req, res) => {
 app.post("/schedule", async (req, res) => {
     const client = await pool.connect();
     try {
-        if (!req.session.user || !req.session.user.id) return res.status(401).json({ message: "Unauthorized. Please log in again." });
-        const { department, id: createdByUserId } = req.session.user;
+        if (!req.session.user || !req.session.user.activeDepartment) return res.status(401).json({ message: "Unauthorized." });
+        const department = req.session.user.activeDepartment;
         await client.query('BEGIN');
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
-        if (!customIdText) throw new Error("The custom Interview ID text is required.");
-        if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
-        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one scheduler must be assigned.");
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = now.toLocaleString('en-US', { month: 'short' });
-        const serialResult = await client.query(`SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`, [now.getFullYear(), now.getMonth() + 1]);
-        const serialNumber = parseInt(serialResult.rows[0].count) + 1;
-        const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
-        const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText } = req.body;
+        if (!schedulerEmail) { throw new Error("Scheduler email is required."); }
+        if (customIdText) { // Logic for custom ID if provided
+            const now = new Date();
+            const year = now.getFullYear().toString().slice(-2);
+            const month = now.toLocaleString('en-US', { month: 'short' });
+            const serialResult = await client.query(`SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`, [now.getFullYear(), now.getMonth() + 1]);
+            const serialNumber = parseInt(serialResult.rows[0].count) + 1;
+            const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
+            const customInterviewId = `${year}/${month}/${paddedSerialNumber}/${customIdText}`;
+            req.body.custom_interview_id = customInterviewId; // Add to body for insertion
+        }
+        
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
         while (timeLimits.length < questions.length) timeLimits.push(0);
         const interviewId = uuidv4();
         await client.query(
-          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, scheduler_ids)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
-          [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
+          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open')`,
+          [interviewId, req.body.custom_interview_id, title, questions, timeLimits, date, time, department]
         );
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
@@ -348,6 +364,7 @@ app.post("/schedule", async (req, res) => {
         client.release();
     }
 });
+
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
@@ -440,23 +457,41 @@ app.post("/api/interview/:id/toggle-status", async (req, res) => {
     }
 });
 
+// ========== MODIFIED: /api/candidates/all route for Search and Pagination ==========
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department, page = 1, limit = 10 } = req.query;
         let queryParams = [];
         let whereClauses = [];
-        let baseQuery = ` SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id `;
-        if (department) { queryParams.push(department); whereClauses.push(`cs.department = $${queryParams.length}`); }
-        if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); }
-        if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
+        let baseQuery = `
+            SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url 
+            FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id
+        `;
+
+        if (department) { 
+            queryParams.push(department); 
+            whereClauses.push(`cs.department = $${queryParams.length}`); 
+        }
+        if (search) { 
+            queryParams.push(`%${search}%`); 
+            whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); 
+        }
+
+        if (whereClauses.length > 0) {
+            baseQuery += " WHERE " + whereClauses.join(" AND ");
+        }
         baseQuery += " ORDER BY cs.created_at DESC";
+
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
+
         queryParams.push(limitNum);
         baseQuery += ` LIMIT $${queryParams.length}`;
+        
         queryParams.push(offset);
         baseQuery += ` OFFSET $${queryParams.length}`;
+
         const result = await pool.query(baseQuery, queryParams);
         res.json(result.rows);
     } catch (err) {
@@ -469,7 +504,7 @@ app.get("/api/interview/:id", async (req, res) => {
     try {
         const { id } = req.params;
         const interviewQuery = `
-            SELECT i.*, u.first_name, u.last_name, u.email as creator_email
+            SELECT i.*, u.first_name, u.last_name, u.email as scheduler_email
             FROM interviews i
             LEFT JOIN users u ON i.created_by_user_id = u.id
             WHERE i.id = $1
@@ -479,13 +514,14 @@ app.get("/api/interview/:id", async (req, res) => {
             return res.status(404).json({ message: "Interview not found" });
         }
         const interviewData = interviewResult.rows[0];
-        const candidatesResult = await pool.query("SELECT candidate_email, status FROM candidate_sessions WHERE interview_id = $1", [id]);
-        let schedulers = [];
-        if (interviewData.scheduler_ids && interviewData.scheduler_ids.length > 0) {
-            const schedulersResult = await pool.query("SELECT id, first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])", [interviewData.scheduler_ids]);
-            schedulers = schedulersResult.rows;
-        }
-        const responseData = { ...interviewData, candidates: candidatesResult.rows, schedulers: schedulers };
+        const candidatesResult = await pool.query(
+            "SELECT candidate_email, status FROM candidate_sessions WHERE interview_id = $1",
+            [id]
+        );
+        const responseData = {
+            ...interviewData,
+            candidates: candidatesResult.rows
+        };
         res.json(responseData);
     } catch(err) {
         console.error("Error fetching full interview details:", err);
