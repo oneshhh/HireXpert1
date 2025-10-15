@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <style>
       :root {
-        --primary-color: #1173d4;
+        --primary-color: #2563eb; /* Using a tailwind blue for consistency */
         --secondary-color: #f0f2f4;
         --text-primary: #111418;
         --text-secondary: #617589;
@@ -23,7 +23,7 @@
     </div>
   </header>
 
-  <main class="container mx-auto mt-8 px-6">
+  <main class="container mx-auto mt-8 px-6 pb-12">
     <div id="loading-state" class="text-center p-10">
         <p class="text-gray-500">Loading interview details...</p>
     </div>
@@ -41,7 +41,7 @@
                 </div>
                 <div id="status-badge" class="mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full"></div>
             </div>
-            <div class="mt-6 border-t border-gray-200 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+            <div class="mt-6 border-t border-gray-200 pt-6 grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
                 <div>
                     <p class="text-gray-500 font-medium">Date</p>
                     <p id="date" class="text-gray-900 font-semibold"></p>
@@ -54,28 +54,27 @@
                     <p class="text-gray-500 font-medium">Created By</p>
                     <p id="scheduler-name" class="text-gray-900 font-semibold"></p>
                 </div>
-                <div>
-                    <p class="text-gray-500 font-medium">Creator's Email</p>
-                    <p id="scheduler-email" class="text-gray-900 font-semibold"></p>
-                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
-                <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-60 overflow-y-auto"></pre>
+                <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
             </div>
             <div class="bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Invited Candidates</h3>
-                <ul id="candidate-list" class="space-y-3">
+                <ul id="candidate-list" class="space-y-3 max-h-96 overflow-y-auto">
                     </ul>
             </div>
         </div>
 
         <div class="bg-white shadow-lg rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Interview Questions</h3>
-            <ul id="questions-list" class="space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Interview Questions</h3>
+                <button id="toggle-questions-btn" class="text-sm font-semibold text-blue-600 hover:underline focus:outline-none">Show All</button>
+            </div>
+            <ul id="questions-list" class="space-y-4 hidden">
                 </ul>
         </div>
     </div>
@@ -110,9 +109,8 @@
         document.getElementById("title").textContent = data.title;
         document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
         document.getElementById("date").textContent = new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById("time").textContent = data.time;
+        document.getElementById("time").textContent = data.time || 'N/A';
         document.getElementById("scheduler-name").textContent = `${data.first_name || 'N/A'} ${data.last_name || ''}`;
-        document.getElementById("scheduler-email").textContent = data.scheduler_email || 'N/A';
         
         const statusBadge = document.getElementById("status-badge");
         if (data.position_status === 'open') {
@@ -138,7 +136,7 @@
         if (data.candidates && data.candidates.length > 0) {
             data.candidates.forEach(candidate => {
                 const li = document.createElement("li");
-                li.className = 'flex items-center justify-between text-sm';
+                li.className = 'flex items-center justify-between text-sm pr-2'; // Added padding for scrollbar
                 li.innerHTML = `
                     <span class="text-gray-800">${candidate.candidate_email}</span>
                     <span class="px-2 py-1 rounded-full text-xs ${candidate.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</span>
@@ -181,6 +179,16 @@
     }
 
     fetchInterview();
+    
+    // Add event listener for the new toggle button
+    const toggleBtn = document.getElementById('toggle-questions-btn');
+    const questionsList = document.getElementById('questions-list');
+    
+    toggleBtn.addEventListener('click', () => {
+        questionsList.classList.toggle('hidden');
+        const isHidden = questionsList.classList.contains('hidden');
+        toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
+    });
   </script>
 </body>
 </html>
