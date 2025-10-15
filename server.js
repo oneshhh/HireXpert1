@@ -559,16 +559,55 @@ app.get("/api/interview/:id", async (req, res) => {
 });
 
 app.post("/api/interview/:id/update", async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
     try {
-        let { title, questions, timeLimits, date, time } = req.body;
+        await client.query('BEGIN');
+
+        // 1. Destructure all expected data from the request body
+        let { title, questions, timeLimits, schedulerIds, newEmails } = req.body;
+        
+        // 2. Data validation and cleanup
         if (!Array.isArray(questions)) questions = [String(questions || '')];
         if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
         while (timeLimits.length < questions.length) timeLimits.push(0);
-        await pool.query(`UPDATE interviews SET title=$1, questions=$2, time_limits=$3, date=$4, time=$5 WHERE id=$6`, [title, questions, timeLimits, date, time, req.params.id]);
-        res.json({ message: "Interview template updated successfully" });
+
+        // 3. Update the main interview details
+        await client.query(
+            `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, scheduler_ids=$4 WHERE id=$5`,
+            [title, questions, timeLimits, schedulerIds, id]
+        );
+
+        // 4. Handle adding and emailing new candidates
+        const candidateEmails = (newEmails || '').split(',').map(email => email.trim()).filter(email => email);
+        if (candidateEmails.length > 0) {
+            // Fetch interview details needed for the email
+            const interviewResult = await client.query('SELECT title, date, time, department FROM interviews WHERE id = $1', [id]);
+            const interview = interviewResult.rows[0];
+
+            for (const email of candidateEmails) {
+                const sessionId = uuidv4();
+                // Add new candidate to the sessions table
+                await client.query(
+                    `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`,
+                    [sessionId, id, email, interview.department]
+                );
+                // Send them an invitation email
+                await sendInterviewEmail(email, id, interview.title, interview.date, interview.time);
+            }
+        }
+        
+        // 5. If all steps succeed, commit the transaction
+        await client.query('COMMIT');
+        res.json({ message: "Interview updated successfully." });
+
     } catch (err) {
+        // If any step fails, roll back the entire transaction
+        await client.query('ROLLBACK');
         console.error("Update failed:", err);
-        res.status(500).json({ message: "Update failed" });
+        res.status(500).json({ message: "Update failed due to an internal error." });
+    } finally {
+        client.release();
     }
 });
 
