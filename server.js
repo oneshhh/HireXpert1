@@ -199,9 +199,10 @@ app.post("/api/add-user", async (req, res) => {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
+        // CORRECTED: Added the 'is_active' column and set it to true for new users.
         const newUserResult = await pool.query(
-            `INSERT INTO users (first_name, last_name, email, password_hash, department)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO users (first_name, last_name, email, password_hash, department, is_active)
+             VALUES ($1, $2, $3, $4, $5, true)
              RETURNING id, email, department`,
             [firstName, lastName, email, passwordHash, departments]
         );
@@ -221,8 +222,8 @@ app.post("/api/user/:id/update", async (req, res) => {
         return res.status(403).json({ message: "Forbidden: Only admins can edit users." });
     }
     const { id } = req.params;
-    // ADDED: isDisabled to the destructuring
-    let { firstName, lastName, email, departments, password, isDisabled } = req.body;
+    // CORRECTED: Changed variable from 'isDisabled' to 'isActive'
+    let { firstName, lastName, email, departments, password, isActive } = req.body;
 
     if (typeof departments === 'string') {
         departments = [departments];
@@ -236,16 +237,16 @@ app.post("/api/user/:id/update", async (req, res) => {
         if (password) {
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
-            // ADDED: is_active to the query
+            // CORRECTED: Changed SQL column from 'is_disabled' to 'is_active'
             await pool.query(
                 `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_active = $5, password_hash = $6 WHERE id = $7`,
-                [firstName, lastName, email, departments, isDisabled, passwordHash, id]
+                [firstName, lastName, email, departments, isActive, passwordHash, id]
             );
         } else {
-            // ADDED: is_active to the query
+            // CORRECTED: Changed SQL column from 'is_disabled' to 'is_active'
             await pool.query(
                 `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_active = $5 WHERE id = $6`,
-                [firstName, lastName, email, departments, isDisabled, id]
+                [firstName, lastName, email, departments, isActive, id]
             );
         }
         res.json({ success: true, message: "User updated successfully." });
