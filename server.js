@@ -60,7 +60,6 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         organizer: { name: 'HireXpert', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
-    const attachment = Buffer.from(value).toString('base64');
     const msg = {
         to: to,
         from: verifiedSenderEmail,
