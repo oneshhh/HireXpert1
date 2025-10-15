@@ -92,6 +92,7 @@
             <tr>
               <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">ID</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Invited</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">To Evaluate</th>
@@ -142,7 +143,7 @@
       const tbody = document.querySelector("#interviews-table-body");
       tbody.innerHTML = "";
       if (interviews.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found.</td></tr>`;
         return;
       }
       interviews.forEach((interview, index) => {
@@ -151,6 +152,7 @@
         tr.innerHTML = `
           <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
           <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
           <td class="px-6 py-4"><a href="/interview-view.html?id=${interview.id}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
           <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">5</span></td>
           <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">2</span></td>
