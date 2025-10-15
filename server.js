@@ -151,8 +151,8 @@ app.get("/admin_Dashboard.html", (req, res) => {
 // User Management API Routes
 app.get("/api/users", async (req, res) => {
     try {
-        // ADDED: is_disabled field to the SELECT statement
-        const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at, is_disabled FROM users ORDER BY created_at DESC");
+        // ADDED: is_active field to the SELECT statement
+        const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at, is_active FROM users ORDER BY created_at DESC");
         res.json(result.rows);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -236,15 +236,15 @@ app.post("/api/user/:id/update", async (req, res) => {
         if (password) {
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
-            // ADDED: is_disabled to the query
+            // ADDED: is_active to the query
             await pool.query(
-                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_disabled = $5, password_hash = $6 WHERE id = $7`,
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_active = $5, password_hash = $6 WHERE id = $7`,
                 [firstName, lastName, email, departments, isDisabled, passwordHash, id]
             );
         } else {
-            // ADDED: is_disabled to the query
+            // ADDED: is_active to the query
             await pool.query(
-                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_disabled = $5 WHERE id = $6`,
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_active = $5 WHERE id = $6`,
                 [firstName, lastName, email, departments, isDisabled, id]
             );
         }
