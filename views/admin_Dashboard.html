@@ -45,7 +45,7 @@
             <span class="material-symbols-outlined">settings</span>
             Settings
         </a>
-        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="#">
+        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="/logout">
             <span class="material-symbols-outlined">logout</span>
             Logout
         </a>
@@ -71,7 +71,7 @@
     <div class="mt-12">
         <div class="mb-6"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between"><h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2><div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0"><button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button><button id="closed-interviews-btn" class="tab-btn">Closed</button></div></div><div class="mt-4 border-b border-gray-200"><nav class="-mb-px flex space-x-6" aria-label="Tabs"><button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button><button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">HR</button><button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">PMO</button><button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">GTA</button></nav></div></div>
         <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody></table>
+            <table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody></table>
         </div>
         <div id="show-more-interviews-container" class="mt-4 text-center"></div>
     </div>
@@ -180,7 +180,7 @@
     const INTERVIEWS_PER_PAGE = 5;
     let allUsers = [];
     let currentCandidatePage = 1, currentCandidateSearch = '';
-    const CANDIDATES_PER_PAGE = 5; // UPDATED
+    const CANDIDATES_PER_PAGE = 5;
     let searchDebounceTimer;
 
     // --- Utility and Notification Functions ---
@@ -297,7 +297,7 @@
         statusContainer.classList.remove('hidden');
         deleteBtn.classList.remove('hidden');
 
-        deleteBtn.onclick = () => { // Use onclick to reassign the event listener for the correct user
+        deleteBtn.onclick = () => {
             confirmDeleteUser(user.id, `${user.first_name} ${user.last_name}`);
         };
 
@@ -424,10 +424,20 @@
     async function loadInterviews(isLoadMore = false) {
         const tbody = document.getElementById("interviews-table-body");
         const showMoreContainer = document.getElementById("show-more-interviews-container");
+        const deptHeader = document.getElementById("interview-dept-header");
         let limit = INTERVIEWS_PER_PAGE;
         
+        // DYNAMICALLY HIDE/SHOW DEPARTMENT HEADER
+        if (currentInterviewDepartment) {
+            deptHeader.style.display = 'none';
+        } else {
+            deptHeader.style.display = '';
+        }
+
+        const colspan = currentInterviewDepartment ? 4 : 5;
+        
         if (!isLoadMore) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">Loading...</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">Loading...</td></tr>`;
         }
         
         let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`;
@@ -440,16 +450,19 @@
             
             if (!isLoadMore) tbody.innerHTML = "";
             if (interviews.length === 0 && !isLoadMore) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
             }
 
             interviews.forEach(interview => {
                 const tr = document.createElement('tr');
                 const isChecked = interview.position_status === 'open' ? 'checked' : '';
                 const creatorName = (interview.first_name && interview.last_name) ? `${interview.first_name} ${interview.last_name}` : 'N/A';
+                
+                const departmentCell = currentInterviewDepartment ? '' : `<td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>`;
+
                 tr.innerHTML = `
                     <td class="whitespace-nowrap px-6 py-4 text-sm font-medium"><a href="interview-view.html?id=${interview.id}" class="text-[var(--primary-color)] hover:underline">${interview.title}</a></td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>
+                    ${departmentCell}
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${creatorName}</td>
                     <td class="px-6 py-4"><label class="toggle-label"><input type="checkbox" class="sr-only peer" onchange="toggleInterviewStatus('${interview.id}')" ${isChecked}><div class="toggle-bg"></div></label></td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4"><a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</a><button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button></td>
@@ -467,7 +480,7 @@
             }
         } catch (error) {
             console.error("Failed to load interviews:", error);
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`;
         }
     }
     
@@ -525,154 +538,47 @@
         }
     }
 
-    //charting functions//
-    async function loadInterviews(isLoadMore = false) {
-            const tbody = document.getElementById("interviews-table-body");
-            const showMoreContainer = document.getElementById("show-more-interviews-container");
-            let limit = isLoadMore ? INTERVIEWS_PER_PAGE : 10;
-            
-            if (!isLoadMore) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
+    // --- CHARTING FUNCTIONS ---
+    async function loadLineChartData(days, withAnimation = true) {
+        try {
+            const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
+            if (!response.ok) throw new Error('Failed to fetch line chart data');
+            const data = await response.json();
+            const labels = [], counts = [];
+            const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count]));
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+                counts.push(parseInt(dataMap.get(dateString) || 0));
             }
-            
-            let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`;
-            if (currentInterviewDepartment) apiUrl += `&department=${currentInterviewDepartment}`;
-            
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error('Failed to fetch interviews');
-                const interviews = await response.json();
-                
-                if (!isLoadMore) tbody.innerHTML = "";
-                if (interviews.length === 0 && !isLoadMore) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
-                }
-
-                interviews.forEach(interview => {
-                    const tr = document.createElement('tr');
-                    const isChecked = interview.position_status === 'open' ? 'checked' : '';
-                    tr.innerHTML = `
-                        <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                            <a href="interview-view.html?id=${interview.id}" class="text-[var(--primary-color)] hover:underline">${interview.title}</a>
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>
-                        <td class="px-6 py-4">
-                            <label class="toggle-label">
-                                <input type="checkbox" class="sr-only peer" onchange="toggleInterviewStatus('${interview.id}')" ${isChecked}>
-                                <div class="toggle-bg"></div>
-                            </label>
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4">
-                            <a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</a>
-                            <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                showMoreContainer.innerHTML = "";
-                if (interviews.length === limit) {
-                    const showMoreBtn = document.createElement('button');
-                    showMoreBtn.id = 'show-more-btn';
-                    showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
-                    showMoreBtn.textContent = 'Show More';
-                    showMoreContainer.appendChild(showMoreBtn);
-                    showMoreBtn.addEventListener('click', () => { currentInterviewPage++; loadInterviews(true); });
-                }
-            } catch (error) {
-                console.error("Failed to load interviews:", error);
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`;
-            }
+            const ctx = document.getElementById('interviewsLineChart').getContext('2d');
+            if (interviewsLineChartInstance && !withAnimation) { interviewsLineChartInstance.data.labels = labels; interviewsLineChartInstance.data.datasets[0].data = counts; interviewsLineChartInstance.update('none'); return; }
+            if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); }
+            interviewsLineChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, } });
+        } catch (error) {
+            console.error(`Failed to load line chart data for ${days} days:`, error);
         }
-        
-        async function loadCandidates(isLoadMore = false, isSearch = false) {
-            const tbody = document.getElementById("candidates-table-body");
-            const showMoreContainer = document.getElementById("show-more-candidates-container");
-            
-            if (isSearch) currentCandidatePage = 1;
+    }
 
-            if (!isLoadMore && !isSearch) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
-            }
-            
-            let apiUrl = `/api/candidates/all?page=${currentCandidatePage}&limit=${CANDIDATES_PER_PAGE}`;
-            if (currentCandidateSearch) {
-                apiUrl += `&search=${encodeURIComponent(currentCandidateSearch)}`;
-            }
-            
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error('Failed to fetch candidates');
-                const candidates = await response.json();
-                
-                if (!isLoadMore) tbody.innerHTML = "";
-                if (candidates.length === 0 && !isLoadMore) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found.</td></tr>`;
-                }
-
-                candidates.forEach(candidate => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</div></td>`;
-                    tbody.appendChild(tr);
-                });
-
-                showMoreContainer.innerHTML = "";
-                if (candidates.length === CANDIDATES_PER_PAGE) {
-                    const showMoreBtn = document.createElement('button');
-                    showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
-                    showMoreBtn.textContent = 'Show More';
-                    showMoreContainer.appendChild(showMoreBtn);
-                    showMoreBtn.addEventListener('click', () => {
-                        currentCandidatePage++;
-                        loadCandidates(true);
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to load candidates:", error);
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidates.</td></tr>`;
-            }
+    async function loadPieChartData(withAnimation = true) {
+        try {
+            const response = await fetch('/api/analytics/status-counts');
+            if (!response.ok) throw new Error('Failed to fetch pie chart data');
+            const data = await response.json();
+            const ctx = document.getElementById('statusPieChart').getContext('2d');
+            const labels = data.map(item => item.status);
+            const counts = data.map(item => item.count);
+            if (pieChartInstance && !withAnimation) { pieChartInstance.data.labels = labels; pieChartInstance.data.datasets[0].data = counts; pieChartInstance.update('none'); return; }
+            if(pieChartInstance){ pieChartInstance.destroy(); }
+            pieChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, } });
+        } catch (error) {
+            console.error("Failed to load pie chart data:", error);
+            const chartCanvas = document.getElementById('statusPieChart');
+            if (chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
         }
-
-        async function loadLineChartData(days, withAnimation = true) {
-            try {
-                const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
-                if (!response.ok) throw new Error('Failed to fetch line chart data');
-                const data = await response.json();
-                const labels = [], counts = [];
-                const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count]));
-                for (let i = days - 1; i >= 0; i--) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - i);
-                    const dateString = date.toISOString().split('T')[0];
-                    labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-                    counts.push(parseInt(dataMap.get(dateString) || 0));
-                }
-                const ctx = document.getElementById('interviewsLineChart').getContext('2d');
-                if (interviewsLineChartInstance && !withAnimation) { interviewsLineChartInstance.data.labels = labels; interviewsLineChartInstance.data.datasets[0].data = counts; interviewsLineChartInstance.update('none'); return; }
-                if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); }
-                interviewsLineChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, } });
-            } catch (error) {
-                console.error(`Failed to load line chart data for ${days} days:`, error);
-            }
-        }
-
-        async function loadPieChartData(withAnimation = true) {
-            try {
-                const response = await fetch('/api/analytics/status-counts');
-                if (!response.ok) throw new Error('Failed to fetch pie chart data');
-                const data = await response.json();
-                const ctx = document.getElementById('statusPieChart').getContext('2d');
-                const labels = data.map(item => item.status);
-                const counts = data.map(item => item.count);
-                if (pieChartInstance && !withAnimation) { pieChartInstance.data.labels = labels; pieChartInstance.data.datasets[0].data = counts; pieChartInstance.update('none'); return; }
-                if(pieChartInstance){ pieChartInstance.destroy(); }
-                pieChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, } });
-            } catch (error) {
-                console.error("Failed to load pie chart data:", error);
-                const chartCanvas = document.getElementById('statusPieChart');
-                if (chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
-            }
-        }
+    }
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
