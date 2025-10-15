@@ -69,7 +69,76 @@ function showNotification(title, text, options = {}) {
     modal.classList.remove('hidden');
 }
 
+
+function manageAddQuestionButton() {
+    const container = document.getElementById("questions-container");
+    const addButton = document.querySelector('button[onclick="addQuestion()"]');
+    if (container.children.length >= 15) {
+        addButton.disabled = true;
+        addButton.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        addButton.disabled = false;
+        addButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function addQuestion(questionText = '') {
+  const container = document.getElementById("questions-container");
+  if (container.children.length >= 15) return;
+  const div = document.createElement("div");
+  div.classList.add("flex", "items-start", "gap-4");
+  div.innerHTML = `
+    <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
+    <select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
+        <option value="0">Untimed</option>
+        <option value="60">60s</option>
+        <option value="90">90s</option>
+        <option value="120">120s</option>
+        <option value="150">150s</option>
+        <option value="180">180s</option>
+    </select>
+    <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
+      <span class="material-symbols-outlined text-xl">delete</span>
+    </button>
+  `;
+  container.appendChild(div);
+  manageAddQuestionButton();
+}
+
+async function loadSchedulers() {
+    const schedulerSelect = document.getElementById('schedulerIds');
+    try {
+        const response = await fetch('/api/users-by-dept');
+        if (!response.ok) throw new Error('Failed to load users. Your session may have expired.');
+        
+        const users = await response.json();
+        schedulerSelect.innerHTML = ''; 
+
+        if (users.length === 0) {
+            schedulerSelect.innerHTML = '<option disabled>No users found in your department.</option>';
+        } else {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.first_name} ${user.last_name}`;
+                schedulerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading schedulers:', error);
+        schedulerSelect.innerHTML = '<option disabled>Error loading users.</option>';
+        // Show a user-friendly notification about the error
+        showNotification(
+            'Authentication Error', 
+            'Could not load user data. Please log in again and retry.', 
+            { isError: true }
+        );
+    }
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
+  // --- Back Link and Form Data Setup ---
   const urlParams = new URLSearchParams(window.location.search);
   const originDashboard = urlParams.get('from');
   const redirectUrl = originDashboard ? `/${originDashboard}` : '/HR_Dashboard.html';
@@ -79,6 +148,19 @@ document.addEventListener("DOMContentLoaded", () => {
       backLink.href = redirectUrl;
   }
   
+  // --- Custom ID Prefix Setup ---
+  const prefixSpan = document.getElementById('custom-id-prefix');
+  if (prefixSpan) {
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2);
+      const month = now.toLocaleString('en-US', { month: 'short' });
+      prefixSpan.textContent = `${year}/${month}/----/`;
+  }
+
+  // --- Initial Data Loading ---
+  loadSchedulers();
+  
+  // --- Event Listener for "Apply Time" Button ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
       applyTimeButton.addEventListener('click', () => {
@@ -105,14 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
+  // --- Main Form Submission Logic ---
   const form = document.getElementById("scheduleForm");
-
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
-
     const formData = new FormData(form);
-    
-    // ========== CORRECTED: data object now correctly gathers all fields ==========
     const data = {
       title: formData.get("title"),
       customIdText: formData.get("customIdText"),
@@ -123,20 +202,16 @@ document.addEventListener("DOMContentLoaded", () => {
       emails: formData.get("emails"),
       schedulerEmail: formData.get("schedulerEmail"),
       jobDescription: document.getElementById('job-description').value,
-      schedulerIds: Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value) // Correct way to get multiple values
+      schedulerIds: Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value)
     };
 
     try {
       const res = await fetch("/schedule", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       const result = await res.json();
-
       if (res.ok) {
         showNotification(
             'Interview Scheduled!', 
@@ -184,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   dateInput.addEventListener('change', handleDateChange);
   handleDateChange();
-  if(typeof manageAddQuestionButton === 'function') {
-    manageAddQuestionButton();
-  }
+  
+  // --- Initial UI Management ---
+  manageAddQuestionButton();
 });
