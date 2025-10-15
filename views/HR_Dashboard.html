@@ -93,9 +93,11 @@
               <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Scheduled Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
-              <th class="relative px-6 py-3" scope="col"><span class="sr-only">Actions</span></th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Invited</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">To Evaluate</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Evaluated</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Discarded</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Actions</th>
             </tr>
           </thead>
           <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
@@ -123,19 +125,6 @@
   let selectedInterviewIds = new Set();
   const DEPARTMENT = 'HR';
 
-  function formatDateTime(dateStr, timeStr) {
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'long' });
-    const year = date.getFullYear();
-    if (!timeStr) return `${month} ${day}, ${year}`;
-    let [hours, minutes] = timeStr.split(':');
-    let ampm = 'AM';
-    if (hours >= 12) { ampm = 'PM'; if (hours > 12) { hours -= 12; } }
-    if (hours == 0) { hours = 12; }
-    return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
-  }
-
   async function loadCounts() {
       try {
           const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
@@ -153,7 +142,7 @@
       const tbody = document.querySelector("#interviews-table-body");
       tbody.innerHTML = "";
       if (interviews.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-gray-500">No ${currentStatusFilter} interviews found.</td></tr>`;
         return;
       }
       interviews.forEach((interview, index) => {
@@ -163,9 +152,14 @@
           <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
           <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
           <td class="px-6 py-4"><a href="/interview-view.html?id=${interview.id}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
-          <td class="px-6 py-4 text-sm text-gray-500">${formatDateTime(interview.date, interview.time)}</td>
-          <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-xs font-medium text-info-500"><span class="material-symbols-outlined mr-1.5 text-sm">schedule</span> Scheduled</span></td>
-          <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"><a class="text-primary-600 hover:text-primary-900" href="/interview-edit.html?id=${interview.id}">Edit</a></td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">5</span></td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">2</span></td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">1</span></td>
+          <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">0</span></td>
+          <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
+            <a href="/interview-view.html?id=${interview.id}" class="text-primary-600 hover:text-primary-900">View</a>
+            <a href="/interview-edit.html?id=${interview.id}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -185,11 +179,10 @@
         bar.classList.remove('hidden');
         countSpan.textContent = selectedInterviewIds.size;
         
-        // Show/hide buttons based on the active tab
         if (currentStatusFilter === 'open') {
             moveToClosedBtn.classList.remove('hidden');
             moveToOpenBtn.classList.add('hidden');
-        } else { // 'closed'
+        } else {
             moveToClosedBtn.classList.add('hidden');
             moveToOpenBtn.classList.remove('hidden');
         }
@@ -287,7 +280,6 @@
         );
     });
 
-    // NEW: Event listener for the "Re-open" button
     moveToOpenBtn.addEventListener('click', () => {
         showConfirmModal(
             `Re-open ${selectedInterviewIds.size} interviews?`,
