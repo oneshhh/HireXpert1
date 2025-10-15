@@ -106,6 +106,11 @@ app.post("/login", async (req, res) => {
         const user = result.rows[0];
 
         if (user) {
+            // NEW: Check if the user's account is active
+            if (!user.is_active) {
+                return res.status(403).send("Your account has been disabled. Please contact an administrator.");
+            }
+            
             const hasDepartmentAccess = user.department.includes(department);
             if (!hasDepartmentAccess) {
                  return res.status(401).send("User does not have access to the selected department.");
@@ -146,7 +151,8 @@ app.get("/admin_Dashboard.html", (req, res) => {
 // User Management API Routes
 app.get("/api/users", async (req, res) => {
     try {
-        const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at FROM users ORDER BY created_at DESC");
+        // ADDED: is_disabled field to the SELECT statement
+        const result = await pool.query("SELECT id, first_name, last_name, email, department, created_at, is_disabled FROM users ORDER BY created_at DESC");
         res.json(result.rows);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -215,7 +221,8 @@ app.post("/api/user/:id/update", async (req, res) => {
         return res.status(403).json({ message: "Forbidden: Only admins can edit users." });
     }
     const { id } = req.params;
-    let { firstName, lastName, email, departments, password } = req.body;
+    // ADDED: isDisabled to the destructuring
+    let { firstName, lastName, email, departments, password, isDisabled } = req.body;
 
     if (typeof departments === 'string') {
         departments = [departments];
@@ -229,14 +236,16 @@ app.post("/api/user/:id/update", async (req, res) => {
         if (password) {
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
+            // ADDED: is_disabled to the query
             await pool.query(
-                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, password_hash = $5 WHERE id = $6`,
-                [firstName, lastName, email, departments, passwordHash, id]
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_disabled = $5, password_hash = $6 WHERE id = $7`,
+                [firstName, lastName, email, departments, isDisabled, passwordHash, id]
             );
         } else {
+            // ADDED: is_disabled to the query
             await pool.query(
-                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4 WHERE id = $5`,
-                [firstName, lastName, email, departments, id]
+                `UPDATE users SET first_name = $1, last_name = $2, email = $3, department = $4, is_disabled = $5 WHERE id = $6`,
+                [firstName, lastName, email, departments, isDisabled, id]
             );
         }
         res.json({ success: true, message: "User updated successfully." });
@@ -246,6 +255,25 @@ app.post("/api/user/:id/update", async (req, res) => {
             return res.status(409).json({ message: "A user with this email already exists." });
         }
         res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+// Add this new route to your server.js, for example, after the update route
+app.delete("/api/user/:id", async (req, res) => {
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can delete users." });
+    }
+    const { id } = req.params;
+    if (id === req.session.user.id) {
+        return res.status(400).json({ message: "Admin cannot delete their own account." });
+    }
+
+    try {
+        await pool.query("DELETE FROM users WHERE id = $1", [id]);
+        res.json({ success: true, message: `User deleted successfully.` });
+    } catch (err) {
+        console.error("Failed to delete user:", err);
+        res.status(500).json({ message: "Failed to delete user." });
     }
 });
 
@@ -428,19 +456,26 @@ app.get("/api/interviews", async (req, res) => {
         const { search, department, position_status, page = 1, limit = 10 } = req.query;
         let queryParams = [];
         let whereClauses = [];
-        let baseQuery = "SELECT * FROM interviews";
-        if (department) { queryParams.push(department); whereClauses.push(`department = $${queryParams.length}`); }
-        if (position_status) { queryParams.push(position_status); whereClauses.push(`position_status = $${queryParams.length}`); }
-        if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(title ILIKE $${queryParams.length})`); }
+        
+        // UPDATED: Query to join users table
+        let baseQuery = "SELECT i.*, u.first_name, u.last_name FROM interviews i LEFT JOIN users u ON i.created_by_user_id = u.id";
+
+        if (department) { queryParams.push(department); whereClauses.push(`i.department = $${queryParams.length}`); }
+        if (position_status) { queryParams.push(position_status); whereClauses.push(`i.position_status = $${queryParams.length}`); }
+        if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(i.title ILIKE $${queryParams.length})`); }
+        
         if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
-        baseQuery += " ORDER BY created_at DESC";
+        baseQuery += " ORDER BY i.created_at DESC";
+        
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
+        
         queryParams.push(limitNum);
         baseQuery += ` LIMIT $${queryParams.length}`;
         queryParams.push(offset);
         baseQuery += ` OFFSET $${queryParams.length}`;
+        
         const result = await pool.query(baseQuery, queryParams);
         res.json(result.rows);
     } catch (err) {
