@@ -8,7 +8,6 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
-const ics = require('ics');
 const bcrypt = require('bcrypt');
 
 const PORT = process.env.PORT || 3000;
@@ -61,23 +60,12 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         organizer: { name: 'HireXpert', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
-    const { error, value } = ics.createEvent(event);
-    if (error) {
-        console.error("❌ CRITICAL: Failed to create .ics file:", error);
-        return { success: false, error };
-    }
     const attachment = Buffer.from(value).toString('base64');
     const msg = {
         to: to,
         from: verifiedSenderEmail,
         subject: `CONFIRMATION: Interview Scheduled for ${title}`,
-        html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p><p>A calendar invite (.ics file) is attached to this email.</p>`,
-        attachments: [{
-            content: attachment,
-            filename: 'invite.ics',
-            type: 'text/calendar',
-            disposition: 'attachment'
-        }]
+        html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>`,
     };
     try {
         await sgMail.send(msg);
