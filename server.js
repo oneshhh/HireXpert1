@@ -758,8 +758,6 @@ app.post("/api/resend-invite", async (req, res) => {
 });
 
 
-// Add this after your other API routes (like /api/me, /logout)
-
 // 1. GET Route to fetch full details for the logged-in user
 app.get("/api/me/details", async (req, res) => {
     if (!req.session.user || !req.session.user.id) {
@@ -840,7 +838,15 @@ app.post("/api/me/update", async (req, res) => {
 app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-view.html")));
 app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-edit.html")));
 app.get("/candidates.html", (req, res) => res.sendFile(path.join(__dirname, "views", "candidates.html")));
-
+// Add this line
+app.get("/settings.html", (req, res) => {
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // Assuming settings.html is in the 'views' folder like the others
+    res.sendFile(path.join(__dirname, "views", "settings.html"));
+});
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
