@@ -9,6 +9,7 @@ const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
+const pgSession = require('connect-pg-simple')(session);
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -18,7 +19,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
-app.use(session({ secret: process.env.SESSION_SECRET || "a-default-secret-for-development", resave: false, saveUninitialized: true }));
+app.use(session({
+    store: new pgSession({
+        pool: pool,                // Use your existing database pool
+        tableName: 'user_sessions' // Name of the table to store sessions
+    }),
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        maxAge: 15 // Optional: Cookie expires in 30 days
+        // secure: process.env.NODE_ENV === 'production' // Optional: Use true in production with HTTPS
+    }
+}));
 
 // Helper functions
 function parseQuestionsField(q) {
