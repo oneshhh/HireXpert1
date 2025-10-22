@@ -28,8 +28,9 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        maxAge: 15 // Optional: Cookie expires in 30 days
-        // secure: process.env.NODE_ENV === 'production' // Optional: Use true in production with HTTPS
+        // Set cookie maxAge to 30 days in milliseconds (previous value was incorrect)
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        secure: process.env.NODE_ENV === 'production'
     }
 }));
 
