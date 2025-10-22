@@ -121,11 +121,9 @@ app.post("/login", async (req, res) => {
         const user = result.rows[0];
 
         if (user) {
-            // NEW: Check if the user's account is active
             if (!user.is_active) {
                 return res.status(403).send("Your account has been disabled. Please contact an administrator.");
             }
-            
             const hasDepartmentAccess = user.department.includes(department);
             if (!hasDepartmentAccess) {
                  return res.status(401).send("User does not have access to the selected department.");
@@ -139,26 +137,32 @@ app.post("/login", async (req, res) => {
                     departments: user.department,
                     activeDepartment: department
                 };
-                console.log('Session user set:', req.session.user);
+                console.log('Session user set:', req.session.user); // Logging
 
                 // Explicitly save the session before redirecting
                 req.session.save((err) => {
                     if (err) {
                         console.error("Error saving session before redirect:", err);
-                        // Handle error appropriately, maybe send an error response
+                        // Make sure to RETURN here to stop execution
                         return res.status(500).send("Login failed due to session save error.");
                     }
 
-                    // Redirect AFTER session is saved
                     console.log('Session saved successfully, redirecting...');
                     if (department === 'Admin') {
+                        // Make sure to RETURN here
                         return res.redirect('/admin_Dashboard.html');
                     }
+                    // Make sure to RETURN here
                     return res.redirect(`/${department}_Dashboard.html`);
+                    // --- END OF REDIRECTS ---
                 });
+
+            } else { // Added 'else' for clarity if password doesn't match
+                 res.status(401).send("Invalid credentials.");
             }
+        } else { // Added 'else' for clarity if user not found
+             res.status(401).send("Invalid credentials.");
         }
-        res.status(401).send("Invalid credentials.");
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).send("An internal server error occurred.");
