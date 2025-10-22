@@ -151,6 +151,35 @@ app.post("/login", async (req, res) => {
     }
 });
 
+// API endpoint to get current user info and login, logout functions
+app.get("/api/me", (req, res) => {
+    if (req.session.user) {
+        // Only send necessary, non-sensitive info
+        res.json({
+            id: req.session.user.id,
+            email: req.session.user.email,
+            activeDepartment: req.session.user.activeDepartment
+            // You could add first_name, last_name if needed later
+        });
+    } else {
+        // Not logged in
+        res.status(401).json({ message: "Not authenticated" });
+    }
+});
+
+app.get("/logout", (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error("Logout error:", err);
+            return res.status(500).send("Could not log out.");
+        }
+        // Clear the cookie (optional but good practice)
+        res.clearCookie('connect.sid'); // Use the default cookie name, adjust if you changed it
+        // Redirect to the login page
+        res.redirect('/');
+    });
+});
+
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
 app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
 app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });

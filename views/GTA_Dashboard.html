@@ -10,7 +10,8 @@
 <style type="text/tailwindcss">
       :root {
         --primary-50: #eff6ff;
-        --primary-600: #2563eb;
+        --primary-600: #2563eb; /* Tailwind blue-600 */
+        --primary-color: #2563eb; /* Added for consistency */
         --gray-500: #6b7280;
         --info-50: #ecfeff;
         --info-500: #06b6d4;
@@ -28,6 +29,9 @@
         font-weight: 600;
       }
       .modal-hidden { display: none; }
+      /* Notification Modal Styles */
+      #notification-modal { transition: opacity 0.3s ease-out; }
+      #notification-modal > div { transition: all 0.3s ease-out; }
 </style>
 </head>
 <body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
@@ -52,8 +56,31 @@
       <button class="relative rounded-full p-2 hover:bg-gray-100">
         <span class="material-symbols-outlined text-gray-600">notifications</span>
       </button>
-      <div class="h-9 w-9 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCNctMQZk057P4bZQyXOoQ8_ftfJSJig5XgqMo5Mr3D_o9DZ5n5kCInWe5TIfW-ulGx3VYTOsKo1EzETBKi8RNVx98zI9JS__wtG0yh14icatZqcW8tTAP2oUhIRqCGZd_A9V9ic2qKuRy3osm7X3mYNvepkxopJ8EnrXL11wsiyIS4OLG8pkEGjr6OUdBWUBiNlyNWo3fzOb_bgDq9IWQcZepr9dApJMfHAFG_GsHmOeXRzvi8Qrxt_RU3OilP0PEXxof-wZQcJos");'></div>
-    </div>
+
+      <div class="relative">
+          <button id="profile-menu-button" type="button" class="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <span class="sr-only">Open user menu</span>
+              <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                   <span id="profile-initials" class="text-sm font-medium text-gray-600"></span>
+              </div>
+          </button>
+
+          <div id="profile-menu-dropdown"
+               class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+               role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1">
+               <div class="border-b border-gray-200 px-4 py-3 text-sm">
+                   <p class="font-medium text-gray-900">Signed in as</p>
+                   <p id="user-email-display" class="truncate text-gray-500">Loading...</p>
+               </div>
+               <div class="py-1" role="none">
+                   <a href="/settings.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-profile">Edit Profile</a>
+               </div>
+               <div class="py-1" role="none">
+                   <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-logout">Sign out</a>
+               </div>
+          </div>
+      </div>
+      </div>
   </header>
 
   <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
@@ -121,13 +148,96 @@
     </div>
 </div>
 
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
+         role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+        </div>
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
+        </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6">
+            </div>
+    </div>
+</div>
+
 <script>
   let currentStatusFilter = 'open';
   let selectedInterviewIds = new Set();
-  const DEPARTMENT = 'GTA';
-  
+  const DEPARTMENT = 'GTA'; // <<< CHANGED
   let allInterviews = [];
 
+  // --- Notification Modal Helpers ---
+  const notificationModal = document.getElementById('notification-modal');
+  const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
+
+  const showModal = () => {
+    if (!notificationModal || !notificationDialog) return;
+    notificationModal.classList.remove('hidden');
+    setTimeout(() => {
+      notificationModal.classList.add('opacity-100');
+      notificationDialog.classList.remove('scale-95', 'opacity-0');
+      notificationDialog.classList.add('scale-100', 'opacity-100');
+    }, 10);
+  };
+  const hideModal = () => {
+    if (!notificationModal || !notificationDialog) return;
+    notificationModal.classList.remove('opacity-100');
+    notificationDialog.classList.remove('scale-100', 'opacity-100');
+    notificationDialog.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+      notificationModal.classList.add('hidden');
+    }, 300);
+  };
+
+  // --- Utility and Notification Function ---
+  function showNotification(title, text, options = {}) {
+      const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
+      const modalTitle = document.getElementById('notification-modal-title');
+      const modalText = document.getElementById('notification-modal-text');
+      const modalIcon = document.getElementById('notification-modal-icon');
+      const btnContainer = document.getElementById('notification-modal-buttons');
+
+      if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) {
+          alert(`${title}: ${text}`); return;
+      }
+      modalTitle.textContent = title;
+      modalText.textContent = text;
+      if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; }
+      else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; }
+      btnContainer.innerHTML = '';
+      if (onConfirm) {
+          btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
+          const confirmBtn = document.createElement('button');
+          confirmBtn.type = 'button';
+          confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+          confirmBtn.textContent = confirmText;
+          confirmBtn.onclick = () => { hideModal(); onConfirm(); };
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+          cancelBtn.textContent = cancelText;
+          cancelBtn.onclick = () => { hideModal(); };
+          btnContainer.appendChild(cancelBtn);
+          btnContainer.appendChild(confirmBtn);
+      } else {
+          btnContainer.className = 'mt-5 sm:mt-6';
+          if (duration === null || duration <= 0) {
+              const okBtn = document.createElement('button');
+              okBtn.type = 'button';
+              okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+              okBtn.textContent = 'Got it';
+              okBtn.onclick = () => { hideModal(); };
+              btnContainer.appendChild(okBtn);
+          }
+      }
+      showModal();
+      if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); }
+  }
+
+  // --- Core Dashboard Functions ---
   async function loadCounts() {
       try {
           const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
@@ -140,7 +250,6 @@
   function renderTable(searchTerm = '') {
     const tbody = document.querySelector("#interviews-table-body");
     tbody.innerHTML = "";
-
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const filteredInterviews = allInterviews.filter(interview => {
         const titleMatch = interview.title.toLowerCase().includes(lowerCaseSearchTerm);
@@ -149,6 +258,7 @@
     });
 
     if (filteredInterviews.length === 0) {
+        // <<< CHANGED message to mention GTA
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">No ${searchTerm ? 'matching' : currentStatusFilter} interviews found for ${DEPARTMENT}.</td></tr>`;
         return;
     }
@@ -156,18 +266,20 @@
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
+        const viewLink = `/interview-view.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
+        const editLink = `/interview-edit.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
         tr.innerHTML = `
             <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
             <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
-            <td class="px-6 py-4"><a href="/interview-view.html?id=${interview.id}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
+            <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
             <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">5</span></td>
             <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">2</span></td>
             <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">1</span></td>
             <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">0</span></td>
             <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                <a href="/interview-view.html?id=${interview.id}" class="text-primary-600 hover:text-primary-900">View</a>
-                <a href="/interview-edit.html?id=${interview.id}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
+                <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
+                <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
             </td>
         `;
         tbody.appendChild(tr);
@@ -178,39 +290,13 @@
     try {
       const url = `/api/interviews?department=${DEPARTMENT}&position_status=${currentStatusFilter}`;
       const res = await fetch(url);
-      allInterviews = await res.json(); 
+      allInterviews = await res.json();
       const searchBar = document.getElementById('search-bar');
       renderTable(searchBar.value);
     } catch (err) { console.error("Error loading interviews:", err); }
   }
-  
-  function updateBulkActionBar() {
-    const bar = document.getElementById('bulk-actions-bar');
-    const countSpan = document.getElementById('selected-count');
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
-    const moveToOpenBtn = document.getElementById('move-to-open-btn');
 
-    if (selectedInterviewIds.size > 0) {
-        bar.classList.remove('hidden');
-        countSpan.textContent = selectedInterviewIds.size;
-        
-        if (currentStatusFilter === 'open') {
-            moveToClosedBtn.classList.remove('hidden');
-            moveToOpenBtn.classList.add('hidden');
-        } else {
-            moveToClosedBtn.classList.add('hidden');
-            moveToOpenBtn.classList.remove('hidden');
-        }
-        
-        selectAllCheckbox.checked = selectedInterviewIds.size === rowCheckboxes.length && rowCheckboxes.length > 0 && allInterviews.length > 0;
-    } else {
-        bar.classList.add('hidden');
-        selectAllCheckbox.checked = false;
-    }
-  }
-
+  // --- Confirmation Modal Logic ---
   const confirmModal = document.getElementById('confirm-modal');
   let confirmCallback = null;
 
@@ -226,6 +312,35 @@
       confirmCallback = null;
   }
 
+  // --- Bulk Action Bar Logic ---
+  function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countSpan = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
+
+    if (selectedInterviewIds.size > 0) {
+        bar.classList.remove('hidden');
+        countSpan.textContent = selectedInterviewIds.size;
+        if (currentStatusFilter === 'open') {
+            moveToClosedBtn.classList.remove('hidden');
+            moveToOpenBtn.classList.add('hidden');
+        } else {
+            moveToClosedBtn.classList.add('hidden');
+            moveToOpenBtn.classList.remove('hidden');
+        }
+        const visibleRowCount = document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
+        selectAllCheckbox.checked = selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
+    } else {
+        bar.classList.add('hidden');
+        selectAllCheckbox.checked = false;
+    }
+  }
+
+
+  // --- Event Listeners ---
   document.addEventListener('DOMContentLoaded', () => {
     const openTab = document.getElementById('open-positions-tab');
     const closedTab = document.getElementById('closed-positions-tab');
@@ -238,24 +353,26 @@
     const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
     const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
+    // Confirmation Modal Buttons
     confirmBtn.addEventListener('click', () => {
         if (typeof confirmCallback === 'function') confirmCallback();
         hideConfirmModal();
     });
     cancelBtn.addEventListener('click', hideConfirmModal);
 
+    // Tab Switching
     function switchTab(newStatus) {
         currentStatusFilter = newStatus;
         openTab.classList.toggle('tab-active', newStatus === 'open');
         closedTab.classList.toggle('tab-active', newStatus === 'closed');
-        fetchAndRenderInterviews();
-        selectedInterviewIds.clear();
+        fetchAndRenderInterviews(); // Fetch new data for the tab
+        selectedInterviewIds.clear(); // Clear selection on tab switch
         updateBulkActionBar();
     }
-
     openTab.addEventListener('click', () => switchTab('open'));
     closedTab.addEventListener('click', () => switchTab('closed'));
-    
+
+    // Row Checkbox Handling
     tableBody.addEventListener('change', (e) => {
         if (e.target.classList.contains('row-checkbox')) {
             const id = e.target.dataset.id;
@@ -265,17 +382,21 @@
         }
     });
 
+    // Select All Checkbox Handling
     selectAllCheckbox.addEventListener('change', (e) => {
         const checkboxes = tableBody.querySelectorAll('.row-checkbox');
         checkboxes.forEach(cb => {
-            cb.checked = e.target.checked;
-            const id = cb.dataset.id;
-            if (e.target.checked) selectedInterviewIds.add(id);
-            else selectedInterviewIds.delete(id);
+            if (cb.closest('tr') && !cb.closest('tr').style.display?.includes('none')) {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) selectedInterviewIds.add(id);
+                else selectedInterviewIds.delete(id);
+            }
         });
         updateBulkActionBar();
     });
 
+    // Bulk Action Buttons
     moveToClosedBtn.addEventListener('click', () => {
         showConfirmModal(
             `Move ${selectedInterviewIds.size} interviews?`,
@@ -330,17 +451,58 @@
         );
     });
 
+    // Search Bar (Client-side filtering)
     searchBar.addEventListener('input', (e) => {
       renderTable(e.target.value);
+      updateBulkActionBar(); // Update select-all based on filtered results
     });
 
+    // --- Profile Dropdown & User Info Logic ---
+    const profileButton = document.getElementById('profile-menu-button');
+    const profileDropdown = document.getElementById('profile-menu-dropdown');
+    const profileInitials = document.getElementById('profile-initials');
+    const userEmailDisplay = document.getElementById('user-email-display');
+
+    async function fetchUserInfo() {
+        try {
+            const response = await fetch('/api/me');
+            if (!response.ok) {
+                 if (response.status === 401) { window.location.href = '/'; }
+                 else { throw new Error(`HTTP error! status: ${response.status}`); }
+                return;
+            }
+            const user = await response.json();
+            if (userEmailDisplay) userEmailDisplay.textContent = user.email || 'Error';
+            if (profileInitials && user.email) profileInitials.textContent = user.email.substring(0, 1).toUpperCase();
+        } catch (error) {
+            console.error("Failed to fetch user info:", error);
+            if (userEmailDisplay) userEmailDisplay.textContent = 'Error';
+        }
+    }
+
+    if (profileButton && profileDropdown) {
+        profileButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (event) => {
+            if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
+                profileDropdown.classList.add('hidden');
+            }
+        });
+        fetchUserInfo();
+    }
+    // --- End Profile Dropdown Logic ---
+
+
+    // Initial Load & Polling
     loadCounts();
     fetchAndRenderInterviews();
     setInterval(() => {
-        console.log("Refreshing GTA dashboard data...");
+        console.log("Refreshing GTA dashboard data..."); // <<< CHANGED Log Message
         loadCounts();
         fetchAndRenderInterviews();
-    }, 5000);
+    }, 15000);
   });
 </script>
 
