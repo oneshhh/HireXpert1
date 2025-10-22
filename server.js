@@ -30,7 +30,8 @@ app.use(session({
     cookie: {
         // Set cookie maxAge to 30 days in milliseconds (previous value was incorrect)
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
     }
 }));
 
@@ -132,17 +133,29 @@ app.post("/login", async (req, res) => {
 
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                req.session.user = { 
-                    id: user.id, 
-                    email: user.email, 
+                req.session.user = {
+                    id: user.id,
+                    email: user.email,
                     departments: user.department,
-                    activeDepartment: department 
+                    activeDepartment: department
                 };
+                console.log('Session user set:', req.session.user);
 
-                if (department === 'Admin') {
-                    return res.redirect('/admin_Dashboard.html');
-                }
-                return res.redirect(`/${department}_Dashboard.html`);
+                // Explicitly save the session before redirecting
+                req.session.save((err) => {
+                    if (err) {
+                        console.error("Error saving session before redirect:", err);
+                        // Handle error appropriately, maybe send an error response
+                        return res.status(500).send("Login failed due to session save error.");
+                    }
+
+                    // Redirect AFTER session is saved
+                    console.log('Session saved successfully, redirecting...');
+                    if (department === 'Admin') {
+                        return res.redirect('/admin_Dashboard.html');
+                    }
+                    return res.redirect(`/${department}_Dashboard.html`);
+                });
             }
         }
         res.status(401).send("Invalid credentials.");
