@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <style>
       :root {
-        --primary-color: #2563eb; /* Using a tailwind blue for consistency */
+        --primary-color: #2563eb; /* Tailwind blue-600 */
         --secondary-color: #f0f2f4;
         --text-primary: #111418;
         --text-secondary: #617589;
@@ -20,6 +20,9 @@
       .resend-btn:disabled {
         @apply opacity-50 cursor-not-allowed bg-gray-100 text-gray-400;
       }
+      /* Notification Modal Styles */
+      #notification-modal { transition: opacity 0.3s ease-out; }
+      #notification-modal > div { transition: all 0.3s ease-out; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -87,14 +90,118 @@
     </div>
   </main>
 
+  <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
+         role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+        </div>
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
+        </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6">
+            </div>
+    </div>
+  </div>
+
   <script>
     // --- Global variable to store interview ID ---
     let currentInterviewId = null;
 
+    // --- Notification Modal Helpers ---
+    const notificationModal = document.getElementById('notification-modal');
+    const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
+
+    const showModal = () => {
+      if (!notificationModal || !notificationDialog) return;
+      notificationModal.classList.remove('hidden');
+      setTimeout(() => { // Allow display change before starting transition
+        notificationModal.classList.add('opacity-100');
+        notificationDialog.classList.remove('scale-95', 'opacity-0');
+        notificationDialog.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    };
+    const hideModal = () => {
+      if (!notificationModal || !notificationDialog) return;
+      notificationModal.classList.remove('opacity-100');
+      notificationDialog.classList.remove('scale-100', 'opacity-100');
+      notificationDialog.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => { // Wait for transition before hiding
+        notificationModal.classList.add('hidden');
+      }, 300); // Match transition duration
+    };
+
+    // --- Utility and Notification Function (with auto-hide) ---
+    function showNotification(title, text, options = {}) {
+        const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
+
+        const modalTitle = document.getElementById('notification-modal-title');
+        const modalText = document.getElementById('notification-modal-text');
+        const modalIcon = document.getElementById('notification-modal-icon');
+        const btnContainer = document.getElementById('notification-modal-buttons');
+
+        if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) {
+            alert(`${title}: ${text}`); // Fallback
+            return;
+        }
+
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+
+        if (isError) {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+        } else {
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+        }
+
+        btnContainer.innerHTML = ''; // Clear previous buttons
+
+        if (onConfirm) { // Show Confirm/Cancel buttons
+            btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+            confirmBtn.textContent = confirmText;
+            confirmBtn.onclick = () => { hideModal(); onConfirm(); };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+            cancelBtn.textContent = cancelText;
+            cancelBtn.onclick = () => { hideModal(); };
+
+            btnContainer.appendChild(cancelBtn);
+            btnContainer.appendChild(confirmBtn);
+        } else { // Show only an "OK" or auto-hide
+             btnContainer.className = 'mt-5 sm:mt-6';
+             if (duration === null || duration <= 0) { // Only show button if NOT auto-hiding
+                const okBtn = document.createElement('button');
+                okBtn.type = 'button';
+                okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+                okBtn.textContent = 'Got it';
+                okBtn.onclick = () => { hideModal(); };
+                btnContainer.appendChild(okBtn);
+             }
+        }
+
+        showModal(); // Use helper to show with transition
+
+        // Auto-hide logic
+        if (duration > 0 && !onConfirm) {
+            setTimeout(() => {
+                hideModal(); // Use helper to hide with transition
+            }, duration);
+        }
+    }
+
+
     // --- Resend Invite Function ---
     async function resendInvite(button, candidateEmail) {
         if (!currentInterviewId) {
-            alert('Error: Interview ID not found.');
+            showNotification('Error', 'Interview ID not found.', { isError: true });
             return;
         }
 
@@ -117,16 +224,19 @@
                 throw new Error(result.message || 'Failed to resend invite.');
             }
 
-            alert(`✅ Invite resent successfully to ${candidateEmail}`);
-            button.textContent = 'Sent!'; // Provide feedback
-            setTimeout(() => { // Optionally reset button after a delay
+            // Use showNotification for success with 3-second auto-hide
+            showNotification('Success!', `Invite resent to ${candidateEmail}`, { duration: 3000 });
+
+            button.textContent = 'Sent!'; // Keep visual feedback
+            // Reset button after notification disappears + buffer
+            setTimeout(() => {
                  button.textContent = 'Resend';
                  button.disabled = false;
-            }, 3000);
+            }, 3500); // duration + 500ms
 
         } catch (error) {
             console.error('Error resending invite:', error);
-            alert(`❌ Error: ${error.message}`);
+            showNotification('Error', error.message, { isError: true });
             button.textContent = 'Resend'; // Reset button on error
             button.disabled = false;
         }
@@ -143,9 +253,9 @@
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
-      const from = params.get("from"); // Get the 'from' parameter for the back link
+      const from = params.get("from"); // Get 'from' for back link
 
-      currentInterviewId = id; // Store the ID globally
+      currentInterviewId = id; // Store ID globally
 
       if (!id) {
         loading.style.display = 'none';
@@ -154,11 +264,11 @@
         return;
       }
       
-      // Set the back link dynamically
-      if (from) {
+      // Set back link dynamically
+      if (from && from !== 'null' && from !== 'undefined') { // Check if 'from' is valid
           backLink.href = `/${from}`;
       } else {
-          backLink.href = '/admin_Dashboard.html'; // Default back link
+          backLink.href = '/admin_Dashboard.html'; // Sensible default
       }
 
 
@@ -173,12 +283,12 @@
         // Populate Header Card
         document.getElementById("title").textContent = data.title;
         document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
-        document.getElementById("date").textContent = new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById("date").textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
         document.getElementById("time").textContent = data.time || 'N/A';
         document.getElementById("scheduler-name").textContent = `${data.first_name || 'N/A'} ${data.last_name || ''}`;
         
         const statusBadge = document.getElementById("status-badge");
-        statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full'; // Reset class list
+        statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full'; // Reset
         if (data.position_status === 'open') {
             statusBadge.textContent = 'Open';
             statusBadge.classList.add('bg-green-100', 'text-green-800');
@@ -202,27 +312,23 @@
         if (data.candidates && data.candidates.length > 0) {
             data.candidates.forEach(candidate => {
                 const li = document.createElement("li");
-                li.className = 'flex items-center justify-between text-sm pr-2 py-1'; // Adjusted padding
+                li.className = 'flex items-center justify-between text-sm pr-2 py-1';
                 
-                // Create email span
                 const emailSpan = document.createElement('span');
-                emailSpan.className = 'text-gray-800 truncate mr-2'; // Added truncate and margin
+                emailSpan.className = 'text-gray-800 truncate mr-2';
                 emailSpan.textContent = candidate.candidate_email;
 
-                // Create status span
                 const statusSpan = document.createElement('span');
                 statusSpan.className = `px-2 py-1 rounded-full text-xs whitespace-nowrap ${candidate.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`;
                 statusSpan.textContent = candidate.status;
                 
-                // Create Resend button
                 const resendButton = document.createElement('button');
-                resendButton.className = 'resend-btn flex-shrink-0'; // Added flex-shrink-0
+                resendButton.className = 'resend-btn flex-shrink-0';
                 resendButton.textContent = 'Resend';
                 resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
 
-                // Group email and status, then add button
                 const infoDiv = document.createElement('div');
-                infoDiv.className = 'flex items-center flex-grow min-w-0'; // Allow email to truncate
+                infoDiv.className = 'flex items-center flex-grow min-w-0';
                 infoDiv.appendChild(emailSpan);
                 infoDiv.appendChild(statusSpan);
 
@@ -272,11 +378,13 @@
     const toggleBtn = document.getElementById('toggle-questions-btn');
     const questionsList = document.getElementById('questions-list');
     
-    toggleBtn.addEventListener('click', () => {
-        questionsList.classList.toggle('hidden');
-        const isHidden = questionsList.classList.contains('hidden');
-        toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
-    });
+    if (toggleBtn && questionsList) { // Check if elements exist
+        toggleBtn.addEventListener('click', () => {
+            questionsList.classList.toggle('hidden');
+            const isHidden = questionsList.classList.contains('hidden');
+            toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
+        });
+    }
   </script>
 </body>
 </html>
