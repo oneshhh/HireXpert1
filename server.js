@@ -10,13 +10,14 @@ const pool = require("./db");
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const pgSession = require('connect-pg-simple')(session);
-app.set('trust proxy', 1);
+
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 // Middleware
 app.use(express.json());
+app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
