@@ -757,6 +757,85 @@ app.post("/api/resend-invite", async (req, res) => {
     }
 });
 
+
+// Add this after your other API routes (like /api/me, /logout)
+
+// 1. GET Route to fetch full details for the logged-in user
+app.get("/api/me/details", async (req, res) => {
+    if (!req.session.user || !req.session.user.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    const userId = req.session.user.id;
+    try {
+        const result = await pool.query(
+            "SELECT id, first_name, last_name, email FROM users WHERE id = $1",
+            [userId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json(result.rows[0]); // Send user details
+    } catch (error) {
+        console.error("Error fetching user details:", error);
+        res.status(500).json({ message: "Failed to fetch user details." });
+    }
+});
+
+// 2. POST Route to update the logged-in user's profile
+app.post("/api/me/update", async (req, res) => {
+    if (!req.session.user || !req.session.user.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    const userId = req.session.user.id;
+    const { firstName, lastName, email, password } = req.body; // Password is optional
+
+    // Basic validation
+    if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required." });
+    }
+
+    try {
+        let query;
+        let queryParams;
+
+        if (password && password.trim() !== '') {
+            // If password is provided, hash it and update password_hash
+            const saltRounds = 10;
+            const passwordHash = await bcrypt.hash(password, saltRounds);
+            query = `UPDATE users SET first_name = $1, last_name = $2, email = $3, password_hash = $4 WHERE id = $5`;
+            queryParams = [firstName, lastName, email, passwordHash, userId];
+        } else {
+            // If password is not provided, update only name and email
+            query = `UPDATE users SET first_name = $1, last_name = $2, email = $3 WHERE id = $4`;
+            queryParams = [firstName, lastName, email, userId];
+        }
+
+        await pool.query(query, queryParams);
+
+        // IMPORTANT: Update the email in the session if it changed
+        if (req.session.user.email !== email) {
+             req.session.user.email = email;
+             // Force session save if email changed
+             req.session.save(err => {
+                 if (err) {
+                    console.error("Error saving session after email update:", err);
+                    // Proceed even if session save fails, but log it
+                 }
+                 res.json({ success: true, message: "Profile updated successfully." });
+             });
+        } else {
+            res.json({ success: true, message: "Profile updated successfully." });
+        }
+
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        if (error.code === '23505') { // Handle unique constraint violation for email
+            return res.status(409).json({ message: "This email address is already in use by another account." });
+        }
+        res.status(500).json({ message: "An internal server error occurred while updating profile." });
+    }
+});
+
 // --- Static Page Routes ---
 app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-view.html")));
 app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-edit.html")));
