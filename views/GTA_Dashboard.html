@@ -1,510 +1,915 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- [MODIFIED] Removed default dark class, JS will handle it -->
+<html lang="en" class="">
 <head>
-<meta charset="utf-8"/>
-<title>HireXpert - GTA Interviews</title>
-<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<style type="text/tailwindcss">
+    <meta charset="utf-8"/>
+    <title>HireXpert - Admin Panel</title>
+    <!-- Added viewport for mobile-friendliness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Added Tailwind config to enable 'class' dark mode -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style type="text/tailwindcss">
       :root {
-        --primary-50: #eff6ff;
-        --primary-600: #2563eb; /* Tailwind blue-600 */
-        --primary-color: #2563eb; /* Added for consistency */
-        --gray-500: #6b7280;
-        --info-50: #ecfeff;
-        --info-500: #06b6d4;
+        --primary-color: #1173d4;
+        --secondary-color: #f0f2f4;
+        --text-primary: #111418;
+        --text-secondary: #617589;
       }
-      .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      /* Dark mode variables */
+      .dark {
+        --secondary-color: #1f2937; /* gray-800 */
+        --text-primary: #f9fafb; /* gray-50 */
+        --text-secondary: #9ca3af; /* gray-400 */
       }
-      #create-interview-btn {
-        background-color: var(--primary-600) !important;
-        color: white !important;
-      }
-      .tab-active {
-        border-bottom-color: var(--primary-600);
-        color: var(--primary-600);
-        font-weight: 600;
-      }
-      .modal-hidden { display: none; }
-      /* Notification Modal Styles */
-      #notification-modal { transition: opacity 0.3s ease-out; }
-      #notification-modal > div { transition: all 0.3s ease-out; }
-</style>
+      
+      .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
+      /* Added dark mode styles */
+      .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
+      .status-inactive { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200; }
+      .status-dot { @apply h-2 w-2 rounded-full; }
+      .tab-btn { @apply rounded-md px-4 py-2 text-sm font-medium text-gray-600 transition dark:text-gray-400 dark:hover:bg-gray-700; }
+      .tab-btn-active { @apply bg-white text-gray-900 shadow-sm dark:bg-gray-100 dark:text-gray-900; } /* Active tab light for contrast */
+      .toggle-label { @apply relative inline-flex cursor-pointer items-center; }
+      .toggle-bg { @apply h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700 dark:after:border-gray-600 dark:after:bg-gray-900; }
+      /* Custom styles for multi-select checkboxes */
+      .dept-checkbox-group label { @apply flex items-center space-x-3 rounded-md border border-gray-300 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700; }
+      .dept-checkbox-group input:checked + span { @apply text-[var(--primary-color)] font-semibold; }
+      .dept-checkbox-group label:has(input:checked) { @apply border-[var(--primary-color)] bg-blue-50 ring-1 ring-[var(--primary-color)] dark:bg-blue-900/50 dark:border-blue-500; }
+    </style>
 </head>
-<body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
-<div class="flex min-h-screen w-full flex-col">
+<!-- Added dark mode class to body -->
+<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden dark:bg-gray-900">
 
-  <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-    <div class="flex items-center gap-6">
-      <div class="flex items-center gap-3 text-gray-800">
-        <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
-        <h1 class="text-xl font-bold text-gray-900">HireXpert</h1>
-      </div>
-      <nav class="hidden md:flex items-center gap-4">
-        <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
-        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html?department=GTA">Candidates</a>
-      </nav>
+<!-- Mobile-only header with dark mode classes -->
+<header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
+    <div class="flex items-center gap-2">
+        <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
     </div>
-    <div class="flex items-center gap-4">
-      <div class="relative w-full max-w-xs">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-        <input id="search-bar" class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search by title or ID..."/>
-      </div>
-      <button class="relative rounded-full p-2 hover:bg-gray-100">
-        <span class="material-symbols-outlined text-gray-600">notifications</span>
-      </button>
+    <button id="mobile-menu-toggle" type="button" class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Open sidebar">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
+</header>
 
-      <div class="relative">
-          <button id="profile-menu-button" type="button" class="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-              <span class="sr-only">Open user menu</span>
-              <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-                   <span id="profile-initials" class="text-sm font-medium text-gray-600"></span>
-              </div>
-          </button>
-
-          <div id="profile-menu-dropdown"
-               class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-               role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1">
-               <div class="border-b border-gray-200 px-4 py-3 text-sm">
-                   <p class="font-medium text-gray-900">Signed in as</p>
-                   <p id="user-email-display" class="truncate text-gray-500">Loading...</p>
-               </div>
-               <div class="py-1" role="none">
-                   <a href="/settings.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-profile">Edit Profile</a>
-               </div>
-               <div class="py-1" role="none">
-                   <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-logout">Sign out</a>
-               </div>
-          </div>
-      </div>
-      </div>
-  </header>
-
-  <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
-    <div class="mx-auto max-w-7xl">
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h2 class="text-3xl font-bold text-gray-900">Main Dashboard - Global Talent Acquisition</h2>
-        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=GTA_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-          <span class="material-symbols-outlined">add</span>
-          <span>Create Interview</span>
+<div class="flex h-full w-full">
+<!-- Sidebar with dark mode classes -->
+<aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
+    <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
+        <div class="flex flex-col items-start">
+            <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
+            <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+        </div>
+        <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
+            <span class="material-symbols-outlined">close</span>
         </button>
-      </div>
-
-      <div class="border-b border-gray-200 mb-6">
-          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-              <button id="open-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
-                  Open Positions <span id="open-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600">0</span>
-              </button>
-              <button id="closed-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                  Closed Positions <span id="closed-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
-              </button>
-          </nav>
-      </div>
-
-      <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
-          <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
-          <div>
-              <button id="move-to-closed-btn" class="mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Move to Closed</button>
-              <button id="move-to-open-btn" class="hidden mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Re-open Positions</button>
-              <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
-          </div>
-      </div>
-
-      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
-              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Invited</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">To Evaluate</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Evaluated</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Discarded</th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
-        </table>
-      </div>
     </div>
-  </main>
-</div>
-
-<div id="confirm-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
-    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl">
-        <h3 id="confirm-modal-title" class="text-lg font-medium text-gray-900">Are you sure?</h3>
-        <div class="mt-2">
-            <p id="confirm-modal-text" class="text-sm text-gray-500">This action cannot be undone.</p>
-        </div>
-        <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-            <button id="confirm-modal-confirm-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2">Confirm</button>
-            <button id="confirm-modal-cancel-btn" type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
-        </div>
+    
+    <div class="flex flex-1 flex-col overflow-y-auto">
+        <!-- Nav links with dark mode classes -->
+        <nav class="flex-1 space-y-2 p-4">
+            <a class="flex items-center gap-3 rounded-md bg-[var(--secondary-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)]" href="#">
+                <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
+                Dashboard
+            </a>
+            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="settings.html">
+                <span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="/logout">
+                <span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+            <!-- [MOVED] Dark mode toggle button -->
+            <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+                <span class="material-symbols-outlined">dark_mode</span>
+                <span>Toggle Theme</span>
+            </button>
+        </nav>
+        
+        <!-- [REMOVED] Old div wrapper for the button -->
     </div>
-</div>
+</aside>
 
-<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
-    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
-         role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
-        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
-        </div>
-        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
-        <div class="mt-2">
-            <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
-        </div>
-        <div id="notification-modal-buttons" class="mt-5 sm:mt-6">
+<!-- Sidebar Overlay for mobile (hidden by default) -->
+<div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
+
+<!-- Main content with dark mode classes -->
+<main class="flex-1 bg-gray-50 p-6 sm:p-8 dark:bg-gray-900">
+    <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
+    
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-200">Interviews Scheduled</h3>
+                    <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                        <button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow dark:text-gray-900">7D</button>
+                        <button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow dark:text-gray-400 dark:hover:bg-gray-100 dark:hover:text-gray-900">14D</button>
+                        <button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow dark:text-gray-400 dark:hover:bg-gray-100 dark:hover:text-gray-900">30D</button>
+                    </div>
+                </div>
+                <div class="relative h-64"><canvas id="interviewsLineChart"></canvas></div>
             </div>
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                 <h3 class="font-semibold text-gray-800 mb-4 text-center dark:text-gray-200">Candidate Status Distribution</h3>
+                <div class="relative mx-auto h-64" style="max-width: 256px;"><canvas id="statusPieChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-12">
+        <div class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2>
+                <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0 dark:bg-gray-700">
+                    <button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button>
+                    <button id="closed-interviews-btn" class="tab-btn">Closed</button>
+                </div>
+            </div>
+            <div class="mt-4 border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                    <button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button>
+                    <button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">HR</button>
+                    <button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">PMO</button>
+                    <button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">GTA</button>
+                </nav>
+            </div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table>
+        </div>
+        <div id="show-more-interviews-container" class="mt-4 text-center"></div>
+    </div>
+
+    <div class="mt-12">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-[var(--text-primary)]">System Users</h2>
+            <button id="add-user-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">
+                <span class="material-symbols-outlined">add</span>New User
+            </button>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Departments</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="mt-12">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-2xl font-bold text-[var(--text-primary)]">Global Candidates</h2>
+            <div class="relative mt-4 sm:mt-0">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">search</span>
+                <input type="text" id="candidate-search" placeholder="Search by email or title..." class="w-full sm:w-64 rounded-md border-gray-300 pl-10 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+            </div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="candidates-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+            </table>
+        </div>
+        <div id="show-more-candidates-container" class="mt-4 text-center"></div>
+    </div>
+</main>
+</div>
+</div>
+
+<!-- User Modal with dark mode classes -->
+<div id="user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+    <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl dark:bg-gray-800">
+        <form id="user-form">
+            <input type="hidden" id="userId" name="userId">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <h3 id="user-modal-title" class="text-xl font-semibold text-gray-900 dark:text-gray-100">Add New System User</h3>
+                    <button type="button" id="close-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="mt-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label><input type="text" id="firstName" name="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
+                        <div><label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label><input type="text" id="lastName" name="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
+                    </div>
+                    <div><label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label><input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
+                    <div id="password-container">
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                        <input type="text" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Leave blank to keep unchanged">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Department Access</label>
+                        <div class="mt-2 grid grid-cols-2 gap-3 dept-checkbox-group">
+                            <label for="dept-hr"><input id="dept-hr" type="checkbox" name="departments" value="HR" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>HR</span></label>
+                            <label for="dept-pmo"><input id="dept-pmo" type="checkbox" name="departments" value="PMO" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>PMO</span></label>
+                            <label for="dept-gta"><input id="dept-gta" type="checkbox" name="departments" value="GTA" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>GTA</span></label>
+                            <label for="dept-admin"><input id="dept-admin" type="checkbox" name="departments" value="Admin" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>Admin</span></label>
+                        </div>
+                    </div>
+                    <div id="user-status-container" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Account Status</label>
+                        <label class="toggle-label mt-2"><input type="checkbox" id="user-status-toggle" class="sr-only peer"><div class="toggle-bg"></div><span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-100">Active</span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-between items-center border-t bg-gray-50 px-6 py-4 dark:bg-gray-700 dark:border-gray-600">
+                <button type="button" id="delete-user-btn" class="hidden rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Delete User</button>
+                <div class="flex justify-end gap-3 flex-grow">
+                    <button type="button" id="cancel-user-modal" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-500">Cancel</button>
+                    <button type="submit" class="rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">Save Changes</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
+<!-- Notification Modal with dark mode classes -->
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center dark:bg-gray-800">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+            <span class="material-symbols-outlined text-3xl text-green-600 dark:text-green-300">check_circle</span>
+        </div>
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500 dark:text-gray-400">Your action was completed.</p>
+        </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+            <!-- Buttons are added dynamically, dark mode classes will be needed in the JS function -->
+        </div>
+    </div>
+</div>
+
+<!-- [MODIFIED] FULL SCRIPT BLOCK with cookie-based theme management -->
 <script>
-  let currentStatusFilter = 'open';
-  let selectedInterviewIds = new Set();
-  const DEPARTMENT = 'GTA'; // <<< CHANGED
-  let allInterviews = [];
+    // --- [NEW] Theme Management ---
+    const htmlElement = document.documentElement;
 
-  // --- Notification Modal Helpers ---
-  const notificationModal = document.getElementById('notification-modal');
-  const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
-
-  const showModal = () => {
-    if (!notificationModal || !notificationDialog) return;
-    notificationModal.classList.remove('hidden');
-    setTimeout(() => {
-      notificationModal.classList.add('opacity-100');
-      notificationDialog.classList.remove('scale-95', 'opacity-0');
-      notificationDialog.classList.add('scale-100', 'opacity-100');
-    }, 10);
-  };
-  const hideModal = () => {
-    if (!notificationModal || !notificationDialog) return;
-    notificationModal.classList.remove('opacity-100');
-    notificationDialog.classList.remove('scale-100', 'opacity-100');
-    notificationDialog.classList.add('scale-95', 'opacity-0');
-    setTimeout(() => {
-      notificationModal.classList.add('hidden');
-    }, 300);
-  };
-
-  // --- Utility and Notification Function ---
-  function showNotification(title, text, options = {}) {
-      const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
-      const modalTitle = document.getElementById('notification-modal-title');
-      const modalText = document.getElementById('notification-modal-text');
-      const modalIcon = document.getElementById('notification-modal-icon');
-      const btnContainer = document.getElementById('notification-modal-buttons');
-
-      if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) {
-          alert(`${title}: ${text}`); return;
-      }
-      modalTitle.textContent = title;
-      modalText.textContent = text;
-      if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; }
-      else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; }
-      btnContainer.innerHTML = '';
-      if (onConfirm) {
-          btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
-          const confirmBtn = document.createElement('button');
-          confirmBtn.type = 'button';
-          confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
-          confirmBtn.textContent = confirmText;
-          confirmBtn.onclick = () => { hideModal(); onConfirm(); };
-          const cancelBtn = document.createElement('button');
-          cancelBtn.type = 'button';
-          cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
-          cancelBtn.textContent = cancelText;
-          cancelBtn.onclick = () => { hideModal(); };
-          btnContainer.appendChild(cancelBtn);
-          btnContainer.appendChild(confirmBtn);
-      } else {
-          btnContainer.className = 'mt-5 sm:mt-6';
-          if (duration === null || duration <= 0) {
-              const okBtn = document.createElement('button');
-              okBtn.type = 'button';
-              okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
-              okBtn.textContent = 'Got it';
-              okBtn.onclick = () => { hideModal(); };
-              btnContainer.appendChild(okBtn);
-          }
-      }
-      showModal();
-      if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); }
-  }
-
-  // --- Core Dashboard Functions ---
-  async function loadCounts() {
-      try {
-          const res = await fetch(`/api/interviews/counts?department=${DEPARTMENT}`);
-          const counts = await res.json();
-          document.getElementById('open-count').textContent = counts.open || 0;
-          document.getElementById('closed-count').textContent = counts.closed || 0;
-      } catch (err) { console.error("Error loading counts:", err); }
-  }
-
-  function renderTable(searchTerm = '') {
-    const tbody = document.querySelector("#interviews-table-body");
-    tbody.innerHTML = "";
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    const filteredInterviews = allInterviews.filter(interview => {
-        const titleMatch = interview.title.toLowerCase().includes(lowerCaseSearchTerm);
-        const idMatch = interview.custom_interview_id ? interview.custom_interview_id.toLowerCase().includes(lowerCaseSearchTerm) : false;
-        return titleMatch || idMatch;
-    });
-
-    if (filteredInterviews.length === 0) {
-        // <<< CHANGED message to mention GTA
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">No ${searchTerm ? 'matching' : currentStatusFilter} interviews found for ${DEPARTMENT}.</td></tr>`;
-        return;
-    }
-
-    filteredInterviews.forEach((interview, index) => {
-        const tr = document.createElement("tr");
-        const isSelected = selectedInterviewIds.has(interview.id);
-        const viewLink = `/interview-view.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
-        const editLink = `/interview-edit.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
-        tr.innerHTML = `
-            <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
-            <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
-            <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">5</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">2</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">1</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">0</span></td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
-                <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-  }
-
-  async function fetchAndRenderInterviews() {
-    try {
-      const url = `/api/interviews?department=${DEPARTMENT}&position_status=${currentStatusFilter}`;
-      const res = await fetch(url);
-      allInterviews = await res.json();
-      const searchBar = document.getElementById('search-bar');
-      renderTable(searchBar.value);
-    } catch (err) { console.error("Error loading interviews:", err); }
-  }
-
-  // --- Confirmation Modal Logic ---
-  const confirmModal = document.getElementById('confirm-modal');
-  let confirmCallback = null;
-
-  function showConfirmModal(title, text, onConfirm) {
-      document.getElementById('confirm-modal-title').textContent = title;
-      document.getElementById('confirm-modal-text').textContent = text;
-      confirmCallback = onConfirm;
-      confirmModal.classList.remove('modal-hidden');
-  }
-
-  function hideConfirmModal() {
-      confirmModal.classList.add('modal-hidden');
-      confirmCallback = null;
-  }
-
-  // --- Bulk Action Bar Logic ---
-  function updateBulkActionBar() {
-    const bar = document.getElementById('bulk-actions-bar');
-    const countSpan = document.getElementById('selected-count');
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
-    const moveToOpenBtn = document.getElementById('move-to-open-btn');
-
-    if (selectedInterviewIds.size > 0) {
-        bar.classList.remove('hidden');
-        countSpan.textContent = selectedInterviewIds.size;
-        if (currentStatusFilter === 'open') {
-            moveToClosedBtn.classList.remove('hidden');
-            moveToOpenBtn.classList.add('hidden');
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            htmlElement.classList.add('dark');
+            // Update Chart.js defaults for dark mode
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = '#9ca3af'; // text-gray-400
+                Chart.defaults.borderColor = '#374151'; // border-gray-700
+            }
         } else {
-            moveToClosedBtn.classList.add('hidden');
-            moveToOpenBtn.classList.remove('hidden');
+            htmlElement.classList.remove('dark');
+            // Update Chart.js defaults for light mode
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = '#6b7280'; // text-gray-500
+                Chart.defaults.borderColor = '#e5e7eb'; // border-gray-200
+            }
         }
-        const visibleRowCount = document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
-        selectAllCheckbox.checked = selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
-    } else {
-        bar.classList.add('hidden');
-        selectAllCheckbox.checked = false;
-    }
-  }
-
-
-  // --- Event Listeners ---
-  document.addEventListener('DOMContentLoaded', () => {
-    const openTab = document.getElementById('open-positions-tab');
-    const closedTab = document.getElementById('closed-positions-tab');
-    const searchBar = document.getElementById('search-bar');
-    const tableBody = document.getElementById('interviews-table-body');
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
-    const moveToOpenBtn = document.getElementById('move-to-open-btn');
-    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-    const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
-    const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
-
-    // Confirmation Modal Buttons
-    confirmBtn.addEventListener('click', () => {
-        if (typeof confirmCallback === 'function') confirmCallback();
-        hideConfirmModal();
-    });
-    cancelBtn.addEventListener('click', hideConfirmModal);
-
-    // Tab Switching
-    function switchTab(newStatus) {
-        currentStatusFilter = newStatus;
-        openTab.classList.toggle('tab-active', newStatus === 'open');
-        closedTab.classList.toggle('tab-active', newStatus === 'closed');
-        fetchAndRenderInterviews(); // Fetch new data for the tab
-        selectedInterviewIds.clear(); // Clear selection on tab switch
-        updateBulkActionBar();
-    }
-    openTab.addEventListener('click', () => switchTab('open'));
-    closedTab.addEventListener('click', () => switchTab('closed'));
-
-    // Row Checkbox Handling
-    tableBody.addEventListener('change', (e) => {
-        if (e.target.classList.contains('row-checkbox')) {
-            const id = e.target.dataset.id;
-            if (e.target.checked) selectedInterviewIds.add(id);
-            else selectedInterviewIds.delete(id);
-            updateBulkActionBar();
+        // Re-render charts if they exist to apply new colors
+        if (interviewsLineChartInstance) {
+            loadLineChartData(currentDays, false); // false for no animation
         }
-    });
+        if (pieChartInstance) {
+            loadPieChartData(false); // false for no animation
+        }
+    }
 
-    // Select All Checkbox Handling
-    selectAllCheckbox.addEventListener('change', (e) => {
-        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(cb => {
-            if (cb.closest('tr') && !cb.closest('tr').style.display?.includes('none')) {
-                cb.checked = e.target.checked;
-                const id = cb.dataset.id;
-                if (e.target.checked) selectedInterviewIds.add(id);
-                else selectedInterviewIds.delete(id);
+    function toggleDarkMode() {
+        const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
+        // [MODIFIED] Use setCookie instead of localStorage
+        setCookie('theme', currentTheme, 30); // Save for 30 days
+        applyTheme(currentTheme);
+    }
+    
+    // [MOVED] Helper functions for cookies (moved to global scope)
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        // Added path=/ to make cookie available across the site
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+    // --- End Theme Management ---
+
+
+    // --- State Management ---
+    let interviewsLineChartInstance = null, pieChartInstance = null;
+    let currentDays = 7, currentInterviewStatus = 'open', currentInterviewDepartment = null, currentInterviewPage = 1;
+    const INTERVIEWS_PER_PAGE = 5;
+    let allUsers = [];
+    let currentCandidatePage = 1, currentCandidateSearch = '';
+    const CANDIDATES_PER_PAGE = 5;
+    let searchDebounceTimer;
+
+    // --- Utility and Notification Functions ---
+    function showNotification(title, text, options = {}) {
+        const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel' } = options;
+        const modal = document.getElementById('notification-modal');
+        const modalTitle = document.getElementById('notification-modal-title');
+        const modalText = document.getElementById('notification-modal-text');
+        const modalIcon = document.getElementById('notification-modal-icon');
+        const btnContainer = document.getElementById('notification-modal-buttons');
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+        if (isError) { 
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600 dark:text-red-300">error</span>`; 
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900"; 
+        } else { 
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600 dark:text-green-300">check_circle</span>`; 
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"; 
+        }
+        btnContainer.innerHTML = '';
+        if (onConfirm) { 
+            btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'; 
+            const confirmBtn = document.createElement('button'); 
+            confirmBtn.type = 'button'; 
+            confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2'; 
+            confirmBtn.textContent = confirmText; 
+            confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); }; 
+            const cancelBtn = document.createElement('button'); 
+            cancelBtn.type = 'button'; 
+            // Added dark mode class for cancel button
+            cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0 dark:bg-gray-600 dark:text-gray-200 dark:ring-gray-500 dark:hover:bg-gray-500'; 
+            cancelBtn.textContent = cancelText; 
+            cancelBtn.onclick = () => { modal.classList.add('hidden'); }; 
+            btnContainer.appendChild(cancelBtn); 
+            btnContainer.appendChild(confirmBtn);
+        } else { 
+            btnContainer.className = 'mt-5 sm:mt-6'; 
+            const okBtn = document.createElement('button'); 
+            okBtn.type = 'button'; 
+            okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90'; 
+            okBtn.textContent = 'Got it'; 
+            okBtn.onclick = () => { modal.classList.add('hidden'); }; 
+            btnContainer.appendChild(okBtn); 
+        }
+        modal.classList.remove('hidden');
+    }
+
+    // --- User Modal and Form Functions ---
+    function setupUserModal() {
+        const userModal = document.getElementById('user-modal');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const closeBtn = document.getElementById('close-user-modal');
+        const cancelBtn = document.getElementById('cancel-user-modal');
+        const userForm = document.getElementById('user-form');
+        const modalTitle = document.getElementById('user-modal-title');
+        const passwordContainer = document.getElementById('password-container');
+        const statusContainer = document.getElementById('user-status-container');
+        const deleteBtn = document.getElementById('delete-user-btn');
+
+        const openModal = () => userModal.classList.remove('hidden');
+        const closeModal = () => { userModal.classList.add('hidden'); userForm.reset(); };
+        
+        addUserBtn.addEventListener('click', () => {
+            userForm.reset();
+            modalTitle.textContent = 'Add New System User';
+            document.getElementById('userId').value = '';
+            passwordContainer.style.display = 'block';
+            document.getElementById('password').required = true;
+            document.getElementById('password').placeholder = 'Enter temporary password';
+            statusContainer.classList.add('hidden');
+            deleteBtn.classList.add('hidden');
+            openModal();
+        });
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(userForm);
+            const userId = formData.get('userId');
+            const departments = Array.from(userForm.querySelectorAll('input[name="departments"]:checked')).map(cb => cb.value);
+
+            const data = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email'),
+                departments: departments,
+                isActive: document.getElementById('user-status-toggle').checked
+            };
+
+            let url = '/api/add-user';
+            if (userId) {
+                url = `/api/user/${userId}/update`;
+                const password = formData.get('password');
+                if (password) data.password = password;
+            } else {
+                data.password = formData.get('password');
+                if (!data.password) { return showNotification('Error', 'Password is required for new users.', { isError: true }); }
+            }
+
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Failed to save user.');
+                showNotification('Success!', result.message);
+                closeModal();
+                loadUsers();
+            } catch (error) {
+                showNotification('Error', error.message, { isError: true });
             }
         });
-        updateBulkActionBar();
-    });
+    }
 
-    // Bulk Action Buttons
-    moveToClosedBtn.addEventListener('click', () => {
-        showConfirmModal(
-            `Move ${selectedInterviewIds.size} interviews?`,
-            "Are you sure you want to move the selected interviews to 'Closed'?",
-            async () => {
-                await fetch('/api/interviews/bulk-update-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'closed' })
-                });
-                selectedInterviewIds.clear();
-                updateBulkActionBar();
-                loadCounts();
-                fetchAndRenderInterviews();
-            }
+    function openEditUserModal(user) {
+        const userModal = document.getElementById('user-modal');
+        const userForm = document.getElementById('user-form');
+        const modalTitle = document.getElementById('user-modal-title');
+        const passwordContainer = document.getElementById('password-container');
+        const statusContainer = document.getElementById('user-status-container');
+        const deleteBtn = document.getElementById('delete-user-btn');
+        
+        userForm.reset();
+        modalTitle.textContent = 'Edit User';
+        
+        document.getElementById('userId').value = user.id;
+        document.getElementById('firstName').value = user.first_name;
+        document.getElementById('lastName').value = user.last_name;
+        document.getElementById('email').value = user.email;
+        document.getElementById('user-status-toggle').checked = user.is_active;
+
+        passwordContainer.style.display = 'block';
+        document.getElementById('password').required = false;
+        document.getElementById('password').placeholder = 'Leave blank to keep unchanged';
+        
+        document.querySelectorAll('input[name="departments"]').forEach(cb => cb.checked = false);
+        user.department.forEach(dept => {
+            const checkbox = document.getElementById(`dept-${dept.toLowerCase()}`);
+            if (checkbox) checkbox.checked = true;
+        });
+
+        statusContainer.classList.remove('hidden');
+        deleteBtn.classList.remove('hidden');
+
+        deleteBtn.onclick = () => {
+            confirmDeleteUser(user.id, `${user.first_name} ${user.last_name}`);
+        };
+
+        userModal.classList.remove('hidden');
+    }
+
+    // --- User Deletion Functions ---
+    function confirmDeleteUser(userId, userName) {
+        showNotification(
+            'Delete User?',
+            `Are you sure you want to delete ${userName}? This action cannot be undone.`,
+            { isError: true, onConfirm: () => deleteSingleUser(userId), confirmText: 'Yes, Delete', cancelText: 'Cancel' }
         );
-    });
-
-    moveToOpenBtn.addEventListener('click', () => {
-        showConfirmModal(
-            `Re-open ${selectedInterviewIds.size} interviews?`,
-            "Are you sure you want to move the selected interviews back to 'Open'?",
-            async () => {
-                await fetch('/api/interviews/bulk-update-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds), status: 'open' })
-                });
-                selectedInterviewIds.clear();
-                updateBulkActionBar();
-                loadCounts();
-                fetchAndRenderInterviews();
-            }
-        );
-    });
-
-    deleteSelectedBtn.addEventListener('click', () => {
-        showConfirmModal(
-            `Delete ${selectedInterviewIds.size} interviews?`,
-            "This action is permanent. All associated candidate data will also be deleted.",
-            async () => {
-                await fetch('/api/interviews/bulk-delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
-                });
-                selectedInterviewIds.clear();
-                updateBulkActionBar();
-                loadCounts();
-                fetchAndRenderInterviews();
-            }
-        );
-    });
-
-    // Search Bar (Client-side filtering)
-    searchBar.addEventListener('input', (e) => {
-      renderTable(e.target.value);
-      updateBulkActionBar(); // Update select-all based on filtered results
-    });
-
-    // --- Profile Dropdown & User Info Logic ---
-    const profileButton = document.getElementById('profile-menu-button');
-    const profileDropdown = document.getElementById('profile-menu-dropdown');
-    const profileInitials = document.getElementById('profile-initials');
-    const userEmailDisplay = document.getElementById('user-email-display');
-
-    async function fetchUserInfo() {
+    }
+    
+    async function deleteSingleUser(userId) {
         try {
-            const response = await fetch('/api/me');
-            if (!response.ok) {
-                 if (response.status === 401) { window.location.href = '/'; }
-                 else { throw new Error(`HTTP error! status: ${response.status}`); }
-                return;
-            }
-            const user = await response.json();
-            if (userEmailDisplay) userEmailDisplay.textContent = user.email || 'Error';
-            if (profileInitials && user.email) profileInitials.textContent = user.email.substring(0, 1).toUpperCase();
+            const response = await fetch('/api/users/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userIds: [userId] })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to delete user.');
+            showNotification('Success', result.message || 'User has been deleted.');
+            document.getElementById('user-modal').classList.add('hidden');
+            loadUsers();
         } catch (error) {
-            console.error("Failed to fetch user info:", error);
-            if (userEmailDisplay) userEmailDisplay.textContent = 'Error';
+            showNotification('Error', error.message, { isError: true });
+        }
+    }
+    
+    // --- Interview Functions ---
+    async function toggleInterviewStatus(id) {
+        try {
+            const response = await fetch(`/api/interview/${id}/toggle-status`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to update status.');
+            const toggledRow = document.querySelector(`input[onchange="toggleInterviewStatus('${id}')"]`).closest('tr');
+            if (toggledRow) {
+                toggledRow.style.opacity = 0;
+                setTimeout(() => {
+                    toggledRow.remove();
+                    const tbody = document.getElementById("interviews-table-body");
+                    if (tbody.childElementCount === 0) {
+                         tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">No ${currentInterviewStatus} interviews found.</td></tr>`;
+                    }
+                }, 300);
+            } else {
+                loadInterviews();
+            }
+        } catch (error) {
+            showNotification('Error', error.message, { isError: true });
         }
     }
 
-    if (profileButton && profileDropdown) {
-        profileButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileDropdown.classList.toggle('hidden');
-        });
-        document.addEventListener('click', (event) => {
-            if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                profileDropdown.classList.add('hidden');
+    function confirmDeleteInterview(id, title) {
+        showNotification(
+            'Delete Interview?',
+            `Are you sure you want to delete the interview "${title}"? This will also delete all associated candidate sessions and cannot be undone.`, {
+                isError: true,
+                onConfirm: () => deleteInterview(id),
+                confirmText: 'Yes, Delete',
+                cancelText: 'Cancel'
             }
-        });
-        fetchUserInfo();
+        );
     }
-    // --- End Profile Dropdown Logic ---
+
+    async function deleteInterview(id) {
+        try {
+            const response = await fetch(`/api/interview/${id}/delete`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to delete interview.');
+            showNotification('Success', 'The interview has been deleted successfully.');
+            currentInterviewPage = 1;
+            loadInterviews();
+        } catch (error) {
+            showNotification('Error', error.message, { isError: true });
+        }
+    }
+
+    // --- Data Loading Functions ---
+    async function loadUsers(isBackgroundRefresh = false) {
+        const tbody = document.getElementById("users-table-body");
+        if (tbody.childElementCount === 0 && !isBackgroundRefresh) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>';
+        }
+        try {
+            const response = await fetch('/api/users');
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            allUsers = await response.json();
+            renderUsersTable();
+        } catch (error) {
+            console.error("Failed to load users:", error);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load user data.</td></tr>';
+        }
+    }
+
+    function renderUsersTable() {
+        const tbody = document.getElementById("users-table-body");
+        tbody.innerHTML = "";
+        if (allUsers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">No users found.</td></tr>`;
+            return;
+        }
+        allUsers.forEach(user => {
+            const tr = document.createElement('tr');
+            // Added dark mode class for department badge
+            const departmentsHtml = user.department.map(d => `<span class="inline-block bg-gray-200 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-gray-600 dark:text-gray-200">${d}</span>`).join('');
+            const statusBadge = user.is_active 
+                ? `<div class="status-badge status-active">Active</div>`
+                : `<div class="status-badge status-inactive">Disabled</div>`;
+            
+            tr.innerHTML = `
+                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${user.first_name} ${user.last_name}</td>
+                <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
+                <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${departmentsHtml}</td>
+                <td class="whitespace-nowrap px-6 py-4">${statusBadge}</td>
+                <td class="whitespace-nowrap px-6 py-4 text-sm"><button class="text-indigo-600 hover:text-indigo-800 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">Edit</button></td>`;
+            tr.querySelector('button').addEventListener('click', () => openEditUserModal(user));
+            tbody.appendChild(tr);
+        });
+    }
+    
+    async function loadInterviews(isLoadMore = false) {
+        const tbody = document.getElementById("interviews-table-body");
+        const showMoreContainer = document.getElementById("show-more-interviews-container");
+        const deptHeader = document.getElementById("interview-dept-header");
+        let limit = INTERVIEWS_PER_PAGE;
+        
+        if (currentInterviewDepartment) {
+            deptHeader.style.display = 'none';
+        } else {
+            deptHeader.style.display = '';
+        }
+
+        const colspan = currentInterviewDepartment ? 4 : 5;
+        
+        if (!isLoadMore) {
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>`;
+        }
+        
+        let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`;
+        if (currentInterviewDepartment) apiUrl += `&department=${currentInterviewDepartment}`;
+        
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Failed to fetch interviews');
+            const interviews = await response.json();
+            
+            if (!isLoadMore) tbody.innerHTML = "";
+            if (interviews.length === 0 && !isLoadMore) {
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500 dark:text-gray-400">No ${currentInterviewStatus} interviews found.</td></tr>`;
+            }
+
+            interviews.forEach(interview => {
+                const tr = document.createElement('tr');
+                const isChecked = interview.position_status === 'open' ? 'checked' : '';
+                const creatorName = (interview.first_name && interview.last_name) ? `${interview.first_name} ${interview.last_name}` : 'N/A';
+                
+                const departmentCell = currentInterviewDepartment ? '' : `<td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${interview.department}</td>`;
+
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium"><a href="interview-view.html?id=${interview.id}" class="text-[var(--primary-color)] hover:underline">${interview.title}</a></td>
+                    ${departmentCell}
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${creatorName}</td>
+                    <td class="px-6 py-4"><label class="toggle-label"><input type="checkbox" class="sr-only peer" onchange="toggleInterviewStatus('${interview.id}')" ${isChecked}><div class="toggle-bg"></div></label></td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4">
+                        <a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">Edit</a>
+                        <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            showMoreContainer.innerHTML = "";
+            if (interviews.length === limit) {
+                const showMoreBtn = document.createElement('button');
+                // Added dark mode class for show more
+                showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
+                showMoreBtn.textContent = 'Show More';
+                showMoreContainer.appendChild(showMoreBtn);
+                showMoreBtn.addEventListener('click', () => { currentInterviewPage++; loadInterviews(true); });
+            }
+        } catch (error) {
+            console.error("Failed to load interviews:", error);
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-red-500">Failed to load interviews.</td></tr>`;
+        }
+    }
+    
+    async function loadCandidates(isLoadMore = false, isSearch = false) {
+        const tbody = document.getElementById("candidates-table-body");
+        const showMoreContainer = document.getElementById("show-more-candidates-container");
+        
+        if (isSearch || !isLoadMore) {
+            currentCandidatePage = 1;
+        }
+
+        if (!isLoadMore) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>';
+        }
+        
+        let apiUrl = `/api/candidates/all?page=${currentCandidatePage}&limit=${CANDIDATES_PER_PAGE}`;
+        if (currentCandidateSearch) {
+            apiUrl += `&search=${encodeURIComponent(currentCandidateSearch)}`;
+        }
+        
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Failed to fetch candidates');
+            const candidates = await response.json();
+            
+            if (!isLoadMore) tbody.innerHTML = "";
+            
+            candidates.forEach(candidate => {
+                const tr = document.createElement('tr');
+                // Added dark mode class for candidate status
+                const statusClass = candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${statusClass}">${candidate.status}</div></td>`;
+                tbody.appendChild(tr);
+            });
+
+            if (tbody.childElementCount === 0) {
+                 tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">No candidates found.</td></tr>`;
+            }
+
+            showMoreContainer.innerHTML = "";
+            const showMoreBtn = document.createElement('button');
+            // Added dark mode class for show more
+            showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
+            
+            if (candidates.length < CANDIDATES_PER_PAGE && currentCandidatePage > 1) {
+                showMoreBtn.textContent = 'Show Less';
+                showMoreBtn.addEventListener('click', () => { loadCandidates(false); });
+                showMoreContainer.appendChild(showMoreBtn);
+            } else if (candidates.length === CANDIDATES_PER_PAGE) {
+                showMoreBtn.textContent = 'Show More';
+                showMoreBtn.addEventListener('click', () => { currentCandidatePage++; loadCandidates(true); });
+                showMoreContainer.appendChild(showMoreBtn);
+            }
+
+        } catch (error) {
+            console.error("Failed to load candidates:", error);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-500">Failed to load candidates.</td></tr>`;
+        }
+    }
+
+    // --- CHARTING FUNCTIONS ---
+    async function loadLineChartData(days, withAnimation = true) {
+        try {
+            const response = await fetch(`/api/analytics/interviews-over-time?days=${days}`);
+            if (!response.ok) throw new Error('Failed to fetch line chart data');
+            const data = await response.json();
+            const labels = [], counts = [];
+            const dataMap = new Map(data.map(item => [new Date(item.date).toISOString().split('T')[0], item.count]));
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+                counts.push(parseInt(dataMap.get(dateString) || 0));
+            }
+            const ctx = document.getElementById('interviewsLineChart').getContext('2d');
+            
+            // Check for animation flag
+            if (interviewsLineChartInstance && !withAnimation) { 
+                interviewsLineChartInstance.data.labels = labels; 
+                interviewsLineChartInstance.data.datasets[0].data = counts; 
+                interviewsLineChartInstance.update('none'); // Update without animation
+                return; 
+            }
+            if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); }
+            
+            interviewsLineChartInstance = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Interviews Scheduled', 
+                        data: counts, 
+                        backgroundColor: 'rgba(17, 115, 212, 0.1)', 
+                        borderColor: 'rgba(17, 115, 212, 1)', 
+                        borderWidth: 2, 
+                        tension: 0.3, 
+                        fill: true, 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { stepSize: 1 } 
+                        } 
+                    }, 
+                    plugins: { 
+                        legend: { display: false } 
+                    },
+                    animation: withAnimation ? {} : { duration: 0 } // Control animation
+                } 
+            });
+        } catch (error) {
+            console.error(`Failed to load line chart data for ${days} days:`, error);
+        }
+    }
+
+    async function loadPieChartData(withAnimation = true) {
+        try {
+            const response = await fetch('/api/analytics/status-counts');
+            if (!response.ok) throw new Error('Failed to fetch pie chart data');
+            const data = await response.json();
+            const ctx = document.getElementById('statusPieChart').getContext('2d');
+            const labels = data.map(item => item.status);
+            const counts = data.map(item => item.count);
+            
+            // Check for animation flag
+            if (pieChartInstance && !withAnimation) { 
+                pieChartInstance.data.labels = labels; 
+                pieChartInstance.data.datasets[0].data = counts; 
+                pieChartInstance.update('none'); // Update without animation
+                return; 
+            }
+            if(pieChartInstance){ pieChartInstance.destroy(); }
+            
+            pieChartInstance = new Chart(ctx, { 
+                type: 'pie', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        data: counts, 
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], 
+                        borderColor: [htmlElement.classList.contains('dark') ? '#1f2937' : '#fff'], // Dynamic border color
+                        borderWidth: 2 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { position: 'top' } 
+                    },
+                    animation: withAnimation ? {} : { duration: 0 } // Control animation
+                } 
+            });
+        } catch (error) {
+            console.error("Failed to load pie chart data:", error);
+            const chartCanvas = document.getElementById('statusPieChart');
+            if (chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-center text-red-500">Could not load status data.</p>';
+        }
+    }
+
+    // --- MAIN SCRIPT ON PAGE LOAD ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- [NEW] Theme and Sidebar Setup ---
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+
+        // [MOVED] Helper functions for cookies are now global
+
+        // [MODIFIED] Apply initial theme from cookie, default to 'light'
+        const savedTheme = getCookie('theme');
+        applyTheme(savedTheme || 'light'); // Default to 'light' if no cookie is found
+
+        const sidebar = document.getElementById('main-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const openBtn = document.getElementById('mobile-menu-toggle');
+        const closeBtn = document.getElementById('mobile-menu-close');
+
+        const openSidebar = () => {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        };
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        };
+
+        openBtn.addEventListener('click', openSidebar);
+        closeBtn.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+        // --- End New Setup ---
 
 
-    // Initial Load & Polling
-    loadCounts();
-    fetchAndRenderInterviews();
-    setInterval(() => {
-        console.log("Refreshing GTA dashboard data..."); // <<< CHANGED Log Message
-        loadCounts();
-        fetchAndRenderInterviews();
-    }, 15000);
-  });
+        setupUserModal();
+
+        loadPieChartData();
+        loadUsers();
+        loadCandidates();
+        loadLineChartData(currentDays);
+        loadInterviews();
+        
+        setInterval(() => {
+            console.log("Refreshing admin dashboard data...");
+            loadPieChartData(false);
+            loadUsers(true);
+        }, 15000);
+        
+        const candidateSearchInput = document.getElementById('candidate-search');
+        candidateSearchInput.addEventListener('keyup', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                currentCandidateSearch = e.target.value;
+                loadCandidates(false, true);
+            }, 500);
+        });
+        
+        const statusBtns = { open: document.getElementById('open-interviews-btn'), closed: document.getElementById('closed-interviews-btn') };
+        const deptBtns = { all: document.getElementById('dept-all-btn'), hr: document.getElementById('dept-hr-btn'), pmo: document.getElementById('dept-pmo-btn'), gta: document.getElementById('dept-gta-btn') };
+        const handleFilterChange = () => { currentInterviewPage = 1; loadInterviews(); };
+        Object.entries(statusBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewStatus = key; Object.values(statusBtns).forEach(b => b.classList.remove('tab-btn-active')); btn.classList.add('tab-btn-active'); handleFilterChange(); }); });
+        const departmentMap = { all: null, hr: 'HR', pmo: 'PMO', gta: 'GTA' };
+        Object.entries(deptBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewDepartment = departmentMap[key]; Object.values(deptBtns).forEach(b => { b.classList.remove('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); b.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400'); }); btn.classList.add('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400'); handleFilterChange(); }); });
+        
+        const lineChartButtons = { '7d': document.getElementById('7d-btn'), '14d': document.getElementById('14d-btn'), '30d': document.getElementById('30d-btn') };
+        const handleLineChartClick = (days, clickedBtnKey) => { 
+            currentDays = days; 
+            Object.keys(lineChartButtons).forEach(key => { 
+                lineChartButtons[key].classList.remove('bg-white', 'shadow', 'text-gray-700', 'dark:text-gray-900'); 
+                lineChartButtons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow', 'dark:text-gray-400', 'dark:hover:bg-gray-100', 'dark:hover:text-gray-900'); 
+            }); 
+            lineChartButtons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700', 'dark:text-gray-900'); 
+            lineChartButtons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow', 'dark:text-gray-400', 'dark:hover:bg-gray-100', 'dark:hover:text-gray-900'); 
+            loadLineChartData(days); 
+        };
+        lineChartButtons['7d'].addEventListener('click', () => handleLineChartClick(7, '7d'));
+        lineChartButtons['14d'].addEventListener('click', () => handleLineChartClick(14, '14d'));
+        lineChartButtons['30d'].addEventListener('click', () => handleLineChartClick(30, '30d'));
+    });
 </script>
-
 </body>
 </html>
+
