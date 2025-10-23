@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- [NEW] Added `dark` class here, will be controlled by JS -->
+<!-- [MODIFIED] Removed default dark class, JS will handle it -->
 <html lang="en" class="">
 <head>
     <meta charset="utf-8"/>
@@ -10,7 +10,7 @@
     <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- [NEW] Added Tailwind config to enable 'class' dark mode -->
+    <!-- Added Tailwind config to enable 'class' dark mode -->
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -24,7 +24,7 @@
         --text-primary: #111418;
         --text-secondary: #617589;
       }
-      /* [NEW] Dark mode variables */
+      /* Dark mode variables */
       .dark {
         --secondary-color: #1f2937; /* gray-800 */
         --text-primary: #f9fafb; /* gray-50 */
@@ -32,7 +32,7 @@
       }
       
       .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
-      /* [MODIFIED] Added dark mode styles */
+      /* Added dark mode styles */
       .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
       .status-inactive { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200; }
       .status-dot { @apply h-2 w-2 rounded-full; }
@@ -46,11 +46,11 @@
       .dept-checkbox-group label:has(input:checked) { @apply border-[var(--primary-color)] bg-blue-50 ring-1 ring-[var(--primary-color)] dark:bg-blue-900/50 dark:border-blue-500; }
     </style>
 </head>
-<!-- [MODIFIED] Added dark mode class to body -->
+<!-- Added dark mode class to body -->
 <body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
 <div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden dark:bg-gray-900">
 
-<!-- [MODIFIED] Mobile-only header with dark mode classes -->
+<!-- Mobile-only header with dark mode classes -->
 <header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
     <div class="flex items-center gap-2">
         <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
@@ -61,7 +61,7 @@
 </header>
 
 <div class="flex h-full w-full">
-<!-- [MODIFIED] Sidebar with dark mode classes -->
+<!-- Sidebar with dark mode classes -->
 <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
     <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
         <div class="flex flex-col items-start">
@@ -74,7 +74,7 @@
     </div>
     
     <div class="flex flex-1 flex-col overflow-y-auto">
-        <!-- [MODIFIED] Nav links with dark mode classes -->
+        <!-- Nav links with dark mode classes -->
         <nav class="flex-1 space-y-2 p-4">
             <a class="flex items-center gap-3 rounded-md bg-[var(--secondary-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)]" href="#">
                 <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
@@ -90,7 +90,7 @@
             </a>
         </nav>
         
-        <!-- [MODIFIED] Dark mode toggle with dark mode classes -->
+        <!-- Dark mode toggle with dark mode classes -->
         <div class="mt-auto border-t border-gray-200 p-4 dark:border-gray-700">
             <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="material-symbols-outlined">dark_mode</span>
@@ -100,10 +100,10 @@
     </div>
 </aside>
 
-<!-- [NEW] Sidebar Overlay for mobile (hidden by default) -->
+<!-- Sidebar Overlay for mobile (hidden by default) -->
 <div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
-<!-- [MODIFIED] Main content with dark mode classes -->
+<!-- Main content with dark mode classes -->
 <main class="flex-1 bg-gray-50 p-6 sm:p-8 dark:bg-gray-900">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
@@ -202,7 +202,7 @@
 </div>
 </div>
 
-<!-- [MODIFIED] User Modal with dark mode classes -->
+<!-- User Modal with dark mode classes -->
 <div id="user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
     <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl dark:bg-gray-800">
         <form id="user-form">
@@ -248,7 +248,7 @@
     </div>
 </div>
 
-<!-- [MODIFIED] Notification Modal with dark mode classes -->
+<!-- Notification Modal with dark mode classes -->
 <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center dark:bg-gray-800">
         <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
@@ -264,7 +264,7 @@
     </div>
 </div>
 
-<!-- [MODIFIED] FULL SCRIPT BLOCK with new additions -->
+<!-- [MODIFIED] FULL SCRIPT BLOCK with cookie-based theme management -->
 <script>
     // --- [NEW] Theme Management ---
     const htmlElement = document.documentElement;
@@ -296,7 +296,8 @@
 
     function toggleDarkMode() {
         const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
-        localStorage.setItem('theme', currentTheme);
+        // [MODIFIED] Use setCookie instead of localStorage
+        setCookie('theme', currentTheme, 30); // Save for 30 days
         applyTheme(currentTheme);
     }
     // --- End Theme Management ---
@@ -338,7 +339,7 @@
             confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); }; 
             const cancelBtn = document.createElement('button'); 
             cancelBtn.type = 'button'; 
-            // [MODIFIED] Added dark mode class for cancel button
+            // Added dark mode class for cancel button
             cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0 dark:bg-gray-600 dark:text-gray-200 dark:ring-gray-500 dark:hover:bg-gray-500'; 
             cancelBtn.textContent = cancelText; 
             cancelBtn.onclick = () => { modal.classList.add('hidden'); }; 
@@ -561,7 +562,7 @@
         }
         allUsers.forEach(user => {
             const tr = document.createElement('tr');
-            // [MODIFIED] Added dark mode class for department badge
+            // Added dark mode class for department badge
             const departmentsHtml = user.department.map(d => `<span class="inline-block bg-gray-200 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-gray-600 dark:text-gray-200">${d}</span>`).join('');
             const statusBadge = user.is_active 
                 ? `<div class="status-badge status-active">Active</div>`
@@ -632,7 +633,7 @@
             showMoreContainer.innerHTML = "";
             if (interviews.length === limit) {
                 const showMoreBtn = document.createElement('button');
-                // [MODIFIED] Added dark mode class for show more
+                // Added dark mode class for show more
                 showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
                 showMoreBtn.textContent = 'Show More';
                 showMoreContainer.appendChild(showMoreBtn);
@@ -670,7 +671,7 @@
             
             candidates.forEach(candidate => {
                 const tr = document.createElement('tr');
-                // [MODIFIED] Added dark mode class for candidate status
+                // Added dark mode class for candidate status
                 const statusClass = candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
                 tr.innerHTML = `
                     <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
@@ -686,7 +687,7 @@
 
             showMoreContainer.innerHTML = "";
             const showMoreBtn = document.createElement('button');
-            // [MODIFIED] Added dark mode class for show more
+            // Added dark mode class for show more
             showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
             
             if (candidates.length < CANDIDATES_PER_PAGE && currentCandidatePage > 1) {
@@ -722,7 +723,7 @@
             }
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
             
-            // [MODIFIED] Check for animation flag
+            // Check for animation flag
             if (interviewsLineChartInstance && !withAnimation) { 
                 interviewsLineChartInstance.data.labels = labels; 
                 interviewsLineChartInstance.data.datasets[0].data = counts; 
@@ -757,7 +758,7 @@
                     plugins: { 
                         legend: { display: false } 
                     },
-                    animation: withAnimation ? {} : { duration: 0 } // [MODIFIED] Control animation
+                    animation: withAnimation ? {} : { duration: 0 } // Control animation
                 } 
             });
         } catch (error) {
@@ -774,7 +775,7 @@
             const labels = data.map(item => item.status);
             const counts = data.map(item => item.count);
             
-            // [MODIFIED] Check for animation flag
+            // Check for animation flag
             if (pieChartInstance && !withAnimation) { 
                 pieChartInstance.data.labels = labels; 
                 pieChartInstance.data.datasets[0].data = counts; 
@@ -790,7 +791,7 @@
                     datasets: [{ 
                         data: counts, 
                         backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], 
-                        borderColor: [htmlElement.classList.contains('dark') ? '#1f2937' : '#fff'], // [MODIFIED] Dynamic border color
+                        borderColor: [htmlElement.classList.contains('dark') ? '#1f2937' : '#fff'], // Dynamic border color
                         borderWidth: 2 
                     }] 
                 }, 
@@ -800,7 +801,7 @@
                     plugins: { 
                         legend: { position: 'top' } 
                     },
-                    animation: withAnimation ? {} : { duration: 0 } // [MODIFIED] Control animation
+                    animation: withAnimation ? {} : { duration: 0 } // Control animation
                 } 
             });
         } catch (error) {
@@ -816,10 +817,31 @@
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         darkModeToggle.addEventListener('click', toggleDarkMode);
 
-        // Apply initial theme
-        const savedTheme = localStorage.getItem('theme');
-        const osTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        applyTheme(savedTheme || osTheme);
+        // [NEW] Helper functions for cookies
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            // Added path=/ to make cookie available across the site
+            document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+        }
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i=0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // [MODIFIED] Apply initial theme from cookie, default to 'light'
+        const savedTheme = getCookie('theme');
+        applyTheme(savedTheme || 'light'); // Default to 'light' if no cookie is found
 
         const sidebar = document.getElementById('main-sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -889,3 +911,4 @@
 </script>
 </body>
 </html>
+
