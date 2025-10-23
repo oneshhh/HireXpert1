@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- [NEW] Added `dark` class here, will be controlled by JS -->
+<html lang="en" class="">
 <head>
     <meta charset="utf-8"/>
     <title>HireXpert - Admin Panel</title>
+    <!-- Added viewport for mobile-friendliness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
     <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- [NEW] Added Tailwind config to enable 'class' dark mode -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style type="text/tailwindcss">
       :root {
@@ -15,63 +24,130 @@
         --text-primary: #111418;
         --text-secondary: #617589;
       }
+      /* [NEW] Dark mode variables */
+      .dark {
+        --secondary-color: #1f2937; /* gray-800 */
+        --text-primary: #f9fafb; /* gray-50 */
+        --text-secondary: #9ca3af; /* gray-400 */
+      }
+      
       .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
-      .status-active { @apply bg-green-100 text-green-800; }
-      .status-inactive { @apply bg-red-100 text-red-800; }
+      /* [MODIFIED] Added dark mode styles */
+      .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
+      .status-inactive { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200; }
       .status-dot { @apply h-2 w-2 rounded-full; }
-      .tab-btn { @apply rounded-md px-4 py-2 text-sm font-medium text-gray-600 transition; }
-      .tab-btn-active { @apply bg-white text-gray-900 shadow-sm; }
+      .tab-btn { @apply rounded-md px-4 py-2 text-sm font-medium text-gray-600 transition dark:text-gray-400 dark:hover:bg-gray-700; }
+      .tab-btn-active { @apply bg-white text-gray-900 shadow-sm dark:bg-gray-100 dark:text-gray-900; } /* Active tab light for contrast */
       .toggle-label { @apply relative inline-flex cursor-pointer items-center; }
-      .toggle-bg { @apply h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white; }
+      .toggle-bg { @apply h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700 dark:after:border-gray-600 dark:after:bg-gray-900; }
       /* Custom styles for multi-select checkboxes */
-      .dept-checkbox-group label { @apply flex items-center space-x-3 rounded-md border border-gray-300 px-4 py-3 cursor-pointer hover:bg-gray-50; }
+      .dept-checkbox-group label { @apply flex items-center space-x-3 rounded-md border border-gray-300 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700; }
       .dept-checkbox-group input:checked + span { @apply text-[var(--primary-color)] font-semibold; }
-      .dept-checkbox-group label:has(input:checked) { @apply border-[var(--primary-color)] bg-blue-50 ring-1 ring-[var(--primary-color)]; }
+      .dept-checkbox-group label:has(input:checked) { @apply border-[var(--primary-color)] bg-blue-50 ring-1 ring-[var(--primary-color)] dark:bg-blue-900/50 dark:border-blue-500; }
     </style>
 </head>
-<body class="bg-gray-50 font-sans" style='font-family: Inter, "Noto Sans", sans-serif;'>
-<div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden">
-<div class="flex h-full w-full">
-<aside class="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
-    <div class="flex h-16 items-center justify-center border-b border-gray-200">
-        <h1 class="text-xl font-bold text-[var(--text-primary)]">Admin Panel</h1>
+<!-- [MODIFIED] Added dark mode class to body -->
+<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden dark:bg-gray-900">
+
+<!-- [MODIFIED] Mobile-only header with dark mode classes -->
+<header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
+    <div class="flex items-center gap-2">
+        <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
     </div>
-    <nav class="flex-1 space-y-2 p-4">
-        <a class="flex items-center gap-3 rounded-md bg-[var(--secondary-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)]" href="#">
-            <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
-            Dashboard
-        </a>
-        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="settings.html">
-            <span class="material-symbols-outlined">settings</span>
-            Settings
-        </a>
-        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100" href="/logout">
-            <span class="material-symbols-outlined">logout</span>
-            Logout
-        </a>
-    </nav>
+    <button id="mobile-menu-toggle" type="button" class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Open sidebar">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
+</header>
+
+<div class="flex h-full w-full">
+<!-- [MODIFIED] Sidebar with dark mode classes -->
+<aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
+    <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
+        <div class="flex flex-col items-start">
+            <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
+            <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+        </div>
+        <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+    
+    <div class="flex flex-1 flex-col overflow-y-auto">
+        <!-- [MODIFIED] Nav links with dark mode classes -->
+        <nav class="flex-1 space-y-2 p-4">
+            <a class="flex items-center gap-3 rounded-md bg-[var(--secondary-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)]" href="#">
+                <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
+                Dashboard
+            </a>
+            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="settings.html">
+                <span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="/logout">
+                <span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+        </nav>
+        
+        <!-- [MODIFIED] Dark mode toggle with dark mode classes -->
+        <div class="mt-auto border-t border-gray-200 p-4 dark:border-gray-700">
+            <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+                <span class="material-symbols-outlined">dark_mode</span>
+                <span>Toggle Theme</span>
+            </button>
+        </div>
+    </div>
 </aside>
-<main class="flex-1 bg-gray-50 p-8">
+
+<!-- [NEW] Sidebar Overlay for mobile (hidden by default) -->
+<div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
+
+<!-- [MODIFIED] Main content with dark mode classes -->
+<main class="flex-1 bg-gray-50 p-6 sm:p-8 dark:bg-gray-900">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                <div class="flex justify-between items-center mb-4"><h3 class="font-semibold text-gray-800">Interviews Scheduled</h3><div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1"><button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow">7D</button><button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">14D</button><button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow">30D</button></div></div>
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-200">Interviews Scheduled</h3>
+                    <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                        <button id="7d-btn" class="px-3 py-1 text-sm font-medium text-gray-700 rounded-md bg-white shadow dark:text-gray-900">7D</button>
+                        <button id="14d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow dark:text-gray-400 dark:hover:bg-gray-100 dark:hover:text-gray-900">14D</button>
+                        <button id="30d-btn" class="px-3 py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-white hover:shadow dark:text-gray-400 dark:hover:bg-gray-100 dark:hover:text-gray-900">30D</button>
+                    </div>
+                </div>
                 <div class="relative h-64"><canvas id="interviewsLineChart"></canvas></div>
             </div>
-            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                 <h3 class="font-semibold text-gray-800 mb-4 text-center">Candidate Status Distribution</h3>
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                 <h3 class="font-semibold text-gray-800 mb-4 text-center dark:text-gray-200">Candidate Status Distribution</h3>
                 <div class="relative mx-auto h-64" style="max-width: 256px;"><canvas id="statusPieChart"></canvas></div>
             </div>
         </div>
     </div>
 
     <div class="mt-12">
-        <div class="mb-6"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between"><h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2><div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0"><button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button><button id="closed-interviews-btn" class="tab-btn">Closed</button></div></div><div class="mt-4 border-b border-gray-200"><nav class="-mb-px flex space-x-6" aria-label="Tabs"><button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button><button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">HR</button><button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">PMO</button><button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">GTA</button></nav></div></div>
-        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200"></tbody></table>
+        <div class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-2xl font-bold text-[var(--text-primary)]">All Scheduled Interviews</h2>
+                <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-1 mt-4 sm:mt-0 dark:bg-gray-700">
+                    <button id="open-interviews-btn" class="tab-btn tab-btn-active">Open</button>
+                    <button id="closed-interviews-btn" class="tab-btn">Closed</button>
+                </div>
+            </div>
+            <div class="mt-4 border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                    <button id="dept-all-btn" class="whitespace-nowrap border-b-2 border-[var(--primary-color)] px-1 py-3 text-sm font-medium text-[var(--primary-color)]">All Departments</button>
+                    <button id="dept-hr-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">HR</button>
+                    <button id="dept-pmo-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">PMO</button>
+                    <button id="dept-gta-btn" class="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300">GTA</button>
+                </nav>
+            </div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table>
         </div>
         <div id="show-more-interviews-container" class="mt-4 text-center"></div>
     </div>
@@ -79,11 +155,13 @@
     <div class="mt-12">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-[var(--text-primary)]">System Users</h2>
-            <button id="add-user-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90"><span class="material-symbols-outlined">add</span>New User</button>
+            <button id="add-user-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">
+                <span class="material-symbols-outlined">add</span>New User
+            </button>
         </div>
-        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <table class="w-full">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Email</th>
@@ -92,7 +170,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="users-table-body" class="divide-y divide-gray-200"></tbody>
+                <tbody id="users-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
             </table>
         </div>
     </div>
@@ -101,13 +179,13 @@
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-2xl font-bold text-[var(--text-primary)]">Global Candidates</h2>
             <div class="relative mt-4 sm:mt-0">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                <input type="text" id="candidate-search" placeholder="Search by email or title..." class="w-full sm:w-64 rounded-md border-gray-300 pl-10 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">search</span>
+                <input type="text" id="candidate-search" placeholder="Search by email or title..." class="w-full sm:w-64 rounded-md border-gray-300 pl-10 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
             </div>
         </div>
-        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <table class="w-full">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
@@ -115,7 +193,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
                     </tr>
                 </thead>
-                <tbody id="candidates-table-body" class="divide-y divide-gray-200"></tbody>
+                <tbody id="candidates-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
             </table>
         </div>
         <div id="show-more-candidates-container" class="mt-4 text-center"></div>
@@ -124,27 +202,28 @@
 </div>
 </div>
 
+<!-- [MODIFIED] User Modal with dark mode classes -->
 <div id="user-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
-    <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl">
+    <div class="w-full max-w-lg transform rounded-lg bg-white shadow-xl dark:bg-gray-800">
         <form id="user-form">
             <input type="hidden" id="userId" name="userId">
             <div class="p-6">
                 <div class="flex items-center justify-between">
-                    <h3 id="user-modal-title" class="text-xl font-semibold text-gray-900">Add New System User</h3>
-                    <button type="button" id="close-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600"><span class="material-symbols-outlined">close</span></button>
+                    <h3 id="user-modal-title" class="text-xl font-semibold text-gray-900 dark:text-gray-100">Add New System User</h3>
+                    <button type="button" id="close-user-modal" class="p-1 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"><span class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="mt-6 space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label><input type="text" id="firstName" name="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
-                        <div><label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label><input type="text" id="lastName" name="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
+                        <div><label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label><input type="text" id="firstName" name="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
+                        <div><label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label><input type="text" id="lastName" name="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
                     </div>
-                    <div><label for="email" class="block text-sm font-medium text-gray-700">Email Address</label><input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"></div>
+                    <div><label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label><input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white"></div>
                     <div id="password-container">
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="text" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]" placeholder="Leave blank to keep unchanged">
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                        <input type="text" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Leave blank to keep unchanged">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Department Access</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Department Access</label>
                         <div class="mt-2 grid grid-cols-2 gap-3 dept-checkbox-group">
                             <label for="dept-hr"><input id="dept-hr" type="checkbox" name="departments" value="HR" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>HR</span></label>
                             <label for="dept-pmo"><input id="dept-pmo" type="checkbox" name="departments" value="PMO" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"><span>PMO</span></label>
@@ -153,15 +232,15 @@
                         </div>
                     </div>
                     <div id="user-status-container" class="hidden">
-                        <label class="block text-sm font-medium text-gray-700">Account Status</label>
-                        <label class="toggle-label mt-2"><input type="checkbox" id="user-status-toggle" class="sr-only peer"><div class="toggle-bg"></div><span class="ms-3 text-sm font-medium text-gray-900">Active</span></label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Account Status</label>
+                        <label class="toggle-label mt-2"><input type="checkbox" id="user-status-toggle" class="sr-only peer"><div class="toggle-bg"></div><span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-100">Active</span></label>
                     </div>
                 </div>
             </div>
-            <div class="flex justify-between items-center border-t bg-gray-50 px-6 py-4">
+            <div class="flex justify-between items-center border-t bg-gray-50 px-6 py-4 dark:bg-gray-700 dark:border-gray-600">
                 <button type="button" id="delete-user-btn" class="hidden rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Delete User</button>
                 <div class="flex justify-end gap-3 flex-grow">
-                    <button type="button" id="cancel-user-modal" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="button" id="cancel-user-modal" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-500">Cancel</button>
                     <button type="submit" class="rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90">Save Changes</button>
                 </div>
             </div>
@@ -169,11 +248,60 @@
     </div>
 </div>
 
+<!-- [MODIFIED] Notification Modal with dark mode classes -->
 <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
-    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center"><div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"><span class="material-symbols-outlined text-3xl text-green-600">check_circle</span></div><h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3><div class="mt-2"><p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed.</p></div><div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3"></div></div>
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center dark:bg-gray-800">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+            <span class="material-symbols-outlined text-3xl text-green-600 dark:text-green-300">check_circle</span>
+        </div>
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500 dark:text-gray-400">Your action was completed.</p>
+        </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+            <!-- Buttons are added dynamically, dark mode classes will be needed in the JS function -->
+        </div>
+    </div>
 </div>
 
+<!-- [MODIFIED] FULL SCRIPT BLOCK with new additions -->
 <script>
+    // --- [NEW] Theme Management ---
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            htmlElement.classList.add('dark');
+            // Update Chart.js defaults for dark mode
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = '#9ca3af'; // text-gray-400
+                Chart.defaults.borderColor = '#374151'; // border-gray-700
+            }
+        } else {
+            htmlElement.classList.remove('dark');
+            // Update Chart.js defaults for light mode
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = '#6b7280'; // text-gray-500
+                Chart.defaults.borderColor = '#e5e7eb'; // border-gray-200
+            }
+        }
+        // Re-render charts if they exist to apply new colors
+        if (interviewsLineChartInstance) {
+            loadLineChartData(currentDays, false); // false for no animation
+        }
+        if (pieChartInstance) {
+            loadPieChartData(false); // false for no animation
+        }
+    }
+
+    function toggleDarkMode() {
+        const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
+        localStorage.setItem('theme', currentTheme);
+        applyTheme(currentTheme);
+    }
+    // --- End Theme Management ---
+
+
     // --- State Management ---
     let interviewsLineChartInstance = null, pieChartInstance = null;
     let currentDays = 7, currentInterviewStatus = 'open', currentInterviewDepartment = null, currentInterviewPage = 1;
@@ -193,10 +321,38 @@
         const btnContainer = document.getElementById('notification-modal-buttons');
         modalTitle.textContent = title;
         modalText.textContent = text;
-        if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; } else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; }
+        if (isError) { 
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600 dark:text-red-300">error</span>`; 
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900"; 
+        } else { 
+            modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600 dark:text-green-300">check_circle</span>`; 
+            modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"; 
+        }
         btnContainer.innerHTML = '';
-        if (onConfirm) { btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'; const confirmBtn = document.createElement('button'); confirmBtn.type = 'button'; confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2'; confirmBtn.textContent = confirmText; confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); }; const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0'; cancelBtn.textContent = cancelText; cancelBtn.onclick = () => { modal.classList.add('hidden'); }; btnContainer.appendChild(cancelBtn); btnContainer.appendChild(confirmBtn);
-        } else { btnContainer.className = 'mt-5 sm:mt-6'; const okBtn = document.createElement('button'); okBtn.type = 'button'; okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90'; okBtn.textContent = 'Got it'; okBtn.onclick = () => { modal.classList.add('hidden'); }; btnContainer.appendChild(okBtn); }
+        if (onConfirm) { 
+            btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'; 
+            const confirmBtn = document.createElement('button'); 
+            confirmBtn.type = 'button'; 
+            confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2'; 
+            confirmBtn.textContent = confirmText; 
+            confirmBtn.onclick = () => { modal.classList.add('hidden'); onConfirm(); }; 
+            const cancelBtn = document.createElement('button'); 
+            cancelBtn.type = 'button'; 
+            // [MODIFIED] Added dark mode class for cancel button
+            cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0 dark:bg-gray-600 dark:text-gray-200 dark:ring-gray-500 dark:hover:bg-gray-500'; 
+            cancelBtn.textContent = cancelText; 
+            cancelBtn.onclick = () => { modal.classList.add('hidden'); }; 
+            btnContainer.appendChild(cancelBtn); 
+            btnContainer.appendChild(confirmBtn);
+        } else { 
+            btnContainer.className = 'mt-5 sm:mt-6'; 
+            const okBtn = document.createElement('button'); 
+            okBtn.type = 'button'; 
+            okBtn.className = 'inline-flex w-full h-10 justify-center items-center rounded-md bg-[var(--primary-color)] px-3 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90'; 
+            okBtn.textContent = 'Got it'; 
+            okBtn.onclick = () => { modal.classList.add('hidden'); }; 
+            btnContainer.appendChild(okBtn); 
+        }
         modal.classList.remove('hidden');
     }
 
@@ -343,7 +499,7 @@
                     toggledRow.remove();
                     const tbody = document.getElementById("interviews-table-body");
                     if (tbody.childElementCount === 0) {
-                         tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
+                         tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">No ${currentInterviewStatus} interviews found.</td></tr>`;
                     }
                 }, 300);
             } else {
@@ -383,7 +539,7 @@
     async function loadUsers(isBackgroundRefresh = false) {
         const tbody = document.getElementById("users-table-body");
         if (tbody.childElementCount === 0 && !isBackgroundRefresh) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>';
         }
         try {
             const response = await fetch('/api/users');
@@ -400,12 +556,13 @@
         const tbody = document.getElementById("users-table-body");
         tbody.innerHTML = "";
         if (allUsers.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4">No users found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500 dark:text-gray-400">No users found.</td></tr>`;
             return;
         }
         allUsers.forEach(user => {
             const tr = document.createElement('tr');
-            const departmentsHtml = user.department.map(d => `<span class="inline-block bg-gray-200 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">${d}</span>`).join('');
+            // [MODIFIED] Added dark mode class for department badge
+            const departmentsHtml = user.department.map(d => `<span class="inline-block bg-gray-200 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-gray-600 dark:text-gray-200">${d}</span>`).join('');
             const statusBadge = user.is_active 
                 ? `<div class="status-badge status-active">Active</div>`
                 : `<div class="status-badge status-inactive">Disabled</div>`;
@@ -415,7 +572,7 @@
                 <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${user.email}</td>
                 <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${departmentsHtml}</td>
                 <td class="whitespace-nowrap px-6 py-4">${statusBadge}</td>
-                <td class="whitespace-nowrap px-6 py-4 text-sm"><button class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button></td>`;
+                <td class="whitespace-nowrap px-6 py-4 text-sm"><button class="text-indigo-600 hover:text-indigo-800 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">Edit</button></td>`;
             tr.querySelector('button').addEventListener('click', () => openEditUserModal(user));
             tbody.appendChild(tr);
         });
@@ -427,7 +584,6 @@
         const deptHeader = document.getElementById("interview-dept-header");
         let limit = INTERVIEWS_PER_PAGE;
         
-        // DYNAMICALLY HIDE/SHOW DEPARTMENT HEADER
         if (currentInterviewDepartment) {
             deptHeader.style.display = 'none';
         } else {
@@ -437,7 +593,7 @@
         const colspan = currentInterviewDepartment ? 4 : 5;
         
         if (!isLoadMore) {
-            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">Loading...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>`;
         }
         
         let apiUrl = `/api/interviews?position_status=${currentInterviewStatus}&page=${currentInterviewPage}&limit=${limit}`;
@@ -450,7 +606,7 @@
             
             if (!isLoadMore) tbody.innerHTML = "";
             if (interviews.length === 0 && !isLoadMore) {
-                tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">No ${currentInterviewStatus} interviews found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500 dark:text-gray-400">No ${currentInterviewStatus} interviews found.</td></tr>`;
             }
 
             interviews.forEach(interview => {
@@ -465,7 +621,10 @@
                     ${departmentCell}
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${creatorName}</td>
                     <td class="px-6 py-4"><label class="toggle-label"><input type="checkbox" class="sr-only peer" onchange="toggleInterviewStatus('${interview.id}')" ${isChecked}><div class="toggle-bg"></div></label></td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4"><a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</a><button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button></td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm space-x-4">
+                        <a href="interview-edit.html?id=${interview.id}" class="text-indigo-600 hover:text-indigo-800 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">Edit</a>
+                        <button onclick="confirmDeleteInterview('${interview.id}', '${interview.title.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 font-medium dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -473,7 +632,8 @@
             showMoreContainer.innerHTML = "";
             if (interviews.length === limit) {
                 const showMoreBtn = document.createElement('button');
-                showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
+                // [MODIFIED] Added dark mode class for show more
+                showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
                 showMoreBtn.textContent = 'Show More';
                 showMoreContainer.appendChild(showMoreBtn);
                 showMoreBtn.addEventListener('click', () => { currentInterviewPage++; loadInterviews(true); });
@@ -493,7 +653,7 @@
         }
 
         if (!isLoadMore) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</td></tr>';
         }
         
         let apiUrl = `/api/candidates/all?page=${currentCandidatePage}&limit=${CANDIDATES_PER_PAGE}`;
@@ -510,17 +670,24 @@
             
             candidates.forEach(candidate => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td><td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td><td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800'}">${candidate.status}</div></td>`;
+                // [MODIFIED] Added dark mode class for candidate status
+                const statusClass = candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                tr.innerHTML = `
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
+                    <td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${statusClass}">${candidate.status}</div></td>`;
                 tbody.appendChild(tr);
             });
 
             if (tbody.childElementCount === 0) {
-                 tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No candidates found.</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">No candidates found.</td></tr>`;
             }
 
             showMoreContainer.innerHTML = "";
             const showMoreBtn = document.createElement('button');
-            showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200';
+            // [MODIFIED] Added dark mode class for show more
+            showMoreBtn.className = 'rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600';
             
             if (candidates.length < CANDIDATES_PER_PAGE && currentCandidatePage > 1) {
                 showMoreBtn.textContent = 'Show Less';
@@ -554,9 +721,45 @@
                 counts.push(parseInt(dataMap.get(dateString) || 0));
             }
             const ctx = document.getElementById('interviewsLineChart').getContext('2d');
-            if (interviewsLineChartInstance && !withAnimation) { interviewsLineChartInstance.data.labels = labels; interviewsLineChartInstance.data.datasets[0].data = counts; interviewsLineChartInstance.update('none'); return; }
+            
+            // [MODIFIED] Check for animation flag
+            if (interviewsLineChartInstance && !withAnimation) { 
+                interviewsLineChartInstance.data.labels = labels; 
+                interviewsLineChartInstance.data.datasets[0].data = counts; 
+                interviewsLineChartInstance.update('none'); // Update without animation
+                return; 
+            }
             if (interviewsLineChartInstance) { interviewsLineChartInstance.destroy(); }
-            interviewsLineChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Interviews Scheduled', data: counts, backgroundColor: 'rgba(17, 115, 212, 0.1)', borderColor: 'rgba(17, 115, 212, 1)', borderWidth: 2, tension: 0.3, fill: true, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, } });
+            
+            interviewsLineChartInstance = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Interviews Scheduled', 
+                        data: counts, 
+                        backgroundColor: 'rgba(17, 115, 212, 0.1)', 
+                        borderColor: 'rgba(17, 115, 212, 1)', 
+                        borderWidth: 2, 
+                        tension: 0.3, 
+                        fill: true, 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { stepSize: 1 } 
+                        } 
+                    }, 
+                    plugins: { 
+                        legend: { display: false } 
+                    },
+                    animation: withAnimation ? {} : { duration: 0 } // [MODIFIED] Control animation
+                } 
+            });
         } catch (error) {
             console.error(`Failed to load line chart data for ${days} days:`, error);
         }
@@ -570,9 +773,36 @@
             const ctx = document.getElementById('statusPieChart').getContext('2d');
             const labels = data.map(item => item.status);
             const counts = data.map(item => item.count);
-            if (pieChartInstance && !withAnimation) { pieChartInstance.data.labels = labels; pieChartInstance.data.datasets[0].data = counts; pieChartInstance.update('none'); return; }
+            
+            // [MODIFIED] Check for animation flag
+            if (pieChartInstance && !withAnimation) { 
+                pieChartInstance.data.labels = labels; 
+                pieChartInstance.data.datasets[0].data = counts; 
+                pieChartInstance.update('none'); // Update without animation
+                return; 
+            }
             if(pieChartInstance){ pieChartInstance.destroy(); }
-            pieChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: counts, backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, } });
+            
+            pieChartInstance = new Chart(ctx, { 
+                type: 'pie', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        data: counts, 
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'], 
+                        borderColor: [htmlElement.classList.contains('dark') ? '#1f2937' : '#fff'], // [MODIFIED] Dynamic border color
+                        borderWidth: 2 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { position: 'top' } 
+                    },
+                    animation: withAnimation ? {} : { duration: 0 } // [MODIFIED] Control animation
+                } 
+            });
         } catch (error) {
             console.error("Failed to load pie chart data:", error);
             const chartCanvas = document.getElementById('statusPieChart');
@@ -582,6 +812,35 @@
 
     // --- MAIN SCRIPT ON PAGE LOAD ---
     document.addEventListener('DOMContentLoaded', () => {
+        // --- [NEW] Theme and Sidebar Setup ---
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+
+        // Apply initial theme
+        const savedTheme = localStorage.getItem('theme');
+        const osTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        applyTheme(savedTheme || osTheme);
+
+        const sidebar = document.getElementById('main-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const openBtn = document.getElementById('mobile-menu-toggle');
+        const closeBtn = document.getElementById('mobile-menu-close');
+
+        const openSidebar = () => {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        };
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        };
+
+        openBtn.addEventListener('click', openSidebar);
+        closeBtn.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+        // --- End New Setup ---
+
+
         setupUserModal();
 
         loadPieChartData();
@@ -610,10 +869,19 @@
         const handleFilterChange = () => { currentInterviewPage = 1; loadInterviews(); };
         Object.entries(statusBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewStatus = key; Object.values(statusBtns).forEach(b => b.classList.remove('tab-btn-active')); btn.classList.add('tab-btn-active'); handleFilterChange(); }); });
         const departmentMap = { all: null, hr: 'HR', pmo: 'PMO', gta: 'GTA' };
-        Object.entries(deptBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewDepartment = departmentMap[key]; Object.values(deptBtns).forEach(b => { b.classList.remove('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); b.classList.add('border-transparent', 'text-gray-500'); }); btn.classList.add('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); btn.classList.remove('border-transparent', 'text-gray-500'); handleFilterChange(); }); });
+        Object.entries(deptBtns).forEach(([key, btn]) => { btn.addEventListener('click', () => { currentInterviewDepartment = departmentMap[key]; Object.values(deptBtns).forEach(b => { b.classList.remove('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); b.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400'); }); btn.classList.add('border-[var(--primary-color)]', 'text-[var(--primary-color)]'); btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400'); handleFilterChange(); }); });
         
         const lineChartButtons = { '7d': document.getElementById('7d-btn'), '14d': document.getElementById('14d-btn'), '30d': document.getElementById('30d-btn') };
-        const handleLineChartClick = (days, clickedBtnKey) => { currentDays = days; Object.keys(lineChartButtons).forEach(key => { lineChartButtons[key].classList.remove('bg-white', 'shadow', 'text-gray-700'); lineChartButtons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow'); }); lineChartButtons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700'); lineChartButtons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow'); loadLineChartData(days); };
+        const handleLineChartClick = (days, clickedBtnKey) => { 
+            currentDays = days; 
+            Object.keys(lineChartButtons).forEach(key => { 
+                lineChartButtons[key].classList.remove('bg-white', 'shadow', 'text-gray-700', 'dark:text-gray-900'); 
+                lineChartButtons[key].classList.add('text-gray-500','hover:bg-white', 'hover:shadow', 'dark:text-gray-400', 'dark:hover:bg-gray-100', 'dark:hover:text-gray-900'); 
+            }); 
+            lineChartButtons[clickedBtnKey].classList.add('bg-white', 'shadow', 'text-gray-700', 'dark:text-gray-900'); 
+            lineChartButtons[clickedBtnKey].classList.remove('text-gray-500','hover:bg-white', 'hover:shadow', 'dark:text-gray-400', 'dark:hover:bg-gray-100', 'dark:hover:text-gray-900'); 
+            loadLineChartData(days); 
+        };
         lineChartButtons['7d'].addEventListener('click', () => handleLineChartClick(7, '7d'));
         lineChartButtons['14d'].addEventListener('click', () => handleLineChartClick(14, '14d'));
         lineChartButtons['30d'].addEventListener('click', () => handleLineChartClick(30, '30d'));
