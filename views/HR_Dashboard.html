@@ -421,13 +421,22 @@
     }
 
     themeToggleBtn.addEventListener('click', () => {
-      // Toggle the 'dark' class on the <html> element
-      const isDark = document.documentElement.classList.toggle('dark');
-      // Save the preference to localStorage
-      localStorage.theme = isDark ? 'dark' : 'light';
-      // Update the button's UI
-      updateThemeToggleUI();
-    });
+        // 1. Check the current state *before* changing it
+        const isCurrentlyDark = document.documentElement.classList.contains('dark');
+
+        if (isCurrentlyDark) {
+            // It's dark, so switch to light
+            document.documentElement.classList.remove('dark');
+            localStorage.theme = 'light';
+        } else {
+            // It's light, so switch to dark
+            document.documentElement.classList.add('dark');
+            localStorage.theme = 'dark';
+        }
+        
+        // 2. Update the button UI based on the new state
+        updateThemeToggleUI();
+        });
     // Set initial state of the toggle button on page load
     updateThemeToggleUI();
     // --- End of Theme Toggle Logic ---
