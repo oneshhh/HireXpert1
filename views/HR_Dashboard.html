@@ -308,10 +308,10 @@
 
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
-        tr.className = "dark:hover:bg-gray-700/50"; // Added hover effect for dark mode
+        tr.className = "dark:hover:bg-gray-700/50";
         const isSelected = selectedInterviewIds.has(interview.id);
-        const viewLink = `/interview-view.html?id=${interview.id}&from=HR_Dashboard.html`; // Pass 'from'
-        const editLink = `/interview-edit.html?id=${interview.id}&from=HR_Dashboard.html`; // Pass 'from'
+        const viewLink = `/interview-view.html?id=${interview.id}&from=HR_Dashboard.html`;
+        const editLink = `/interview-edit.html?id=${interview.id}&from=HR_Dashboard.html`;
         tr.innerHTML = `
             <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900" ${isSelected ? 'checked' : ''}></td>
             <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">${index + 1}</td>
@@ -397,14 +397,13 @@
     const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
     const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
-    // --- THIS IS THE CORRECTED THEME LOGIC ---
+    // --- Theme Toggle Logic with TESTER ---
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const themeIcon = document.getElementById('theme-toggle-icon');
     const themeText = document.getElementById('theme-toggle-text');
 
     function updateThemeToggleUI() {
       if (!themeIcon || !themeText) return;
-      // Check the <html> tag to see what the *current* state is
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
         themeIcon.textContent = 'dark_mode';
@@ -416,24 +415,22 @@
     }
 
     themeToggleBtn.addEventListener('click', () => {
-      // 1. Check the current state *before* changing it
       const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      
+      // **** THIS IS THE NEW TEST LINE ****
+      console.log('Theme toggle button clicked! Current state is dark:', isCurrentlyDark);
 
       if (isCurrentlyDark) {
-        // It's dark, so switch to light
         document.documentElement.classList.remove('dark');
         localStorage.theme = 'light';
       } else {
-        // It's light, so switch to dark
         document.documentElement.classList.add('dark');
         localStorage.theme = 'dark';
       }
-
-      // 2. Update the button UI based on the new state
+      
       updateThemeToggleUI();
     });
-
-    // Set initial state of the toggle button on page load
+    
     updateThemeToggleUI();
     // --- End of Theme Toggle Logic ---
 
