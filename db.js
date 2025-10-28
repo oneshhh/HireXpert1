@@ -6,7 +6,7 @@ require('dotenv').config();
 // =================================================================
 console.log("\n--- DEBUGGING DATABASE CONNECTION ---");
 console.log(`[INFO] Attempting to load DATABASE_URL from .env file...`);
-console.log(`[VALUE] The value of process.env.DATABASE_URL is: ${process.env.DATABASE_URL}`);
+console.log(`Database connected successfully!`);
 
 if (!process.env.DATABASE_URL) {
     console.error("\n[FATAL] DATABASE_URL is UNDEFINED.");
