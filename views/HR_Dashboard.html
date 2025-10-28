@@ -7,20 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 
 <script>
-  tailwind.config = {
-    darkMode: 'class', // This enables class-based dark mode
-    theme: {
-      extend: {
-        colors: {
-          primary: {
-            50: '#eff6ff',
-            600: '#2563eb',
-          },
-        }
-      }
+  // On page load, apply theme from localStorage or system preference
+  (function() {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  }
+  })();
 </script>
+
+</head>
 
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <style type="text/tailwindcss">
@@ -231,7 +228,6 @@
   };
 
   // --- Utility and Notification Function ---
-  // 8. Updated showNotification to generate dark-mode-compatible buttons
   function showNotification(title, text, options = {}) {
       const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
       const modalTitle = document.getElementById('notification-modal-title');
@@ -295,7 +291,6 @@
       } catch (err) { console.error("Error loading counts:", err); }
   }
 
-  // 9. Updated renderTable to generate dark-mode-compatible rows
   function renderTable(searchTerm = '') {
     const tbody = document.querySelector("#interviews-table-body");
     tbody.innerHTML = "";
@@ -380,7 +375,6 @@
             moveToClosedBtn.classList.add('hidden');
             moveToOpenBtn.classList.remove('hidden');
         }
-        // Check if all VISIBLE rows are selected
         const visibleRowCount = document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
         selectAllCheckbox.checked = selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
     } else {
@@ -403,13 +397,14 @@
     const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
     const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
-    // 10. Added Theme Toggle Logic
+    // --- THIS IS THE CORRECTED THEME LOGIC ---
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const themeIcon = document.getElementById('theme-toggle-icon');
     const themeText = document.getElementById('theme-toggle-text');
 
     function updateThemeToggleUI() {
       if (!themeIcon || !themeText) return;
+      // Check the <html> tag to see what the *current* state is
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
         themeIcon.textContent = 'dark_mode';
@@ -421,22 +416,23 @@
     }
 
     themeToggleBtn.addEventListener('click', () => {
-        // 1. Check the current state *before* changing it
-        const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      // 1. Check the current state *before* changing it
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
 
-        if (isCurrentlyDark) {
-            // It's dark, so switch to light
-            document.documentElement.classList.remove('dark');
-            localStorage.theme = 'light';
-        } else {
-            // It's light, so switch to dark
-            document.documentElement.classList.add('dark');
-            localStorage.theme = 'dark';
-        }
-        
-        // 2. Update the button UI based on the new state
-        updateThemeToggleUI();
-        });
+      if (isCurrentlyDark) {
+        // It's dark, so switch to light
+        document.documentElement.classList.remove('dark');
+        localStorage.theme = 'light';
+      } else {
+        // It's light, so switch to dark
+        document.documentElement.classList.add('dark');
+        localStorage.theme = 'dark';
+      }
+
+      // 2. Update the button UI based on the new state
+      updateThemeToggleUI();
+    });
+
     // Set initial state of the toggle button on page load
     updateThemeToggleUI();
     // --- End of Theme Toggle Logic ---
@@ -454,8 +450,8 @@
         currentStatusFilter = newStatus;
         openTab.classList.toggle('tab-active', newStatus === 'open');
         closedTab.classList.toggle('tab-active', newStatus === 'closed');
-        fetchAndRenderInterviews(); // Fetch new data for the tab
-        selectedInterviewIds.clear(); // Clear selection on tab switch
+        fetchAndRenderInterviews(); 
+        selectedInterviewIds.clear(); 
         updateBulkActionBar();
     }
     openTab.addEventListener('click', () => switchTab('open'));
@@ -473,9 +469,8 @@
 
     // Select All Checkbox Handling
     selectAllCheckbox.addEventListener('change', (e) => {
-        const checkboxes = tableBody.querySelectorAll('.row-checkbox'); // Select all checkboxes in the body
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
         checkboxes.forEach(cb => {
-            // Only change checkboxes that are currently visible (matching the filter)
             if (cb.closest('tr') && !cb.closest('tr').style.display?.includes('none')) {
                 cb.checked = e.target.checked;
                 const id = cb.dataset.id;
@@ -545,7 +540,6 @@
     // Search Bar (Client-side filtering)
     searchBar.addEventListener('input', (e) => {
       renderTable(e.target.value);
-      // After filtering, update select-all checkbox state based on visible rows
       updateBulkActionBar();
     });
 
@@ -559,9 +553,8 @@
         try {
             const response = await fetch('/api/me');
             if (!response.ok) {
-                 // Check if it's specifically an unauthorized error before redirecting
                  if (response.status === 401) {
-                    window.location.href = '/'; // Redirect to login if not authenticated
+                    window.location.href = '/'; 
                  } else {
                     throw new Error(`HTTP error! status: ${response.status}`);
                  }
@@ -573,22 +566,20 @@
         } catch (error) {
             console.error("Failed to fetch user info:", error);
             if (userEmailDisplay) userEmailDisplay.textContent = 'Error';
-            // Avoid redirecting for general fetch errors, only for 401
-            // window.location.href = '/';
         }
     }
 
     if (profileButton && profileDropdown) {
         profileButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent document click listener from closing immediately
+            e.stopPropagation(); 
             profileDropdown.classList.toggle('hidden');
         });
-        document.addEventListener('click', (event) => { // Close dropdown if clicking outside
+        document.addEventListener('click', (event) => { 
             if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
                 profileDropdown.classList.add('hidden');
             }
         });
-        fetchUserInfo(); // Fetch user info on page load
+        fetchUserInfo(); 
     }
     // --- End Profile Dropdown Logic ---
 
@@ -599,8 +590,8 @@
     setInterval(() => {
         console.log("Refreshing HR dashboard data...");
         loadCounts();
-        fetchAndRenderInterviews(); // Refetch data periodically
-    }, 15000); // Increased interval
+        fetchAndRenderInterviews(); 
+    }, 15000); 
   });
 </script>
 
