@@ -1,36 +1,79 @@
 <!DOCTYPE html>
-<html lang="en" class=""> <head>
-<meta charset="utf-8"/>
-<title>HireXpert- HR Interviews</title>
-<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<html lang="en" class="">
+<head>
+    <meta charset="utf-8"/>
+    <title>HireXpert- HR Interviews</title>
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 
-<script>
-  (function() {
-    // A self-contained function to read the cookie
-    function getCookie(name) {
-      const nameEQ = name + "=";
-      const ca = document.cookie.split(';');
-      for(let i=0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    <script>
+      tailwind.config = {
+        darkMode: 'class', 
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#eff6ff',
+                600: '#2563eb',
+              },
+            }
+          }
+        }
       }
-      return null;
-    }
+    </script>
 
-    const theme = getCookie('theme'); // Read the 'theme' cookie
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    // Apply dark if cookie is 'dark',
-    // OR if cookie doesn't exist AND system preference is dark
-    if (theme === 'dark' || (theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  })();
-</script>
+    <script>
+      (function() {
+        function getCookie(name) {
+          const nameEQ = name + "=";
+          const ca = document.cookie.split(';');
+          for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+          }
+          return null;
+        }
+        const theme = getCookie('theme');
+        if (theme === 'dark' || (theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+    
+    <style type="text/tailwindcss">
+          :root {
+            --primary-50: #eff6ff;
+            --primary-600: #2563eb; /* Tailwind blue-600 */
+            --primary-color: #2563eb; /* Added for consistency */
+            --gray-500: #6b7280;
+            --info-50: #ecfeff;
+            --info-500: #06b6d4;
+          }
+          .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+          }
+          #create-interview-btn {
+            background-color: var(--primary-600) !important;
+            color: white !important;
+          }
+          .tab-active {
+            border-bottom-color: var(--primary-600);
+            color: var(--primary-600);
+            font-weight: 600;
+          }
+          .dark .tab-active {
+            color: var(--primary-600);
+          }
+          .modal-hidden { display: none; }
+          #notification-modal { transition: opacity 0.3s ease-out; }
+          #notification-modal > div { transition: all 0.3s ease-out; }
+    </style>
 
 </head>
 
@@ -209,7 +252,7 @@
   const DEPARTMENT = 'HR';
   let allInterviews = []; // Cache for interviews
 
-  // --- NEW: Cookie Helper Functions ---
+  // --- Cookie Helper Functions ---
   function setCookie(name, value, days = 365) {
       let expires = "";
       if (days) {
@@ -217,7 +260,6 @@
           date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
           expires = "; expires=" + date.toUTCString();
       }
-      // Set cookie to be valid for the entire site
       document.cookie = name + "=" + (value || "") + expires + "; path=/";
   }
 
@@ -427,14 +469,13 @@
     const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
     const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
-    // --- UPDATED: Theme Toggle Logic (now uses cookies) ---
+    // --- Theme Toggle Logic (using cookies) ---
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const themeIcon = document.getElementById('theme-toggle-icon');
     const themeText = document.getElementById('theme-toggle-text');
 
     function updateThemeToggleUI() {
       if (!themeIcon || !themeText) return;
-      // Read the current state from the <html> tag
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
         themeIcon.textContent = 'dark_mode';
@@ -449,22 +490,21 @@
       const isCurrentlyDark = document.documentElement.classList.contains('dark');
 
       if (isCurrentlyDark) {
-        // Switch to light
         document.documentElement.classList.remove('dark');
-        setCookie('theme', 'light', 365); // <-- Use cookie function
+        setCookie('theme', 'light', 365); 
       } else {
-        // Switch to dark
         document.documentElement.classList.add('dark');
-        setCookie('theme', 'dark', 365); // <-- Use cookie function
+        setCookie('theme', 'dark', 365); 
       }
       
-      // Update the button text/icon
+      // Clean up the old, unused localStorage key just in case.
+      localStorage.removeItem('theme');
+
       updateThemeToggleUI();
     });
     
-    // Set initial button state on load
     updateThemeToggleUI();
-    // --- End of Updated Theme Logic ---
+    // --- End of Theme Logic ---
 
 
     // Confirmation Modal Buttons
@@ -553,76 +593,70 @@
             `Delete ${selectedInterviewIds.size} interviews?`,
             "This action is permanent. All associated candidate data will also be deleted.",
             async () => {
-                await fetch('/api/interviews/bulk-delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
-                });
-                selectedInterviewIds.clear();
-                updateBulkActionBar();
-                loadCounts();
-                fetchAndRenderInterviews();
+                try {
+                    await fetch('/api/interviews/bulk-delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
+                    });
+                    selectedInterviewIds.clear();
+                    updateBulkActionBar();
+                    loadCounts();
+                    await fetchAndRenderInterviews();
+                    showNotification('Deleted', 'Selected interviews were deleted successfully.', { duration: 3000 });
+                } catch (err) {
+                    console.error('Error deleting interviews:', err);
+                    showNotification('Error', 'Failed to delete selected interviews.', { isError: true });
+                }
             }
         );
     });
 
-    // Search Bar (Client-side filtering)
+    // Live search
     searchBar.addEventListener('input', (e) => {
-      renderTable(e.target.value);
-      updateBulkActionBar();
+        renderTable(e.target.value || '');
     });
 
-    // --- Profile Dropdown & User Info Logic ---
-    const profileButton = document.getElementById('profile-menu-button');
-    const profileDropdown = document.getElementById('profile-menu-dropdown');
-    const profileInitials = document.getElementById('profile-initials');
-    const userEmailDisplay = document.getElementById('user-email-display');
+    // Profile menu toggle / outside click to close
+    const profileMenuButton = document.getElementById('profile-menu-button');
+    const profileMenuDropdown = document.getElementById('profile-menu-dropdown');
+    document.addEventListener('click', (e) => {
+        if (!profileMenuButton || !profileMenuDropdown) return;
+        if (profileMenuButton.contains(e.target)) {
+            profileMenuDropdown.classList.toggle('hidden');
+        } else if (!profileMenuDropdown.contains(e.target)) {
+            profileMenuDropdown.classList.add('hidden');
+        }
+    });
 
-    async function fetchUserInfo() {
-        try {
-            const response = await fetch('/api/me');
-            if (!response.ok) {
-                 if (response.status === 401) {
-                    window.location.href = '/'; 
-                 } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-                return;
-            }
-            const user = await response.json();
-            if (userEmailDisplay) userEmailDisplay.textContent = user.email || 'Error';
-            if (profileInitials && user.email) profileInitials.textContent = user.email.substring(0, 1).toUpperCase();
-        } catch (error) {
-            console.error("Failed to fetch user info:", error);
-            if (userEmailDisplay) userEmailDisplay.textContent = 'Error';
+    // Populate basic profile info from cookie if available
+    const userEmailCookie = getCookie('userEmail');
+    if (userEmailCookie) {
+        const emailEl = document.getElementById('user-email-display');
+        const initialsEl = document.getElementById('profile-initials');
+        if (emailEl) emailEl.textContent = userEmailCookie;
+        if (initialsEl) {
+            const localPart = userEmailCookie.split('@')[0] || '';
+            const parts = localPart.split(/[.\-_ ]+/).filter(Boolean);
+            const initials = (parts.length ? parts.map(p => p[0]).slice(0,2).join('') : localPart.slice(0,2)).toUpperCase();
+            initialsEl.textContent = initials;
         }
     }
 
-    if (profileButton && profileDropdown) {
-        profileButton.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            profileDropdown.classList.toggle('hidden');
-        });
-        document.addEventListener('click', (event) => { 
-            if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
-                profileDropdown.classList.add('hidden');
-            }
-        });
-        fetchUserInfo(); 
-    }
-    // --- End Profile Dropdown Logic ---
-
-
-    // Initial Load & Polling
+    // Initial data load
     loadCounts();
     fetchAndRenderInterviews();
-    setInterval(() => {
-        console.log("Refreshing HR dashboard data...");
-        loadCounts();
-        fetchAndRenderInterviews(); 
-    }, 15000); 
+  });
+
+  // Close confirm modal when clicking outside it
+  document.addEventListener('click', (e) => {
+    if (!confirmModal) return;
+    const modalInner = confirmModal.firstElementChild;
+    if (!modalInner) return;
+    if (!confirmModal.classList.contains('modal-hidden') && !modalInner.contains(e.target)) {
+      hideConfirmModal();
+    }
   });
 </script>
-
 </body>
 </html>
