@@ -268,7 +268,7 @@
     // --- [NEW] Theme Management ---
     const htmlElement = document.documentElement;
 
-    function applyTheme(theme) {
+    function applyTheme(theme, animate = true) {
         if (theme === 'dark') {
             htmlElement.classList.add('dark');
             // Update Chart.js defaults for dark mode
@@ -297,7 +297,7 @@
         const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
         // [MODIFIED] Use setCookie instead of localStorage
         setCookie('theme', currentTheme, 30); // Save for 30 days
-        applyTheme(currentTheme);
+        applyTheme(currentTheme, false);
     }
     
     // [MOVED] Helper functions for cookies (moved to global scope)
@@ -779,7 +779,7 @@
                     plugins: { 
                         legend: { display: false } 
                     },
-                    animation: withAnimation ? {} : { duration: 0 } // Control animation
+                    animation: withAnimation ? {} : false // Control animation
                 } 
             });
         } catch (error) {
