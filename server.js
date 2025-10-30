@@ -601,7 +601,9 @@ app.get("/api/interview/by-custom-id", async (req, res) => {
         return res.status(401).json({ message: "Not authenticated. Please log in as a viewer." });
     }
 
-    const customId = req.query.id;
+    // [FIX 1] Trim the input ID to remove any spaces
+    const customId = req.query.id ? req.query.id.trim() : null;
+    
     if (!customId) {
         return res.status(400).json({ message: "An 'id' query parameter is required." });
     }
@@ -612,7 +614,8 @@ app.get("/api/interview/by-custom-id", async (req, res) => {
             SELECT i.*, u.first_name, u.last_name
             FROM interviews i
             LEFT JOIN users u ON i.created_by_user_id = u.id
-            WHERE i.custom_interview_id = $1
+            /* [FIX 2] Use TRIM() on the database column to ignore saved spaces */
+            WHERE TRIM(i.custom_interview_id) = $1
         `;
         const interviewResult = await pool.query(interviewQuery, [customId]);
 
