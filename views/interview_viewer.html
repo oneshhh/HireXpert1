@@ -28,6 +28,11 @@
        .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
       .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
       .status-closed { @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200; }
+      /* Custom style for whitespace in job description */
+      pre {
+        white-space: pre-wrap;
+        font-family: inherit;
+      }
     </style>
 </head>
 <body class="bg-gray-50 font-sans dark:bg-gray-900 min-h-screen" style='font-family: Inter, "Noto Sans", sans-serif;'>
@@ -50,10 +55,10 @@
 </header>
 
 <!-- Main Content -->
-<main class="w-full max-w-2xl mx-auto p-4 sm:p-8">
+<main class="w-full max-w-4xl mx-auto p-4 sm:p-8">
 
     <!-- Login Section -->
-    <div id="login-section" class="hidden bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+    <div id="login-section" class="hidden bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700 max-w-2xl mx-auto">
         <h1 class="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">Viewer Login</h1>
         <form id="login-form">
             <div class="space-y-4">
@@ -83,7 +88,7 @@
         </div>
         
         <!-- Search Form -->
-        <form id="search-form" class="flex items-center gap-3 mb-6">
+        <form id="search-form" class="flex items-center gap-3 mb-6 max-w-2xl mx-auto">
             <label for="interview-id-input" class="sr-only">Interview Custom ID</label>
             <input type="text" id="interview-id-input" placeholder="Enter Interview Custom ID (e.g. 25/Oct/0001/Test)" class="flex-grow rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <button type="submit" id="fetch-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
@@ -93,7 +98,7 @@
         </form>
 
         <!-- Results Area -->
-        <div id="results-container">
+        <div id="results-container" class="space-y-8">
             <div id="loading-message" class="hidden text-center p-4 text-[var(--text-secondary)]">
                 <span class="material-symbols-outlined animate-spin">refresh</span>
                 <p>Loading interview details...</p>
@@ -103,35 +108,64 @@
                 <!-- Error text set by JS -->
             </div>
 
-            <div id="interview-details-card" class="hidden bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-                <div class="p-6">
-                    <h2 id="interview-title" class="text-xl font-bold text-[var(--text-primary)] mb-4"></h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <!-- [NEW] Full Interview Details Section -->
+            <div id="interview-details-card" class="hidden space-y-8">
+                <!-- Header Card -->
+                <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row justify-between md:items-start">
                         <div>
-                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Department</dt>
-                            <dd id="interview-dept" class="mt-1 text-base font-semibold text-[var(--text-primary)]"></dd>
+                            <h2 id="interview-title" class="text-3xl font-bold text-[var(--text-primary)]"></h2>
+                            <p id="interview-custom-id" class="text-sm text-[var(--text-secondary)] mt-1"></p>
+                        </div>
+                        <span id="interview-status-badge" class="status-badge mt-4 md:mt-0 flex-shrink-0"></span>
+                    </div>
+                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 font-medium">Department</p>
+                            <p id="interview-dept" class="text-[var(--text-primary)] font-semibold"></p>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Scheduled By</dt>
-                            <dd id="interview-creator" class="mt-1 text-base font-semibold text-[var(--text-primary)]"></dd>
+                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled By</p>
+                            <p id="interview-creator" class="text-[var(--text-primary)] font-semibold"></p>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Status</dt>
-                            <dd class="mt-1">
-                                <span id="interview-status-badge" class="status-badge"></span>
-                            </dd>
+                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled Date</p>
+                            <p id="interview-date" class="text-[var(--text-primary)] font-semibold"></p>
                         </div>
-                    </dl>
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled Time</p>
+                            <p id="interview-time" class="text-[var(--text-primary)] font-semibold"></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50">
-                    <p class="text-sm text-center text-[var(--text-secondary)]">
-                        <span class="material-symbols-outlined text-base align-middle">visibility</span>
-                        View-only access.
-                    </p>
+            
+                <!-- Job Description & Schedulers Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Job Description</h3>
+                        <pre id="job-description" class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
+                    </div>
+                    <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Assigned Schedulers</h3>
+                        <ul id="scheduler-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            <!-- Schedulers will be populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+            
+                <!-- Questions Card -->
+                <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-[var(--text-primary)]">Interview Questions</h3>
+                        <button id="toggle-questions-btn" class="text-sm font-semibold text-blue-600 hover:underline focus:outline-none dark:text-blue-400">Show All</button>
+                    </div>
+                    <ul id="questions-list" class="space-y-4 hidden">
+                        <!-- Questions will be populated by JS -->
+                    </ul>
                 </div>
             </div>
+            
         </div>
-
     </div>
 </main>
 
@@ -188,6 +222,10 @@
 
         const darkModeToggle = document.getElementById('dark-mode-toggle');
 
+        // [NEW] Get elements for new details
+        const toggleBtn = document.getElementById('toggle-questions-btn');
+        const questionsList = document.getElementById('questions-list');
+
         // --- Theme Setup ---
         darkModeToggle.addEventListener('click', toggleDarkMode);
         const savedTheme = getCookie('theme');
@@ -197,10 +235,17 @@
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         searchForm.addEventListener('submit', handleFetchInterview);
+        
+        // [NEW] Event listener for toggle questions button
+        if (toggleBtn && questionsList) {
+            toggleBtn.addEventListener('click', () => {
+                questionsList.classList.toggle('hidden');
+                const isHidden = questionsList.classList.contains('hidden');
+                toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
+            });
+        }
 
         // --- Functions ---
-
-        // [NEW] Show the main app content
         function showViewer(email) {
             viewerEmail.textContent = email;
             loginSection.classList.add('hidden');
@@ -208,7 +253,6 @@
             logoutBtn.classList.remove('hidden');
         }
 
-        // [NEW] Show the login form
         function showLogin() {
             loginSection.classList.remove('hidden');
             viewerSection.classList.add('hidden');
@@ -219,7 +263,6 @@
             interviewIdInput.value = '';
         }
 
-        // [NEW] Check for existing session on page load
         (async function checkSession() {
             try {
                 const response = await fetch('/viewer/me');
@@ -233,31 +276,24 @@
             }
         })();
         
-        // [UPDATED] Real Login:
         async function handleLogin(e) {
             e.preventDefault();
             loginError.textContent = '';
             loginBtn.disabled = true;
             loginBtn.textContent = 'Logging in...';
-
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-
             try {
                 const response = await fetch('/viewer/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await response.json();
-
                 if (!response.ok) {
                     throw new Error(data.message || 'Login failed');
                 }
-                
                 showViewer(data.email);
-
             } catch (error) {
                 loginError.textContent = error.message;
             } finally {
@@ -266,22 +302,19 @@
             }
         }
 
-        // [UPDATED] Real Logout:
         async function handleLogout() {
             try {
                 await fetch('/viewer/logout');
             } catch (err) {
                 console.error("Logout failed", err);
             } finally {
-                // Always log out on the client side
                 showLogin();
             }
         }
 
-        // [UPDATED] Real Data Fetch:
+        // [UPDATED] Real Data Fetch (now populates all fields)
         async function handleFetchInterview(e) {
             e.preventDefault();
-            // This is the Custom ID, e.g., "25/Oct/0001/MyID"
             const customId = interviewIdInput.value.trim();
             if (!customId) return;
 
@@ -290,23 +323,29 @@
             errorMessage.classList.add('hidden');
             detailsCard.classList.add('hidden');
             fetchBtn.disabled = true;
+            // [NEW] Reset question toggle button
+            if (toggleBtn && questionsList) {
+                questionsList.classList.add('hidden');
+                toggleBtn.textContent = 'Show All';
+            }
 
             try {
-                // Encode the ID to handle special characters like '/'
                 const encodedId = encodeURIComponent(customId);
-                
-                // Use the new API route
                 const response = await fetch(`/api/interview/by-custom-id?id=${encodedId}`);
-
                 const data = await response.json();
                 if (!response.ok) {
                     throw new Error(data.message || 'Failed to fetch data.');
                 }
 
-                // Populate the card
+                // --- Populate All New Fields ---
+
+                // 1. Populate Header Card
                 document.getElementById('interview-title').textContent = data.title || 'No Title';
+                document.getElementById('interview-custom-id').textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
                 document.getElementById('interview-dept').textContent = data.department || 'N/A';
                 document.getElementById('interview-creator').textContent = (data.first_name && data.last_name) ? `${data.first_name} ${data.last_name}` : 'N/A';
+                document.getElementById('interview-date').textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
+                document.getElementById('interview-time').textContent = data.time || 'N/A';
                 
                 const statusBadge = document.getElementById('interview-status-badge');
                 statusBadge.textContent = data.position_status || 'Unknown';
@@ -314,6 +353,50 @@
                     statusBadge.className = 'status-badge status-active';
                 } else {
                     statusBadge.className = 'status-badge status-closed';
+                }
+
+                // 2. Populate Job Description
+                const jdElement = document.getElementById("job-description");
+                if (data.job_description) {
+                    jdElement.textContent = data.job_description;
+                    jdElement.classList.remove('italic', 'text-gray-500', 'dark:text-gray-400');
+                } else {
+                    jdElement.textContent = "No job description was provided for this interview.";
+                    jdElement.classList.add('italic', 'text-gray-500', 'dark:text-gray-400');
+                }
+                
+                // 3. Populate Schedulers
+                const schedulerList = document.getElementById("scheduler-list");
+                schedulerList.innerHTML = "";
+                if (data.schedulers && data.schedulers.length > 0) {
+                    data.schedulers.forEach(scheduler => {
+                        const li = document.createElement("li");
+                        li.className = "text-sm text-[var(--text-primary)]";
+                        li.textContent = `${scheduler.first_name} ${scheduler.last_name} (${scheduler.email})`;
+                        schedulerList.appendChild(li);
+                    });
+                } else {
+                    schedulerList.innerHTML = '<li class="text-sm text-gray-500 italic dark:text-gray-400">No schedulers are assigned.</li>';
+                }
+
+                // 4. Populate Questions
+                const qList = document.getElementById("questions-list");
+                qList.innerHTML = "";
+                const questions = data.questions || [];
+                const timeLimits = data.time_limits || [];
+                if (questions.length > 0) {
+                    questions.forEach((q, index) => {
+                        const li = document.createElement("li");
+                        li.className = "p-3 bg-gray-50 dark:bg-gray-700 rounded-md flex items-start justify-between";
+                        const time = timeLimits[index] || 0;
+                        li.innerHTML = `
+                            <span class="text-gray-800 dark:text-gray-200">${q}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4 pt-1">${time > 0 ? time + ' sec' : 'Untimed'}</span>
+                        `;
+                        qList.appendChild(li);
+                    });
+                } else {
+                    qList.innerHTML = '<li class="text-sm text-gray-500 italic dark:text-gray-400">No questions were added to this interview.</li>';
                 }
 
                 // Show the card
@@ -333,3 +416,4 @@
 
 </body>
 </html>
+

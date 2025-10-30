@@ -593,6 +593,8 @@ app.get("/api/candidates/all", async (req, res) => {
     }
 });
 
+// 4. Fetch Interview by 'custom_interview_id'
+// (This entire route REPLACES your old one)
 app.get("/api/interview/by-custom-id", async (req, res) => {
     // SECURITY: Check for viewer session
     if (!req.session.viewer) {
@@ -605,9 +607,9 @@ app.get("/api/interview/by-custom-id", async (req, res) => {
     }
 
     try {
-        // Same query as /api/interview/:id but uses 'custom_interview_id'
+        // 1. Fetch main interview data AND creator name
         const interviewQuery = `
-            SELECT i.title, i.department, i.position_status, u.first_name, u.last_name
+            SELECT i.*, u.first_name, u.last_name
             FROM interviews i
             LEFT JOIN users u ON i.created_by_user_id = u.id
             WHERE i.custom_interview_id = $1
@@ -618,8 +620,23 @@ app.get("/api/interview/by-custom-id", async (req, res) => {
             return res.status(404).json({ message: "Interview not found. Please check the ID." });
         }
         
-        // Send only the view-only data
-        res.json(interviewResult.rows[0]);
+        const interviewData = interviewResult.rows[0];
+
+        // 2. Fetch scheduler names (if any)
+        let schedulers = [];
+        if (interviewData.scheduler_ids && interviewData.scheduler_ids.length > 0) {
+            const schedulersResult = await pool.query(
+                "SELECT first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])",
+                [interviewData.scheduler_ids]
+            );
+            schedulers = schedulersResult.rows;
+        }
+        
+        // 3. Combine and send the full payload
+        // We add the fetched schedulers list to the data object
+        const responseData = { ...interviewData, schedulers: schedulers };
+        res.json(responseData);
+
 
     } catch(err) {
         console.error("Error fetching interview by custom_id:", err);
