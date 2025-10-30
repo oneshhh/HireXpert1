@@ -547,6 +547,7 @@ app.get("/api/interviews", async (req, res) => {
     }
 });
 
+
 app.post("/api/interview/:id/toggle-status", async (req, res) => {
     if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can change status." });
@@ -589,6 +590,40 @@ app.get("/api/candidates/all", async (req, res) => {
     } catch (err) {
         console.error("Error fetching all candidates:", err);
         res.status(500).json({ error: "Database error" });
+    }
+});
+
+app.get("/api/interview/by-custom-id", async (req, res) => {
+    // SECURITY: Check for viewer session
+    if (!req.session.viewer) {
+        return res.status(401).json({ message: "Not authenticated. Please log in as a viewer." });
+    }
+
+    const customId = req.query.id;
+    if (!customId) {
+        return res.status(400).json({ message: "An 'id' query parameter is required." });
+    }
+
+    try {
+        // Same query as /api/interview/:id but uses 'custom_interview_id'
+        const interviewQuery = `
+            SELECT i.title, i.department, i.position_status, u.first_name, u.last_name
+            FROM interviews i
+            LEFT JOIN users u ON i.created_by_user_id = u.id
+            WHERE i.custom_interview_id = $1
+        `;
+        const interviewResult = await pool.query(interviewQuery, [customId]);
+
+        if (interviewResult.rows.length === 0) {
+            return res.status(404).json({ message: "Interview not found. Please check the ID." });
+        }
+        
+        // Send only the view-only data
+        res.json(interviewResult.rows[0]);
+
+    } catch(err) {
+        console.error("Error fetching interview by custom_id:", err);
+        res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
@@ -907,39 +942,7 @@ app.get("/viewer/logout", (req, res) => {
 // 4. Fetch Interview by 'custom_interview_id'
 // We use a query parameter ?id=... because custom IDs contain slashes
 // which would break a URL path like /api/interview/by-custom-id/25/Oct/0001/Test
-app.get("/api/interview/by-custom-id", async (req, res) => {
-    // SECURITY: Check for viewer session
-    if (!req.session.viewer) {
-        return res.status(401).json({ message: "Not authenticated. Please log in as a viewer." });
-    }
 
-    const customId = req.query.id;
-    if (!customId) {
-        return res.status(400).json({ message: "An 'id' query parameter is required." });
-    }
-
-    try {
-        // Same query as /api/interview/:id but uses 'custom_interview_id'
-        const interviewQuery = `
-            SELECT i.title, i.department, i.position_status, u.first_name, u.last_name
-            FROM interviews i
-            LEFT JOIN users u ON i.created_by_user_id = u.id
-            WHERE i.custom_interview_id = $1
-        `;
-        const interviewResult = await pool.query(interviewQuery, [customId]);
-
-        if (interviewResult.rows.length === 0) {
-            return res.status(404).json({ message: "Interview not found. Please check the ID." });
-        }
-        
-        // Send only the view-only data
-        res.json(interviewResult.rows[0]);
-
-    } catch(err) {
-        console.error("Error fetching interview by custom_id:", err);
-        res.status(500).json({ message: "An internal server error occurred." });
-    }
-});
 
 
 // --- Static Page Routes ---
