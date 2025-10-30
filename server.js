@@ -834,6 +834,114 @@ app.post("/api/me/update", async (req, res) => {
     }
 });
 
+/ 1. Viewer Login Route
+app.post("/viewer/login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        // Query the 'visitors' table
+        const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
+        const viewer = result.rows[0];
+
+        if (viewer) {
+            const isMatch = await bcrypt.compare(password, viewer.password_hash);
+            if (isMatch) {
+                // Set a 'viewer' session, not a 'user' session
+                req.session.viewer = {
+                    id: viewer.id,
+                    email: viewer.email,
+                    name: `${viewer.first_name} ${viewer.last_name}`
+                };
+                // Save session and send response
+                req.session.save((err) => {
+                    if (err) {
+                        console.error("Error saving viewer session:", err);
+                        return res.status(500).json({ message: "Login failed (session error)." });
+                    }
+                    res.json({
+                        success: true,
+                        email: viewer.email
+                    });
+                });
+            } else {
+                res.status(401).json({ message: "Invalid credentials." });
+            }
+        } else {
+            res.status(401).json({ message: "Invalid credentials." });
+        }
+    } catch (error) {
+        console.error("Viewer login error:", error);
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+// 2. Check Viewer Session Route
+app.get("/viewer/me", (req, res) => {
+    if (req.session.viewer) {
+        res.json({
+            id: req.session.viewer.id,
+            email: req.session.viewer.email
+        });
+    } else {
+        res.status(401).json({ message: "Not authenticated" });
+    }
+});
+
+// 3. Viewer Logout Route
+app.get("/viewer/logout", (req, res) => {
+    if (req.session.viewer) {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Viewer logout error:", err);
+                return res.status(500).send("Could not log out.");
+            }
+            res.clearCookie('connect.sid');
+            res.json({ success: true, message: "Logged out." });
+        });
+    } else {
+        res.json({ success: true, message: "No session to clear." });
+    }
+});
+
+// --- NEW DATA ROUTE FOR VIEWERS ---
+
+// 4. Fetch Interview by 'custom_interview_id'
+// We use a query parameter ?id=... because custom IDs contain slashes
+// which would break a URL path like /api/interview/by-custom-id/25/Oct/0001/Test
+app.get("/api/interview/by-custom-id", async (req, res) => {
+    // SECURITY: Check for viewer session
+    if (!req.session.viewer) {
+        return res.status(401).json({ message: "Not authenticated. Please log in as a viewer." });
+    }
+
+    const customId = req.query.id;
+    if (!customId) {
+        return res.status(400).json({ message: "An 'id' query parameter is required." });
+    }
+
+    try {
+        // Same query as /api/interview/:id but uses 'custom_interview_id'
+        const interviewQuery = `
+            SELECT i.title, i.department, i.position_status, u.first_name, u.last_name
+            FROM interviews i
+            LEFT JOIN users u ON i.created_by_user_id = u.id
+            WHERE i.custom_interview_id = $1
+        `;
+        const interviewResult = await pool.query(interviewQuery, [customId]);
+
+        if (interviewResult.rows.length === 0) {
+            return res.status(404).json({ message: "Interview not found. Please check the ID." });
+        }
+        
+        // Send only the view-only data
+        res.json(interviewResult.rows[0]);
+
+    } catch(err) {
+        console.error("Error fetching interview by custom_id:", err);
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+
 // --- Static Page Routes ---
 app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-view.html")));
 app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-edit.html")));

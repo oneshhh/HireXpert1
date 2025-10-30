@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+    <meta charset="utf-8"/>
+    <title>HireXpert - Interview Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <style type="text/tailwindcss">
+      :root {
+        --primary-color: #1173d4;
+        --secondary-color: #f0f2f4;
+        --text-primary: #111418;
+        --text-secondary: #617589;
+      }
+      .dark {
+        --secondary-color: #1f2937;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+      }
+       .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
+      .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
+      .status-closed { @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans dark:bg-gray-900 min-h-screen" style='font-family: Inter, "Noto Sans", sans-serif;'>
+
+<!-- Header -->
+<header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
+    <div class="flex items-center gap-2">
+        <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
+        <span class="text-lg font-medium text-[var(--text-secondary)] hidden sm:block">/ Interview Viewer</span>
+    </div>
+    <div class="flex items-center gap-4">
+        <button id="logout-btn" class="hidden flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+             <span class="material-symbols-outlined">logout</span>
+             Logout
+         </button>
+        <button id="dark-mode-toggle" class="flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Toggle theme">
+            <span class="material-symbols-outlined">dark_mode</span>
+        </button>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="w-full max-w-2xl mx-auto p-4 sm:p-8">
+
+    <!-- Login Section -->
+    <div id="login-section" class="hidden bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+        <h1 class="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">Viewer Login</h1>
+        <form id="login-form">
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                    <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                    <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div id="login-error" class="text-sm text-red-600 dark:text-red-400 text-center"></div>
+                <div>
+                    <button type="submit" id="login-btn" class="w-full flex justify-center items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
+                        Login
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Viewer Section -->
+    <div id="viewer-section" class="hidden">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
+            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Interview Search</h1>
+            <span class="text-sm text-[var(--text-secondary)]">Welcome, <span id="viewer-email" class="font-medium"></span></span>
+        </div>
+        
+        <!-- Search Form -->
+        <form id="search-form" class="flex items-center gap-3 mb-6">
+            <label for="interview-id-input" class="sr-only">Interview Custom ID</label>
+            <input type="text" id="interview-id-input" placeholder="Enter Interview Custom ID (e.g. 25/Oct/0001/Test)" class="flex-grow rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <button type="submit" id="fetch-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
+                <span class="material-symbols-outlined text-sm">search</span>
+                Fetch
+            </button>
+        </form>
+
+        <!-- Results Area -->
+        <div id="results-container">
+            <div id="loading-message" class="hidden text-center p-4 text-[var(--text-secondary)]">
+                <span class="material-symbols-outlined animate-spin">refresh</span>
+                <p>Loading interview details...</p>
+            </div>
+
+            <div id="error-message" class="hidden text-center p-4 rounded-md bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300">
+                <!-- Error text set by JS -->
+            </div>
+
+            <div id="interview-details-card" class="hidden bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+                <div class="p-6">
+                    <h2 id="interview-title" class="text-xl font-bold text-[var(--text-primary)] mb-4"></h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+                        <div>
+                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Department</dt>
+                            <dd id="interview-dept" class="mt-1 text-base font-semibold text-[var(--text-primary)]"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Scheduled By</dt>
+                            <dd id="interview-creator" class="mt-1 text-base font-semibold text-[var(--text-primary)]"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-[var(--text-secondary)]">Status</dt>
+                            <dd class="mt-1">
+                                <span id="interview-status-badge" class="status-badge"></span>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50">
+                    <p class="text-sm text-center text-[var(--text-secondary)]">
+                        <span class="material-symbols-outlined text-base align-middle">visibility</span>
+                        View-only access.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    // --- Theme Management ---
+    const htmlElement = document.documentElement;
+    function applyTheme(theme) {
+        if (theme === 'dark') { htmlElement.classList.add('dark'); } 
+        else { htmlElement.classList.remove('dark'); }
+    }
+    function toggleDarkMode() {
+        const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
+        setCookie('theme', currentTheme, 30);
+        applyTheme(currentTheme);
+    }
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+    // --- End Theme Management ---
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Get DOM Elements ---
+        const loginSection = document.getElementById('login-section');
+        const viewerSection = document.getElementById('viewer-section');
+        const loginForm = document.getElementById('login-form');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        const viewerEmail = document.getElementById('viewer-email');
+        const logoutBtn = document.getElementById('logout-btn');
+        
+        const searchForm = document.getElementById('search-form');
+        const fetchBtn = document.getElementById('fetch-btn');
+        const interviewIdInput = document.getElementById('interview-id-input');
+        const loadingMessage = document.getElementById('loading-message');
+        const errorMessage = document.getElementById('error-message');
+        const detailsCard = document.getElementById('interview-details-card');
+
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+        // --- Theme Setup ---
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+        const savedTheme = getCookie('theme');
+        applyTheme(savedTheme || 'light'); // Default to light
+
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', handleLogin);
+        logoutBtn.addEventListener('click', handleLogout);
+        searchForm.addEventListener('submit', handleFetchInterview);
+
+        // --- Functions ---
+
+        // [NEW] Show the main app content
+        function showViewer(email) {
+            viewerEmail.textContent = email;
+            loginSection.classList.add('hidden');
+            viewerSection.classList.remove('hidden');
+            logoutBtn.classList.remove('hidden');
+        }
+
+        // [NEW] Show the login form
+        function showLogin() {
+            loginSection.classList.remove('hidden');
+            viewerSection.classList.add('hidden');
+            logoutBtn.classList.add('hidden');
+            detailsCard.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            loadingMessage.classList.add('hidden');
+            interviewIdInput.value = '';
+        }
+
+        // [NEW] Check for existing session on page load
+        (async function checkSession() {
+            try {
+                const response = await fetch('/viewer/me');
+                if (!response.ok) {
+                    throw new Error('No session');
+                }
+                const viewer = await response.json();
+                showViewer(viewer.email);
+            } catch (err) {
+                showLogin();
+            }
+        })();
+        
+        // [UPDATED] Real Login:
+        async function handleLogin(e) {
+            e.preventDefault();
+            loginError.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/viewer/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                showViewer(data.email);
+
+            } catch (error) {
+                loginError.textContent = error.message;
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        }
+
+        // [UPDATED] Real Logout:
+        async function handleLogout() {
+            try {
+                await fetch('/viewer/logout');
+            } catch (err) {
+                console.error("Logout failed", err);
+            } finally {
+                // Always log out on the client side
+                showLogin();
+            }
+        }
+
+        // [UPDATED] Real Data Fetch:
+        async function handleFetchInterview(e) {
+            e.preventDefault();
+            // This is the Custom ID, e.g., "25/Oct/0001/MyID"
+            const customId = interviewIdInput.value.trim();
+            if (!customId) return;
+
+            // Reset UI
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            detailsCard.classList.add('hidden');
+            fetchBtn.disabled = true;
+
+            try {
+                // Encode the ID to handle special characters like '/'
+                const encodedId = encodeURIComponent(customId);
+                
+                // Use the new API route
+                const response = await fetch(`/api/interview/by-custom-id?id=${encodedId}`);
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to fetch data.');
+                }
+
+                // Populate the card
+                document.getElementById('interview-title').textContent = data.title || 'No Title';
+                document.getElementById('interview-dept').textContent = data.department || 'N/A';
+                document.getElementById('interview-creator').textContent = (data.first_name && data.last_name) ? `${data.first_name} ${data.last_name}` : 'N/A';
+                
+                const statusBadge = document.getElementById('interview-status-badge');
+                statusBadge.textContent = data.position_status || 'Unknown';
+                if (data.position_status === 'open') {
+                    statusBadge.className = 'status-badge status-active';
+                } else {
+                    statusBadge.className = 'status-badge status-closed';
+                }
+
+                // Show the card
+                loadingMessage.classList.add('hidden');
+                detailsCard.classList.remove('hidden');
+
+            } catch (error) {
+                loadingMessage.classList.add('hidden');
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                fetchBtn.disabled = false;
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
+
