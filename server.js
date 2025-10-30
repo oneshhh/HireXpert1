@@ -956,7 +956,7 @@ app.get("/settings.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "settings.html"));
 });
 
-app.get("/interview-viewer", (req, res) => {
+app.get("/viewer", (req, res) => {
     // This page handles its own auth logic, 
     // so we don't need a req.session.user check here.
     res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
