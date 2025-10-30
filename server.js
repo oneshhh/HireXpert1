@@ -834,7 +834,7 @@ app.post("/api/me/update", async (req, res) => {
     }
 });
 
-/ 1. Viewer Login Route
+// ========== VIEWER ROUTES ==========
 app.post("/viewer/login", async (req, res) => {
     const { email, password } = req.body;
     try {
