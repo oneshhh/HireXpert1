@@ -955,6 +955,12 @@ app.get("/settings.html", (req, res) => {
     // Assuming settings.html is in the 'views' folder like the others
     res.sendFile(path.join(__dirname, "views", "settings.html"));
 });
+
+app.get("/interview-viewer", (req, res) => {
+    // This page handles its own auth logic, 
+    // so we don't need a req.session.user check here.
+    res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
+});
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
