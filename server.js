@@ -959,7 +959,7 @@ app.get("/settings.html", (req, res) => {
 app.get("/viewer", (req, res) => {
     // This page handles its own auth logic, 
     // so we don't need a req.session.user check here.
-    res.sendFile(path.join(__dirname, "..", "views", "interview_viewer.html"));
+    res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
 });
 // ---------- Start server ----------
 app.listen(PORT, () => {
