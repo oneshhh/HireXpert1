@@ -593,6 +593,98 @@ app.get("/api/candidates/all", async (req, res) => {
     }
 });
 
+// [NEW] 1. PAGE ROUTE for add_visitors.htm;
+// (Place this with your other page routes like /settings.html)
+app.get("/add_visitors.html", (req, res) => {
+    // SECURITY: Protect this page
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).send("<h1>403 Forbidden</h1><p>You must be an admin to access this page.</p>");
+    }
+    // Assumes 'add_visitors.html' is in your 'views' folder
+    res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
+});
+
+
+// [NEW] 2. API ROUTE to GET all visitors
+// (Place this with other API routes like /api/users)
+app.get("/api/visitors", async (req, res) => {
+    // SECURITY: Only Admins can see the visitor list
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can view visitors." });
+    }
+    
+    try {
+        const result = await pool.query("SELECT id, first_name, last_name, email FROM visitors ORDER BY created_at DESC");
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error fetching visitors:", error);
+        res.status(500).json({ message: "Failed to fetch visitors." });
+    }
+});
+
+// [NEW] 3. API ROUTE to ADD a new visitor
+app.post("/api/visitors/add", async (req, res) => {
+    // SECURITY: Only Admins can add visitors
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can add visitors." });
+    }
+    
+    const { firstName, lastName, email, password } = req.body;
+
+    if (!firstName || !lastName || !email || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+    }
+
+    try {
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        const newVisitorResult = await pool.query(
+            `INSERT INTO visitors (first_name, last_name, email, password_hash)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, email`,
+            [firstName, lastName, email, passwordHash]
+        );
+        
+        res.status(201).json({ 
+            success: true, 
+            message: "Visitor added successfully.", 
+            user: newVisitorResult.rows[0] 
+        });
+
+    } catch (error) {
+        console.error("Error creating visitor:", error);
+        if (error.code === '23505') { // Unique constraint (email)
+            return res.status(409).json({ message: "A visitor with this email already exists." });
+        }
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+// [NEW] 4. API ROUTE to DELETE a visitor
+app.delete("/api/visitors/:id", async (req, res) => {
+    // SECURITY: Only Admins can delete visitors
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can delete visitors." });
+    }
+    
+    const { id } = req.params;
+
+    try {
+        const deleteResult = await pool.query("DELETE FROM visitors WHERE id = $1", [id]);
+        
+        if (deleteResult.rowCount === 0) {
+            return res.status(404).json({ message: "Visitor not found." });
+        }
+
+        res.json({ success: true, message: "Visitor deleted successfully." });
+
+    } catch (err) {
+        console.error("Failed to delete visitor:", err);
+        res.status(500).json({ message: "Failed to delete visitor." });
+    }
+});
+
 // 4. Fetch Interview by 'custom_interview_id'
 // (This entire route REPLACES your old one)
 app.get("/api/interview/by-custom-id", async (req, res) => {
