@@ -35,10 +35,10 @@
       }
     </style>
 </head>
-<body class="bg-gray-50 font-sans dark:bg-gray-900 min-h-screen" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<body class="bg-gray-50 font-sans dark:bg-gray-900 min-h-screen flex flex-col" style='font-family: Inter, "Noto Sans", sans-serif;'>
 
-<!-- Header -->
-<header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
+<!-- Header (Unchanged) -->
+<header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700 flex-shrink-0">
     <div class="flex items-center gap-2">
         <span class="text-2xl font-bold text-[var(--primary-color)]">HireXpert</span>
         <span class="text-lg font-medium text-[var(--text-secondary)] hidden sm:block">/ Interview Viewer</span>
@@ -47,47 +47,57 @@
         <button id="logout-btn" class="hidden flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
              <span class="material-symbols-outlined">logout</span>
              Logout
-         </button>
+          </button>
         <button id="dark-mode-toggle" class="flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Toggle theme">
             <span class="material-symbols-outlined">dark_mode</span>
         </button>
     </div>
 </header>
 
-<!-- Main Content -->
-<main class="w-full max-w-4xl mx-auto p-4 sm:p-8">
+<!-- [MODIFIED] Main Content Wrapper -->
+<!-- This tag is now a flex container to center the login page -->
+<main class="w-full flex-grow flex flex-col">
 
-    <!-- Login Section -->
-    <div id="login-section" class="hidden bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700 max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">Viewer Login</h1>
-        <form id="login-form">
-            <div class="space-y-4">
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-                    <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                    <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div id="login-error" class="text-sm text-red-600 dark:text-red-400 text-center"></div>
-                <div>
-                    <button type="submit" id="login-btn" class="w-full flex justify-center items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
-                        Login
-                    </button>
-                </div>
+    <!-- [MODIFIED] Login Section -->
+    <!-- This section is now a centered wrapper -->
+    <div id="login-section" class="hidden flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <!-- [NEW] Logo added for modern look -->
+            <div class="flex justify-center mb-4">
+                 <span class="text-3xl font-bold text-[var(--primary-color)]">HireXpert</span>
             </div>
-        </form>
+            <h1 class="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">Viewer Login</h1>
+            <form id="login-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                        <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                        <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <!-- Error message container is unchanged -->
+                    <div id="login-error" class="text-sm text-red-600 dark:text-red-400 text-center" data-testid="login-error"></div>
+                    <div>
+                        <button type="submit" id="login-btn" class="w-full flex justify-center items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Viewer Section -->
-    <div id="viewer-section" class="hidden">
+    <!-- [MODIFIED] Viewer Section -->
+    <!-- This section now has the layout classes that 'main' used to have -->
+    <div id="viewer-section" class="hidden w-full max-w-4xl mx-auto p-4 sm:p-8">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
             <h1 class="text-2xl font-bold text-[var(--text-primary)]">Interview Search</h1>
             <span class="text-sm text-[var(--text-secondary)]">Welcome, <span id="viewer-email" class="font-medium"></span></span>
         </div>
         
-        <!-- Search Form -->
+        <!-- Search Form (Unchanged) -->
         <form id="search-form" class="flex items-center gap-3 mb-6 max-w-2xl mx-auto">
             <label for="interview-id-input" class="sr-only">Interview Custom ID</label>
             <input type="text" id="interview-id-input" placeholder="Enter Interview Custom ID (e.g. 25/Oct/0001/Test)" class="flex-grow rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -97,7 +107,7 @@
             </button>
         </form>
 
-        <!-- Results Area -->
+        <!-- Results Area (Unchanged) -->
         <div id="results-container" class="space-y-8">
             <div id="loading-message" class="hidden text-center p-4 text-[var(--text-secondary)]">
                 <span class="material-symbols-outlined animate-spin">refresh</span>
@@ -108,7 +118,7 @@
                 <!-- Error text set by JS -->
             </div>
 
-            <!-- [NEW] Full Interview Details Section -->
+            <!-- Full Interview Details Section (Unchanged) -->
             <div id="interview-details-card" class="hidden space-y-8">
                 <!-- Header Card -->
                 <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
@@ -169,6 +179,7 @@
     </div>
 </main>
 
+<!-- SCRIPT (Unchanged) -->
 <script>
     // --- Theme Management ---
     const htmlElement = document.documentElement;
