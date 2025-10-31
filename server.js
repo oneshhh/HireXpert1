@@ -10,7 +10,7 @@ const pool = require("./db");
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const pgSession = require('connect-pg-simple')(session);
-
+const fs = require('fs');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
