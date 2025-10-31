@@ -979,6 +979,14 @@ app.get("/settings.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "settings.html"));
 });
 
+app.get("/visitor_management", (req, res) => {
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // Assuming add_visitors.html is in the 'views' folder like the others
+    res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
+});
 app.get("/viewer", (req, res) => {
     // This page handles its own auth logic, 
     // so we don't need a req.session.user check here.
