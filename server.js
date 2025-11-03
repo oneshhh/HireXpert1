@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 
 // Middleware
+app.use(express.json());
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 app.use(express.json());
 app.set('trust proxy', 1);
