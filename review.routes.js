@@ -259,7 +259,8 @@ router.get('/candidate/review/:token', async (req, res) => {
                 
                 const transcript_text = "Transcript processing is " + answer.status;
 
-                return { ...answer, question_text, time_limit, video_url, transcript_text };
+                return { ...answer, question_text, time_limit, video_url: videoUrl, transcript_text };
+                
             })
         );
         
