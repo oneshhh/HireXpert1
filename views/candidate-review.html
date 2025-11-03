@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Review Candidate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+      :root { --primary-color: #2563eb; }
+      body { font-family: 'Inter', sans-serif; }
+      .resend-btn {
+        margin-left: 1rem; /* ml-4 */
+        padding: 0.25rem 0.5rem; /* py-1 px-2 */
+        font-size: 0.75rem; /* text-xs */
+        font-weight: 500; /* font-medium */
+        color: #2563eb; /* text-blue-600 */
+        background-color: #dbeafe; /* bg-blue-100 */
+        border-radius: 0.25rem; /* rounded */
+        cursor: pointer;
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .resend-btn:hover {
+        background-color: #bfdbfe; /* hover:bg-blue-200 */
+      }
+      .resend-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.25); /* focus:ring-blue-500 equivalent */
+      }
+      .resend-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f3f4f6; /* bg-gray-100 */
+        color: #9ca3af; /* text-gray-400 */
+      }
+      /* Notification Modal Styles */
+      #notification-modal { transition: opacity 0.3s ease-out; }
+      #notification-modal > div { transition: all 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+  <header class="bg-white shadow-sm">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 id="page-title" class="text-xl font-bold text-gray-800">Review Candidate</h1>
+        <a id="back-link" href="#" class="text-sm font-medium text-gray-600 hover:text-blue-600">&larr; Back to Interview</a>
+    </div>
+  </header>
+
+  <main class="container mx-auto mt-8 px-6 pb-12">
+    
+    <div id="loading-state" class="text-center p-10">
+        <p class="text-gray-500">Loading candidate details...</p>
+        <div class="mt-4 w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+    </div>
+    
+    <div id="error-state" class="hidden text-center p-10 bg-red-50 rounded-lg">
+        <p class="text-red-600 font-medium">Could not load candidate details.</p>
+        <p id="error-message" class="text-red-500 text-sm mt-2"></p>
+    </div>
+
+    <div id="candidate-header" class="hidden bg-white shadow-lg rounded-lg p-6 mb-8">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 id="candidate-name" class="text-3xl font-bold text-gray-800"></h2>
+                <p id="candidate-email" class="text-lg text-gray-500 mt-1"></p>
+            </div>
+            <span id="reviewer-status" class="text-sm font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-800"></span>
+        </div>
+        <div id="resume-link-container" class="mt-4"></div>
+    </div>
+
+    <div id="answers-container" class="hidden space-y-8">
+        </div>
+
+  </main>
+  
+  <script>
+    // --- Global Variables ---
+    let currentToken = null;
+    let currentInterviewId = null;
+    
+    // --- (Copy showNotification() and modal helpers from interview-view.html if you use them) ---
+    // Fallback alert if notification function doesn't exist
+    function showNotification(title, text, options = {}) {
+        console.log(title, text);
+        if (!options.isError) {
+             alert(title + ": " + text);
+        }
+    }
+
+    /**
+     * Saves the rating and notes for a specific answer
+     */
+    async function saveReview(button, answerId) {
+        const card = button.closest('.answer-card');
+        const ratingSelect = card.querySelector('.rating-select');
+        const notesTextarea = card.querySelector('.notes-textarea');
+
+        const rating = ratingSelect.value ? parseInt(ratingSelect.value) : null;
+        const notes = notesTextarea.value;
+
+        button.disabled = true;
+        button.textContent = 'Saving...';
+
+        try {
+            const response = await fetch('/api/answer/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    answer_id: answerId,
+                    rating: rating,
+                    notes: notes
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+
+            showNotification('Success', 'Review saved!', { duration: 2000 });
+
+        } catch (error) {
+            console.error('Error saving review:', error);
+            showNotification('Error', error.message, { isError: true });
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Save Review';
+        }
+    }
+
+
+    /**
+     * Fetches all candidate details and answers
+     */
+    async function fetchCandidateReview() {
+        const loading = document.getElementById('loading-state');
+        const errorDiv = document.getElementById('error-state');
+        const errorMessage = document.getElementById('error-message');
+        const header = document.getElementById('candidate-header');
+        const answersContainer = document.getElementById('answers-container');
+
+        const params = new URLSearchParams(window.location.search);
+        currentToken = params.get("token");
+        currentInterviewId = params.get("interview_id");
+
+        // Set back link
+        document.getElementById('back-link').href = `/interview-view.html?id=${currentInterviewId}`;
+
+        if (!currentToken) {
+            loading.style.display = 'none';
+            errorDiv.classList.remove('hidden');
+            errorMessage.textContent = 'No candidate token provided in the URL.';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/candidate/review/${currentToken}`);
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.message || "Could not fetch candidate details.");
+            }
+            
+            const data = await res.json(); // { candidate: {...}, answers: [...] }
+
+            // Populate Header
+            document.getElementById('candidate-name').textContent = data.candidate.name;
+            document.getElementById('candidate-email').textContent = data.candidate.email;
+            document.getElementById('reviewer-status').textContent = data.candidate.status || 'To Evaluate';
+            document.getElementById('page-title').textContent = `Review: ${data.candidate.name}`;
+            
+            if (data.candidate.resume_path) {
+                // TODO: You need to create a signed URL for the resume as well
+                document.getElementById('resume-link-container').innerHTML = 
+                    `<a href="#" class="text-sm font-medium text-blue-600 hover:underline">View Resume</a>`;
+            }
+            
+            header.classList.remove('hidden');
+
+            // Populate Answers
+            answersContainer.innerHTML = '';
+            if (data.answers && data.answers.length > 0) {
+                data.answers.forEach((answer) => {
+                    const questionCard = document.createElement('div');
+                    questionCard.className = 'answer-card bg-white shadow-lg rounded-lg p-6';
+                    
+                    const ratingOptions = [
+                        { val: 1, text: '1 - Poor' },
+                        { val: 2, text: '2 - Fair' },
+                        { val: 3, text: '3 - Good' },
+                        { val: 4, text: '4 - Very Good' },
+                        { val: 5, text: '5 - Excellent' },
+                    ];
+                    
+                    const ratingHTML = ratingOptions.map(opt => 
+                        `<option value="${opt.val}" ${answer.rating === opt.val ? 'selected' : ''}>${opt.text}</option>`
+                    ).join('');
+                    
+                    let videoPlayerHTML = '';
+                    if (answer.video_url) {
+                        videoPlayerHTML = `<video controls class="w-full rounded-md bg-black" src="${answer.video_url}"></video>`;
+                    } else if (answer.status === 'ready') {
+                        videoPlayerHTML = `<div class="w-full aspect-video flex items-center justify-center bg-gray-100 rounded-md">
+                            <p class="text-red-500">Error loading video.</p>
+                        </div>`;
+                    } else {
+                         videoPlayerHTML = `<div class="w-full aspect-video flex items-center justify-center bg-gray-100 rounded-md">
+                            <p class="text-gray-500">This answer is still processing (Status: ${answer.status}).</p>
+                        </div>`;
+                    }
+
+                    questionCard.innerHTML = `
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            ${answer.question_text}
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">
+                            Time limit: ${answer.time_limit} sec
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-2">
+                                ${videoPlayerHTML}
+                            </div>
+                            
+                            <div class="md:col-span-1 space-y-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-700 mb-1">Transcript</h4>
+                                    <pre class="text-sm text-gray-600 whitespace-pre-wrap font-sans bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto">
+${answer.transcript_text || 'Transcript not available.'}
+                                    </pre>
+                                </div>
+                                
+                                <div>
+                                    <label for="rating-${answer.id}" class="block text-sm font-medium text-gray-700">Rating</label>
+                                    <select id="rating-${answer.id}" 
+                                            class="rating-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                        <option value="">No rating</option>
+                                        ${ratingHTML}
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="notes-${answer.id}" class="block text-sm font-medium text-gray-700">Notes</label>
+                                    <textarea id="notes-${answer.id}" rows="4"
+                                              class="notes-textarea mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                              placeholder="Your private notes...">${answer.notes || ''}</textarea>
+                                </div>
+                                
+                                <button onclick="saveReview(this, '${answer.id}')"
+                                        class="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                                    Save Review
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    answersContainer.appendChild(questionCard);
+                });
+            } else {
+                answersContainer.innerHTML = '<p class="text-gray-600 italic">This candidate has not submitted any answers yet.</p>';
+            }
+
+            // Show content
+            loading.style.display = 'none';
+            answersContainer.classList.remove('hidden');
+
+        } catch (error) {
+            loading.style.display = 'none';
+            errorDiv.classList.remove('hidden');
+            errorMessage.textContent = error.message;
+            console.error(error);
+        }
+    }
+
+    // --- Run on page load ---
+    fetchCandidateReview();
+  </script>
+</body>
+</html>

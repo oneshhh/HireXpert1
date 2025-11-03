@@ -11,11 +11,12 @@ const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const pgSession = require('connect-pg-simple')(session);
 const fs = require('fs');
-
+const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 // Middleware
+app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));

@@ -89,11 +89,34 @@
             <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
                 <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
-            </div>
-            <div class="bg-white shadow-lg rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Invited Candidates</h3>
-                <ul id="candidate-list" class="space-y-3 max-h-96 overflow-y-auto">
-                    </ul>
+            <div class="bg-white shadow-lg rounded-lg">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex" aria-label="Tabs">
+                        <button id="tab-submissions" 
+                                onclick="switchTab('submissions')"
+                                class="w-1/2 border-b-2 border-blue-600 py-4 px-1 text-center text-sm font-medium text-blue-600" 
+                                aria-current="page">
+                            Review Submissions
+                        </button>
+                        <button id="tab-invites" 
+                                onclick="switchTab('invites')"
+                                class="w-1/2 border-b-2 border-transparent py-4 px-1 text-center text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                            Pending Invites
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="p-6">
+                    <div id="panel-submissions">
+                        <ul id="submission-list" class="space-y-4 max-h-96 overflow-y-auto">
+                            <li class="text-sm text-gray-500 italic">Loading submissions...</li>
+                        </ul>
+                    </div>
+                    <div id="panel-invites" class="hidden">
+                        <ul id="candidate-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -260,6 +283,132 @@
         }
     }
 
+    // --- Tab Switching Function ---
+function switchTab(activeTab) {
+    const subTab = document.getElementById('tab-submissions');
+    const subPanel = document.getElementById('panel-submissions');
+    const invTab = document.getElementById('tab-invites');
+    const invPanel = document.getElementById('panel-invites');
+
+    if (activeTab === 'submissions') {
+        // Activate submissions
+        subTab.classList.add('border-blue-600', 'text-blue-600');
+        subTab.classList.remove('border-transparent', 'text-gray-500');
+        subPanel.classList.remove('hidden');
+        // Deactivate invites
+        invTab.classList.add('border-transparent', 'text-gray-500');
+        invTab.classList.remove('border-blue-600', 'text-blue-600');
+        invPanel.classList.add('hidden');
+    } else {
+        // Activate invites
+        invTab.classList.add('border-blue-600', 'text-blue-600');
+        invTab.classList.remove('border-transparent', 'text-gray-500');
+        invPanel.classList.remove('hidden');
+        // Deactivate submissions
+        subTab.classList.add('border-transparent', 'text-gray-500');
+        subTab.classList.remove('border-blue-600', 'text-blue-600');
+        subPanel.classList.add('hidden');
+    }
+}
+
+// --- Function to Update Reviewer Status ---
+async function updateReviewerStatus(selectElement, token) {
+    const newStatus = selectElement.value;
+    selectElement.disabled = true;
+
+    try {
+        const response = await fetch('/api/candidate/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                candidate_token: token,
+                status: newStatus // Send the new status
+            })
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to update status');
+        }
+        
+        showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 });
+
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showNotification('Error', error.message, { isError: true });
+    } finally {
+        selectElement.disabled = false;
+    }
+}
+
+
+// --- Function to Fetch Submissions ---
+async function fetchSubmissions() {
+    if (!currentInterviewId) return;
+
+    const list = document.getElementById('submission-list');
+    try {
+        const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
+        if (!res.ok) {
+             const err = await res.json();
+             throw new Error(err.message || 'Could not load submissions');
+        }
+        
+        const submissions = await res.json();
+        list.innerHTML = ''; // Clear 'Loading...'
+
+        if (submissions.length === 0) {
+            list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
+            return;
+        }
+
+        // Map submission status text to badge colors
+        const statusColors = {
+            'Completed': 'bg-green-100 text-green-800',
+            'Started': 'bg-blue-100 text-blue-800',
+            'Opened': 'bg-yellow-100 text-yellow-800',
+            'Error': 'bg-red-100 text-red-800'
+        };
+
+        submissions.forEach(candidate => {
+            const li = document.createElement('li');
+            li.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 rounded-md hover:bg-gray-50';
+            
+            // Your reviewer statuses
+            const reviewerStatuses = ['To Evaluate', 'Evaluated', 'Discarded'];
+            const optionsHTML = reviewerStatuses.map(s => 
+                // Select the one that matches the candidate's current status
+                `<option value="${s}" ${s === candidate.reviewer_status ? 'selected' : ''}>${s}</option>`
+            ).join('');
+
+            li.innerHTML = `
+                <div class="flex-grow mb-2 sm:mb-0">
+                    <a href="/candidate-review.html?token=${candidate.candidate_token}&interview_id=${currentInterviewId}" 
+                       class="font-medium text-blue-600 hover:underline">
+                       ${candidate.name || 'Unnamed Candidate'}
+                    </a>
+                    
+                    <span class="ml-2 px-2 py-0.5 rounded-full text-xs ${statusColors[candidate.submission_status] || 'bg-gray-100 text-gray-800'}">
+                        ${candidate.submission_status}
+                    </span>
+                    <p class="text-xs text-gray-500">${candidate.email}</p>
+                </div>
+                
+                <div class="flex-shrink-0">
+                    <select onchange="updateReviewerStatus(this, '${candidate.candidate_token}')" 
+                            class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        ${optionsHTML}
+                    </select>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+
+    } catch (error) {
+        console.error('Failed to fetch submissions:', error);
+        list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
+    }
+}
+
 
     // --- Fetch Interview Details Function ---
     async function fetchInterview() {
@@ -382,6 +531,7 @@
         // Show content
         loading.style.display = 'none';
         content.classList.remove('hidden');
+        fetchSubmissions();
 
       } catch (err) {
         loading.style.display = 'none';
