@@ -92,7 +92,80 @@ function calculateOverallSubmissionStatus(statuses) {
     if (statuses.every(s => s === 'ready')) return 'Completed';
     if (statuses.every(s => s === 'queued')) return 'Opened';
     return 'Started';
-}
+}/**
+ * Endpoint 1: GET /api/interview/:id/submissions
+ * This is the complex query that uses both databases.
+ */
+router.get('/interview/:id/submissions', async (req, res) => {
+    const { id: interview_id } = req.params;
+
+    if (!interview_id) {
+        return res.status(400).json({ message: 'Interview ID is required.' });
+    }
+
+    try {
+        // 1. Get candidate sessions from your MAIN database (DB_A)
+        const { rows: sessions } = await pool.query(
+            `SELECT candidate_email, status, session_id FROM candidate_sessions WHERE interview_id = $1`,
+            [interview_id]
+        );
+
+        if (!sessions || sessions.length === 0) {
+            return res.json([]);
+        }
+
+        // 2. Get emails to find candidates in the SECOND database (DB_B)
+        const emails = sessions.map(s => s.candidate_email);
+
+        // 3. Get candidate details (name, token) from SECOND database (DB_B)
+        //    (*** THIS IS THE FIXED QUERY ***)
+        const { data: candidates, error: candidatesError } = await supabase_second_db
+            .from('candidates')
+            .select('name, email, candidate_token')
+            .in('email', emails) // Email must be in our list
+            .eq('interview_id', interview_id); // AND interview_id MUST match
+
+        if (candidatesError) throw candidatesError;
+
+        // 4. Get answer statuses from SECOND database (DB_B)
+        const candidateTokens = candidates.map(c => c.candidate_token);
+        if (candidateTokens.length === 0) {
+            return res.json([]); // No matching candidates found in 2nd DB
+        }
+
+        const { data: answers, error: answersError } = await supabase_second_db
+            .from('answers')
+            .select('candidate_token, status')
+            .in('candidate_token', candidateTokens);
+
+        if (answersError) throw answersError;
+
+        // 5. Combine all data in JavaScript (no changes here)
+        const submissions = sessions.map(session => {
+            const candidate = candidates.find(c => c.email === session.candidate_email);
+            if (!candidate) return null; 
+
+            const candidateAnswers = answers.filter(a => a.candidate_token === candidate.candidate_token);
+            const answerStatuses = candidateAnswers.map(a => a.status);
+            const overallStatus = calculateOverallSubmissionStatus(answerStatuses);
+
+            return {
+                name: candidate.name,
+                email: session.candidate_email,
+                candidate_token: candidate.candidate_token,
+                session_id: session.session_id,
+                reviewer_status: session.status,
+                submission_status: overallStatus
+            };
+        }).filter(Boolean); 
+
+        res.json(submissions);
+
+    } catch (error) {
+        console.error('Error fetching submissions:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
 
 /**
  * Endpoint 2: POST /api/candidate/status
