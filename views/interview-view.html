@@ -312,7 +312,7 @@ function switchTab(activeTab) {
 }
 
 // --- Function to Update Reviewer Status ---
-async function updateReviewerStatus(selectElement, token) {
+async function updateReviewerStatus(selectElement, email, interviewId) {
     const newStatus = selectElement.value;
     selectElement.disabled = true;
 
@@ -321,8 +321,9 @@ async function updateReviewerStatus(selectElement, token) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                candidate_token: token,
-                status: newStatus // Send the new status
+                candidate_email: email, // Use email
+                status: newStatus,
+                interview_id: interviewId // Pass interviewId
             })
         });
         if (!response.ok) {
@@ -339,7 +340,6 @@ async function updateReviewerStatus(selectElement, token) {
         selectElement.disabled = false;
     }
 }
-
 
 // --- Function to Fetch Submissions ---
 async function fetchSubmissions() {
@@ -394,7 +394,7 @@ async function fetchSubmissions() {
                 </div>
                 
                 <div class="flex-shrink-0">
-                    <select onchange="updateReviewerStatus(this, '${candidate.candidate_token}')" 
+                    <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" 
                             class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         ${optionsHTML}
                     </select>
