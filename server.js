@@ -1086,6 +1086,20 @@ app.get("/viewer", (req, res) => {
     // so we don't need a req.session.user check here.
     res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
 });
+
+// Add this to your "Static Page Routes" section in server.js
+
+app.get("/candidate-review.html", (req, res) => {
+    // --- Recommended Security Check ---
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // --- End of Security Check ---
+
+    // If logged in, send the file
+    res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
+});
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
