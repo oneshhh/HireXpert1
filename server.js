@@ -17,8 +17,6 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
-app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -38,6 +36,9 @@ app.use(session({
         sameSite: 'lax'
     }
 }));
+
+app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
+
 
 // Helper functions
 function parseQuestionsField(q) {
