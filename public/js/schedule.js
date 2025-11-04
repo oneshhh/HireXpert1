@@ -3,6 +3,7 @@ function showNotification(title, text, options = {}) {
     const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', onClose = null } = options;
 
     const modal = document.getElementById('notification-modal');
+    // ... (rest of showNotification function is unchanged) ...
     const modalTitle = document.getElementById('notification-modal-title');
     const modalText = document.getElementById('notification-modal-text');
     const modalIcon = document.getElementById('notification-modal-icon');
@@ -69,7 +70,7 @@ function showNotification(title, text, options = {}) {
     modal.classList.remove('hidden');
 }
 
-
+// ... (manageAddQuestionButton and addQuestion functions are unchanged) ...
 function manageAddQuestionButton() {
     const container = document.getElementById("questions-container");
     const addButton = document.querySelector('button[onclick="addQuestion()"]');
@@ -105,32 +106,46 @@ function addQuestion(questionText = '') {
   manageAddQuestionButton();
 }
 
-async function loadSchedulers() {
+// --- [NEW] ---
+// This function now fetches VISITORS based on the selected department
+async function loadSchedulers(department) {
     const schedulerSelect = document.getElementById('schedulerIds');
-    try {
-        const response = await fetch('/api/users-by-dept');
-        if (!response.ok) throw new Error('Failed to load users. Your session may have expired.');
-        
-        const users = await response.json();
-        schedulerSelect.innerHTML = ''; 
+    schedulerSelect.innerHTML = '<option disabled>Loading reviewers...</option>'; // Update text
 
-        if (users.length === 0) {
-            schedulerSelect.innerHTML = '<option disabled>No users found in your department.</option>';
+    if (!department) {
+        schedulerSelect.innerHTML = '<option disabled>Please select an interview department first.</option>';
+        return;
+    }
+
+    try {
+        // Call the new API endpoint
+        const response = await fetch(`/api/visitors/by-dept?department=${department}`);
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Your session may have expired. Please log in again.');
+            }
+            throw new Error('Failed to load reviewers for this department.');
+        }
+        
+        const visitors = await response.json();
+        schedulerSelect.innerHTML = ''; // Clear "Loading..."
+
+        if (visitors.length === 0) {
+            schedulerSelect.innerHTML = `<option disabled>No reviewers found for ${department}.</option>`;
         } else {
-            users.forEach(user => {
+            visitors.forEach(visitor => {
                 const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = `${user.first_name} ${user.last_name}`;
+                option.value = visitor.id; // Use visitor ID
+                option.textContent = `${visitor.first_name} ${visitor.last_name} (${visitor.email})`; // Show visitor info
                 schedulerSelect.appendChild(option);
             });
         }
     } catch (error) {
         console.error('Error loading schedulers:', error);
-        schedulerSelect.innerHTML = '<option disabled>Error loading users.</option>';
-        // Show a user-friendly notification about the error
+        schedulerSelect.innerHTML = `<option disabled>Error loading reviewers.</option>`;
         showNotification(
-            'Authentication Error', 
-            'Could not load user data. Please log in again and retry.', 
+            'Error', 
+            error.message, 
             { isError: true }
         );
     }
@@ -157,12 +172,37 @@ document.addEventListener("DOMContentLoaded", () => {
       prefixSpan.textContent = `${year}/${month}/----/`;
   }
 
-  // --- Initial Data Loading ---
-  loadSchedulers();
+  // --- [NEW] ---
+  // We need to find the interview department dropdown to add a listener
+  // Since it's not in the HTML, I'll assume you'll add it.
+  // For now, let's load reviewers for a *default* department.
+  // We need the *user's* department to load the initial list.
   
-  // --- Event Listener for "Apply Time" Button ---
+  // [NEW] Get the user's department to filter by default
+  async function getActiveDepartmentAndLoadReviewers() {
+      try {
+          const res = await fetch('/api/me'); // Get logged-in user's info
+          if (!res.ok) throw new Error("Could not get user session.");
+          const user = await res.json();
+          
+          const activeDept = user.activeDepartment;
+          if (activeDept) {
+              loadSchedulers(activeDept); // Load reviewers for the user's dept
+          } else {
+              throw new Error("No active department found for user.");
+          }
+      } catch (err) {
+          console.error(err);
+          showNotification('Error', 'Could not load reviewers. Please log in and try again.', { isError: true });
+      }
+  }
+
+  getActiveDepartmentAndLoadReviewers();
+  
+  // --- Event Listener for "Apply Time" Button (Unchanged) ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
+  // ... (rest of applyTimeButton listener is unchanged) ...
       applyTimeButton.addEventListener('click', () => {
           const timeLimitSelects = document.querySelectorAll('select[name="timeLimits[]"]');
           if (timeLimitSelects.length > 1) {
@@ -187,11 +227,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // --- Main Form Submission Logic ---
+  // --- Main Form Submission Logic (Unchanged by name, but data is now visitors) ---
   const form = document.getElementById("scheduleForm");
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     const formData = new FormData(form);
+    
+    // This 'schedulerIds' now contains VISITOR IDs
+    const visitorReviewerIds = Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value);
+    
     const data = {
       title: formData.get("title"),
       customIdText: formData.get("customIdText"),
@@ -202,7 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       emails: formData.get("emails"),
       schedulerEmail: formData.get("schedulerEmail"),
       jobDescription: document.getElementById('job-description').value,
-      schedulerIds: Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value)
+      schedulerIds: visitorReviewerIds // This key name MUST match the server's req.body
     };
 
     try {
@@ -211,6 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      // ... (rest of form submission logic is unchanged) ...
       const result = await res.json();
       if (res.ok) {
         showNotification(
@@ -230,9 +275,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- Date/Time Restriction Logic ---
+  // --- Date/Time Restriction Logic (Unchanged) ---
   const dateInput = document.getElementById('interview-date');
   const timeInput = document.getElementById('interview-time');
+  // ... (rest of date/time logic is unchanged) ...
   const today = new Date();
   today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
   const todayString = today.toISOString().split('T')[0];
@@ -260,6 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
   dateInput.addEventListener('change', handleDateChange);
   handleDateChange();
   
-  // --- Initial UI Management ---
+  // --- Initial UI Management (Unchanged) ---
   manageAddQuestionButton();
 });

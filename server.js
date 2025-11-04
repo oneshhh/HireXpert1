@@ -424,7 +424,7 @@ app.post("/schedule", async (req, res) => {
 
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
         if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
-        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one scheduler must be assigned.");
+        if (!visitorReviewerIds || visitorReviewerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
         
         const now = new Date();
         const year = now.getFullYear().toString().slice(-2);
@@ -439,11 +439,11 @@ app.post("/schedule", async (req, res) => {
         while (timeLimits.length < questions.length) timeLimits.push(0);
         
         const interviewId = uuidv4();
-        await client.query(
-          `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, scheduler_ids)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
-          [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
-        );
+            await client.query(
+            `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, visitor_reviewer_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
+            [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, visitorReviewerIds]
+            );
         
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
@@ -610,6 +610,7 @@ app.get("/add_visitors.html", (req, res) => {
 
 // [NEW] 2. API ROUTE to GET all visitors
 // (Place this with other API routes like /api/users)
+// [REPLACE] this route in server.js
 app.get("/api/visitors", async (req, res) => {
     // SECURITY: Only Admins can see the visitor list
     if (req.session.user?.activeDepartment !== 'Admin') {
@@ -617,7 +618,8 @@ app.get("/api/visitors", async (req, res) => {
     }
     
     try {
-        const result = await pool.query("SELECT id, first_name, last_name, email FROM visitors ORDER BY created_at DESC");
+        // [NEW] Added 'department' column
+        const result = await pool.query("SELECT id, first_name, last_name, email, department FROM visitors ORDER BY created_at DESC");
         res.json(result.rows);
     } catch (error) {
         console.error("Error fetching visitors:", error);
@@ -626,13 +628,15 @@ app.get("/api/visitors", async (req, res) => {
 });
 
 // [NEW] 3. API ROUTE to ADD a new visitor
+// [REPLACE] this route in server.js
 app.post("/api/visitors/add", async (req, res) => {
     // SECURITY: Only Admins can add visitors
     if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).json({ message: "Forbidden: Only admins can add visitors." });
     }
     
-    const { firstName, lastName, email, password } = req.body;
+    // [NEW] Added 'departments'
+    const { firstName, lastName, email, password, departments } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: "All fields are required." });
@@ -643,10 +647,11 @@ app.post("/api/visitors/add", async (req, res) => {
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
         const newVisitorResult = await pool.query(
-            `INSERT INTO visitors (first_name, last_name, email, password_hash)
-             VALUES ($1, $2, $3, $4)
+            // [NEW] Added 'department' column
+            `INSERT INTO visitors (first_name, last_name, email, password_hash, department)
+             VALUES ($1, $2, $3, $4, $5)
              RETURNING id, email`,
-            [firstName, lastName, email, passwordHash]
+            [firstName, lastName, email, passwordHash, departments || []] // Send departments or empty array
         );
         
         res.status(201).json({ 
@@ -656,11 +661,41 @@ app.post("/api/visitors/add", async (req, res) => {
         });
 
     } catch (error) {
+// ... (rest of the function is the same)
         console.error("Error creating visitor:", error);
         if (error.code === '23505') { // Unique constraint (email)
             return res.status(409).json({ message: "A visitor with this email already exists." });
         }
         res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+// Add this new route to server.js
+app.get("/api/visitors/by-dept", async (req, res) => {
+    // Security: Only logged-in users (schedulers) can see the visitor list
+    if (!req.session.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { department } = req.query;
+    if (!department) {
+        return res.status(400).json({ message: "Department is required." });
+    }
+
+    try {
+        // Fetches visitors where their 'department' array contains the one requested
+        // OR visitors who are 'Admins' (if you add an 'Admin' tag)
+        const query = `
+            SELECT id, first_name, last_name, email 
+            FROM visitors 
+            WHERE department @> ARRAY[$1::TEXT] OR department @> ARRAY['Admin'::TEXT]
+            ORDER BY first_name
+        `;
+        const { rows } = await pool.query(query, [department]);
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching visitors by dept:", error);
+        res.status(500).json({ message: "Failed to fetch visitors." });
     }
 });
 
@@ -777,7 +812,7 @@ app.post("/api/interview/:id/update", async (req, res) => {
         await client.query('BEGIN');
 
         // 1. Destructure all expected data from the request body
-        let { title, questions, timeLimits, schedulerIds, newEmails } = req.body;
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds: visitorReviewerIds } = req.body;
         
         // 2. Data validation and cleanup
         if (!Array.isArray(questions)) questions = [String(questions || '')];
