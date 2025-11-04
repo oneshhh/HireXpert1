@@ -984,6 +984,7 @@ app.post("/api/me/update", async (req, res) => {
     }
 });
 
+
 // ========== VIEWER ROUTES ==========
 app.post("/viewer/login", async (req, res) => {
     const { email, password } = req.body;
@@ -1020,6 +1021,53 @@ app.post("/viewer/login", async (req, res) => {
         }
     } catch (error) {
         console.error("Viewer login error:", error);
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
+
+// ADD THIS NEW ROUTE to server.js
+app.post("/api/reviewer-login", async (req, res) => {
+    const { email, password }_ = req.body;
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        const user = result.rows[0];
+
+        if (user) {
+            if (!user.is_active) {
+                return res.status(403).json({ message: "Account disabled. Please contact admin." });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password_hash);
+            if (isMatch) {
+                // Create the standard user session
+                req.session.user = {
+                    id: user.id,
+                    email: user.email,
+                    departments: user.department,
+                    activeDepartment: user.department[0] // Just pick the first department
+                };
+                
+                req.session.save((err) => {
+                    if (err) {
+                        return res.status(500).json({ message: "Session save error." });
+                    }
+                    // On success, just send back the user data
+                    // The frontend will handle showing the dashboard
+                    res.json({
+                        success: true,
+                        id: user.id,
+                        email: user.email
+                    });
+                });
+            } else {
+                 res.status(401).json({ message: "Invalid credentials." });
+            }
+        } else {
+             res.status(401).json({ message: "Invalid credentials." });
+        }
+    } catch (error) {
+        console.error("Reviewer login error:", error);
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
@@ -1082,12 +1130,10 @@ app.get("/visitor_management", (req, res) => {
     // Assuming add_visitors.html is in the 'views' folder like the others
     res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
 });
-app.get("/viewer", (req, res) => {
-    // Protect this page
-    if (!req.session.user) {
-        return res.redirect('/'); 
-    }
-    res.sendFile(path.join(__dirname, "views", "interview-viewer.html"));
+app.get("/interview-viewer.html", (req, res) => {
+    // This route just sends the file.
+    // The JavaScript INSIDE the file will handle all auth.
+    res.sendFile(path.join(__dirname, "interview-viewer.html"));
 });
 
 // Add this to your "Static Page Routes" section in server.js
