@@ -1028,7 +1028,7 @@ app.post("/viewer/login", async (req, res) => {
 
 // ADD THIS NEW ROUTE to server.js
 app.post("/api/reviewer-login", async (req, res) => {
-    const { email, password }_ = req.body;
+    const { email, password } = req.body;
     try {
         const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const user = result.rows[0];
