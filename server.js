@@ -1130,10 +1130,10 @@ app.get("/visitor_management", (req, res) => {
     // Assuming add_visitors.html is in the 'views' folder like the others
     res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
 });
-app.get("/interview-viewer.html", (req, res) => {
+app.get("/interview_viewer.html", (req, res) => {
     // This route just sends the file.
     // The JavaScript INSIDE the file will handle all auth.
-    res.sendFile(path.join(__dirname, "views", "interview-viewer.html"));
+    res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
 });
 
 // Add this to your "Static Page Routes" section in server.js
