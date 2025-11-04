@@ -15,14 +15,12 @@ const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-// --- Middleware (Corrected Order) ---
-app.use(express.json()); // You only need this once
+// Middleware
+app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
-
-// --- Session middleware MUST come before routes that use it ---
 app.use(session({
     store: new pgSession({
         pool: pool,                // Use your existing database pool
@@ -32,13 +30,13 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
+        // Set cookie maxAge to 30 days in milliseconds (previous value was incorrect)
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
     }
 }));
 
-// --- Mount API routes AFTER session ---
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 
 
@@ -117,9 +115,8 @@ app.post('/api/generate', async (req, res) => {
     }
 });
 
-// --- Auth and Page Routes ---
-// [FIXED] Pointing to login.html in the root (where your other HTML files are)
-app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "login.html")); });
+// Auth and Page Routes
+app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.html")); });
 
 // ========== CORRECTED: /login route to handle multiple departments properly ==========
 app.post("/login", async (req, res) => {
@@ -206,59 +203,15 @@ app.get("/logout", (req, res) => {
     });
 });
 
-// --- Static Page Routes ---
-// --- [FIXED] Removed "views" from all paths ---
-
-app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "HR_Dashboard.html")); });
-app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "PMO_Dashboard.html")); });
-app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "GTA_Dashboard.html")); });
-
+app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
+app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
+app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.activeDepartment === 'Admin') {
-        return res.sendFile(path.join(__dirname, "admin_Dashboard.html"));
+        return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
     }
     res.status(401).send("<h1>Unauthorized</h1><p>You must be an admin to view this page.</p><a href='/'>Login Again</a>");
 });
-
-app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, "interview-view.html")));
-app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "interview-edit.html")));
-app.get("/candidates.html", (req, res) => res.sendFile(path.join(__dirname, "candidates.html")));
-
-app.get("/settings.html", (req, res) => {
-    // Ensure user is logged in before sending the page
-    if (!req.session.user) {
-        return res.redirect('/'); // Redirect to login if not authenticated
-    }
-    res.sendFile(path.join(__dirname, "settings.html"));
-});
-
-app.get("/visitor_management", (req, res) => {
-    // Ensure user is logged in before sending the page
-    if (!req.session.user) {
-        return res.redirect('/'); // Redirect to login if not authenticated
-    }
-    res.sendFile(path.join(__dirname, "add_visitors.html"));
-});
-
-// --- [REPLACED] Old /viewer route is now /interview-viewer.html ---
-app.get("/interview-viewer.html", (req, res) => {
-    // --- Security Check ---
-    if (!req.session.user) {
-        return res.redirect('/'); // Redirect to login if not authenticated
-    }
-    // --- End of Security Check ---
-    res.sendFile(path.join(__dirname, "interview-viewer.html"));
-});
-
-app.get("/candidate-review.html", (req, res) => {
-    // --- Security Check ---
-    if (!req.session.user) {
-        return res.redirect('/'); // Redirect to login if not authenticated
-    }
-    // --- End of Security Check ---
-    res.sendFile(path.join(__dirname, "candidate-review.html"));
-});
-
 
 // User Management API Routes
 app.get("/api/users", async (req, res) => {
@@ -535,45 +488,6 @@ app.get("/api/interviews/counts", async (req, res) => {
     }
 });
 
-// [NEW] API Route for fetching all-stats (for dashboards)
-app.get("/api/interviews/all-stats", async (req, res) => {
-    try {
-        // This query groups all candidates by their interview and status,
-        // then counts them.
-        const query = `
-            SELECT 
-                interview_id, 
-                status, 
-                COUNT(*) as count 
-            FROM 
-                candidate_sessions 
-            GROUP BY 
-                interview_id, status;
-        `;
-        const { rows } = await pool.query(query);
-
-        // We reformat the data here to make it much easier
-        // to use on the frontend.
-        // From: [{ interview_id: '123', status: 'Evaluated', count: 1 }]
-        // To:   { '123': { 'Evaluated': 1 } }
-        const stats = {};
-        for (const row of rows) {
-            if (!stats[row.interview_id]) {
-                stats[row.interview_id] = {};
-            }
-            // Use the status from the row as the key
-            stats[row.interview_id][row.status] = parseInt(row.count);
-        }
-        
-        res.json(stats);
-
-    } catch (err) {
-        console.error("Error fetching interview stats:", err);
-        res.status(500).json({ message: "Failed to fetch stats" });
-    }
-});
-
-
 app.post("/api/interviews/bulk-update-status", async (req, res) => {
     try {
         const { interviewIds, status } = req.body;
@@ -684,13 +598,13 @@ app.get("/api/candidates/all", async (req, res) => {
 
 // [NEW] 1. PAGE ROUTE for add_visitors.htm;
 // (Place this with your other page routes like /settings.html)
-// [FIXED] Path does not use "views"
 app.get("/add_visitors.html", (req, res) => {
     // SECURITY: Protect this page
     if (req.session.user?.activeDepartment !== 'Admin') {
         return res.status(403).send("<h1>403 Forbidden</h1><p>You must be an admin to access this page.</p>");
     }
-    res.sendFile(path.join(__dirname, "add_visitors.html"));
+    // Assumes 'add_visitors.html' is in your 'views' folder
+    res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
 });
 
 
@@ -715,7 +629,7 @@ app.get("/api/visitors", async (req, res) => {
 app.post("/api/visitors/add", async (req, res) => {
     // SECURITY: Only Admins can add visitors
     if (req.session.user?.activeDepartment !== 'Admin') {
-        return res.status(4a03).json({ message: "Forbidden: Only admins can add visitors." });
+        return res.status(403).json({ message: "Forbidden: Only admins can add visitors." });
     }
     
     const { firstName, lastName, email, password } = req.body;
@@ -1071,69 +985,125 @@ app.post("/api/me/update", async (req, res) => {
 });
 
 // ========== VIEWER ROUTES ==========
-// [DELETED] All old /viewer/login, /viewer/me, /viewer/logout routes are gone.
-
-// 4. Fetch Interview by 'custom_interview_id'
-// (This entire route REPLACES your old one)
-app.get("/api/interview/by-custom-id", async (req, res) => {
-    // [DELETED] This route is no longer for 'viewers'
-    // We will assume this is for logged-in USERS if needed.
-    // For now, this route may be unused.
-    if (!req.session.user) {
-        return res.status(401).json({ message: "Not authenticated. Please log in." });
-    }
-
-    // [FIX 1] Trim the input ID to remove any spaces
-    const customId = req.query.id ? req.query.id.trim() : null;
-    
-    if (!customId) {
-        return res.status(400).json({ message: "An 'id' query parameter is required." });
-    }
-
+app.post("/viewer/login", async (req, res) => {
+    const { email, password } = req.body;
     try {
-        // 1. Fetch main interview data AND creator name
-        const interviewQuery = `
-            SELECT i.*, u.first_name, u.last_name
-            FROM interviews i
-            LEFT JOIN users u ON i.created_by_user_id = u.id
-            /* [FIX 2] Use TRIM() on the database column to ignore saved spaces */
-            WHERE TRIM(i.custom_interview_id) = $1
-        `;
-        const interviewResult = await pool.query(interviewQuery, [customId]);
+        // Query the 'visitors' table
+        const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
+        const viewer = result.rows[0];
 
-        if (interviewResult.rows.length === 0) {
-            return res.status(404).json({ message: "Interview not found. Please check the ID." });
+        if (viewer) {
+            const isMatch = await bcrypt.compare(password, viewer.password_hash);
+            if (isMatch) {
+                // Set a 'viewer' session, not a 'user' session
+                req.session.viewer = {
+                    id: viewer.id,
+                    email: viewer.email,
+                    name: `${viewer.first_name} ${viewer.last_name}`
+                };
+                // Save session and send response
+                req.session.save((err) => {
+                    if (err) {
+                        console.error("Error saving viewer session:", err);
+                        return res.status(500).json({ message: "Login failed (session error)." });
+                    }
+                    res.json({
+                        success: true,
+                        email: viewer.email
+                    });
+                });
+            } else {
+                res.status(401).json({ message: "Invalid credentials." });
+            }
+        } else {
+            res.status(401).json({ message: "Invalid credentials." });
         }
-        
-        const interviewData = interviewResult.rows[0];
-
-        // 2. Fetch scheduler names (if any)
-        let schedulers = [];
-        if (interviewData.scheduler_ids && interviewData.scheduler_ids.length > 0) {
-            const schedulersResult = await pool.query(
-                "SELECT first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])",
-                [interviewData.scheduler_ids]
-            );
-            schedulers = schedulersResult.rows;
-        }
-        
-        // 3. Combine and send the full payload
-        // We add the fetched schedulers list to the data object
-        const responseData = { ...interviewData, schedulers: schedulers };
-        res.json(responseData);
-
-
-    } catch(err) {
-        console.error("Error fetching interview by custom_id:", err);
+    } catch (error) {
+        console.error("Viewer login error:", error);
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
-// --- [DELETED] The old /viewer route is removed ---
+// 2. Check Viewer Session Route
+app.get("/viewer/me", (req, res) => {
+    if (req.session.viewer) {
+        res.json({
+            id: req.session.viewer.id,
+            email: req.session.viewer.email
+        });
+    } else {
+        res.status(401).json({ message: "Not authenticated" });
+    }
+});
 
+// 3. Viewer Logout Route
+app.get("/viewer/logout", (req, res) => {
+    if (req.session.viewer) {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Viewer logout error:", err);
+                return res.status(500).send("Could not log out.");
+            }
+            res.clearCookie('connect.sid');
+            res.json({ success: true, message: "Logged out." });
+        });
+    } else {
+        res.json({ success: true, message: "No session to clear." });
+    }
+});
+
+// --- NEW DATA ROUTE FOR VIEWERS ---
+
+// 4. Fetch Interview by 'custom_interview_id'
+// We use a query parameter ?id=... because custom IDs contain slashes
+// which would break a URL path like /api/interview/by-custom-id/25/Oct/0001/Test
+
+
+
+// --- Static Page Routes ---
+app.get("/interview-view.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-view.html")));
+app.get("/interview-edit.html", (req, res) => res.sendFile(path.join(__dirname, "views", "interview-edit.html")));
+app.get("/candidates.html", (req, res) => res.sendFile(path.join(__dirname, "views", "candidates.html")));
+// Add this line
+app.get("/settings.html", (req, res) => {
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // Assuming settings.html is in the 'views' folder like the others
+    res.sendFile(path.join(__dirname, "views", "settings.html"));
+});
+
+app.get("/visitor_management", (req, res) => {
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // Assuming add_visitors.html is in the 'views' folder like the others
+    res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
+});
+app.get("/viewer", (req, res) => {
+    // Protect this page
+    if (!req.session.user) {
+        return res.redirect('/'); 
+    }
+    res.sendFile(path.join(__dirname, "views", "interview-viewer.html"));
+});
+
+// Add this to your "Static Page Routes" section in server.js
+
+app.get("/candidate-review.html", (req, res) => {
+    // --- Recommended Security Check ---
+    // Ensure user is logged in before sending the page
+    if (!req.session.user) {
+        return res.redirect('/'); // Redirect to login if not authenticated
+    }
+    // --- End of Security Check ---
+
+    // If logged in, send the file
+    res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
+});
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-// [FIXED] Removed extra '}' at the end of the file
