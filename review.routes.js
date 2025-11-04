@@ -260,7 +260,7 @@ router.get('/candidate/review/:token', async (req, res) => {
                 const transcript_text = "Transcript processing is " + answer.status;
 
                 return { ...answer, question_text, time_limit, video_url: videoUrl, transcript_text };
-                
+
             })
         );
         
@@ -302,5 +302,126 @@ router.post('/answer/review', async (req, res) => {
     }
 });
 
+// --- API for SAVING an individual review ---
+// (Path becomes: POST /api/evaluations)
+router.post("/evaluations", async (req, res) => {
+    if (!req.session.user || !req.session.user.id) {
+        return res.status(401).json({ message: "You must be logged in." });
+    }
+    const user_id = req.session.user.id;
+    
+    // Get all fields from the review page
+    const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
+
+    // Use "UPSERT" to create or update the review
+    const query = `
+        INSERT INTO reviewer_evaluations 
+            (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
+        VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (interview_id, candidate_email, user_id) 
+        DO UPDATE SET 
+            status = EXCLUDED.status,
+            rating = EXCLUDED.rating,
+            notes = EXCLUDED.notes,
+            summary = EXCLUDED.summary,
+            updated_at = NOW();
+    `;
+    
+    try {
+        // We use 'pool' because this table is in Database A
+        await pool.query(query, [interview_id, candidate_email, user_id, status, rating, notes, summary]);
+        res.status(200).json({ message: 'Evaluation saved successfully.' });
+    } catch (error) {
+        console.error("Error saving evaluation:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// --- API for GETTING all reviews for a candidate ---
+// (Path becomes: GET /api/evaluations)
+router.get("/evaluations", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ message: "You must be logged in." });
+    }
+    const { interview_id, candidate_email } = req.query; // e.g., /api/evaluations?interview_id=...
+
+    if (!interview_id || !candidate_email) {
+        return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
+    }
+
+    // Join with 'users' table to get the reviewer's name
+    const query = `
+        SELECT e.*, u.first_name, u.last_name 
+        FROM reviewer_evaluations e
+        JOIN users u ON e.user_id = u.id
+        WHERE e.interview_id = $1 AND e.candidate_email = $2
+        ORDER BY e.updated_at DESC;
+    `;
+    
+    try {
+        const { rows } = await pool.query(query, [interview_id, candidate_email]);
+        res.json(rows); // Returns an array of all review objects
+    } catch (error) {
+        console.error("Error fetching evaluations:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// --- API for the "My Interviews" Dashboard ---
+// (Path becomes: GET /api/me/assigned-interviews)
+router.get("/me/assigned-interviews", async (req, res) => {
+    if (!req.session.user || !req.session.user.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    const user_id = req.session.user.id;
+
+    try {
+        // 1. Get all stats from candidate_sessions first (for our dashboard counts)
+        const statsResult = await pool.query(`
+            SELECT interview_id, status, COUNT(*) as count 
+            FROM candidate_sessions 
+            GROUP BY interview_id, status
+        `);
+        
+        // Re-format stats for easy lookup: { 'interview-id-123': { 'Evaluated': 2 } }
+        const stats = {};
+        for (const row of statsResult.rows) {
+            if (!stats[row.interview_id]) {
+                stats[row.interview_id] = {};
+            }
+            stats[row.interview_id][row.status] = parseInt(row.count);
+        }
+
+        // 2. Get all interviews assigned to this user
+        const interviewQuery = `
+            SELECT i.*, u.first_name, u.last_name 
+            FROM interviews i
+            LEFT JOIN users u ON i.created_by_user_id = u.id
+            WHERE $1 = ANY(i.scheduler_ids)
+            ORDER BY i.created_at DESC
+        `;
+        const { rows: interviews } = await pool.query(interviewQuery, [user_id]);
+
+        // 3. Combine the interviews with their stats
+        const response = interviews.map(interview => {
+            const interviewStats = stats[interview.id] || {};
+            return {
+                ...interview,
+                stats: { // Add the stats under a 'stats' key
+                    invited: interviewStats['Invited'] || 0,
+                    toEvaluate: interviewStats['To Evaluate'] || 0,
+                    evaluated: interviewStats['Evaluated'] || 0,
+                    discarded: interviewStats['Discarded'] || 0
+                }
+            };
+        });
+
+        res.json(response);
+    } catch (err) {
+        console.error("Error fetching assigned interviews:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 module.exports = router;

@@ -1082,9 +1082,11 @@ app.get("/visitor_management", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "add_visitors.html"));
 });
 app.get("/viewer", (req, res) => {
-    // This page handles its own auth logic, 
-    // so we don't need a req.session.user check here.
-    res.sendFile(path.join(__dirname, "views", "interview_viewer.html"));
+    // Protect this page
+    if (!req.session.user) {
+        return res.redirect('/'); 
+    }
+    res.sendFile(path.join(__dirname, "views", "interview-viewer.html"));
 });
 
 // Add this to your "Static Page Routes" section in server.js

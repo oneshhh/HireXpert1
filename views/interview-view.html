@@ -41,6 +41,11 @@
       /* Notification Modal Styles */
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
+
+      /* [NEW] Class to hide extra questions */
+      .extra-question {
+        display: none;
+      }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -61,6 +66,7 @@
     </div>
 
     <div id="interview-content" class="hidden space-y-8">
+        <!-- Interview Header Card (Unchanged) -->
         <div class="bg-white shadow-lg rounded-lg p-6">
             <div class="flex flex-col md:flex-row justify-between md:items-center">
                 <div>
@@ -85,11 +91,17 @@
             </div>
         </div>
 
+        <!-- Job Description & Candidate Grid (Unchanged) -->
+        <!-- NOTE: The 'Submitted Feedback' logic is on candidate-review.html -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
                 <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
+            </div>
+            
+            <!-- [UPDATED] Candidates Card with New Tabs -->
             <div class="bg-white shadow-lg rounded-lg">
+                <!-- Tab Headers -->
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex" aria-label="Tabs">
                         <button id="tab-submissions" 
@@ -106,31 +118,42 @@
                     </nav>
                 </div>
 
+                <!-- Tab Panels -->
                 <div class="p-6">
+                    <!-- Panel 1: Review Submissions -->
                     <div id="panel-submissions">
                         <ul id="submission-list" class="space-y-4 max-h-96 overflow-y-auto">
                             <li class="text-sm text-gray-500 italic">Loading submissions...</li>
                         </ul>
                     </div>
+                    <!-- Panel 2: Pending Invites -->
                     <div id="panel-invites" class="hidden">
                         <ul id="candidate-list" class="space-y-3 max-h-96 overflow-y-auto">
-                            </ul>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- [UPDATED] Interview Questions Card -->
         <div class="bg-white shadow-lg rounded-lg p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-gray-800">Interview Questions</h3>
-                <button id="toggle-questions-btn" class="text-sm font-semibold text-blue-600 hover:underline focus:outline-none">Show All</button>
+                <div>
+                    <!-- [NEW] "Show More" and "Show Less" buttons -->
+                    <button id="show-more-questions-btn" class="hidden text-sm font-semibold text-blue-600 hover:underline focus:outline-none">Show More</button>
+                    <button id="show-less-questions-btn" class="hidden text-sm font-semibold text-blue-600 hover:underline focus:outline-none">Show Less</button>
+                </div>
             </div>
-            <ul id="questions-list" class="space-y-4 hidden">
-                </ul>
+            <!-- [UPDATED] 'hidden' class has been removed -->
+            <ul id="questions-list" class="space-y-4">
+                <!-- JS populates this -->
+            </ul>
         </div>
     </div>
   </main>
 
+  <!-- Notification Modal (Unchanged) -->
   <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
          role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -147,10 +170,10 @@
   </div>
 
   <script>
-    // --- Global variable to store interview ID ---
+    // --- Global variable (Unchanged) ---
     let currentInterviewId = null;
 
-    // --- Notification Modal Helpers ---
+    // --- Notification Modal Helpers (Unchanged) ---
     const notificationModal = document.getElementById('notification-modal');
     const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
 
@@ -172,24 +195,18 @@
         notificationModal.classList.add('hidden');
       }, 300); // Match transition duration
     };
-
-    // --- Utility and Notification Function (with auto-hide) ---
     function showNotification(title, text, options = {}) {
+        // ... (This function is unchanged)
         const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
-
         const modalTitle = document.getElementById('notification-modal-title');
         const modalText = document.getElementById('notification-modal-text');
         const modalIcon = document.getElementById('notification-modal-icon');
         const btnContainer = document.getElementById('notification-modal-buttons');
-
         if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) {
-            alert(`${title}: ${text}`); // Fallback
-            return;
+            alert(`${title}: ${text}`); return;
         }
-
         modalTitle.textContent = title;
         modalText.textContent = text;
-
         if (isError) {
             modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
             modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
@@ -197,28 +214,24 @@
             modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
             modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
         }
-
-        btnContainer.innerHTML = ''; // Clear previous buttons
-
-        if (onConfirm) { // Show Confirm/Cancel buttons
+        btnContainer.innerHTML = '';
+        if (onConfirm) {
             btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
             const confirmBtn = document.createElement('button');
             confirmBtn.type = 'button';
             confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
             confirmBtn.textContent = confirmText;
             confirmBtn.onclick = () => { hideModal(); onConfirm(); };
-
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
             cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
             cancelBtn.textContent = cancelText;
             cancelBtn.onclick = () => { hideModal(); };
-
             btnContainer.appendChild(cancelBtn);
             btnContainer.appendChild(confirmBtn);
-        } else { // Show only an "OK" or auto-hide
+        } else {
              btnContainer.className = 'mt-5 sm:mt-6';
-             if (duration === null || duration <= 0) { // Only show button if NOT auto-hiding
+             if (duration === null || duration <= 0) {
                 const okBtn = document.createElement('button');
                 okBtn.type = 'button';
                 okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
@@ -227,28 +240,18 @@
                 btnContainer.appendChild(okBtn);
              }
         }
-
-        showModal(); // Use helper to show with transition
-
-        // Auto-hide logic
-        if (duration > 0 && !onConfirm) {
-            setTimeout(() => {
-                hideModal(); // Use helper to hide with transition
-            }, duration);
-        }
+        showModal();
+        if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); }
     }
 
-
-    // --- Resend Invite Function ---
+    // --- Resend Invite Function (Unchanged) ---
     async function resendInvite(button, candidateEmail) {
         if (!currentInterviewId) {
             showNotification('Error', 'Interview ID not found.', { isError: true });
             return;
         }
-
         button.disabled = true;
         button.textContent = 'Sending...';
-
         try {
             const response = await fetch('/api/resend-invite', {
                 method: 'POST',
@@ -258,159 +261,149 @@
                     candidateEmail: candidateEmail
                 })
             });
-
             const result = await response.json();
-
             if (!response.ok) {
                 throw new Error(result.message || 'Failed to resend invite.');
             }
-
-            // Use showNotification for success with 2-second auto-hide
             showNotification('Success!', `Invite resent to ${candidateEmail}`, { duration: 2000 });
-
-            button.textContent = 'Sent!'; // Keep visual feedback
-            // Reset button after notification disappears + buffer
+            button.textContent = 'Sent!';
             setTimeout(() => {
                  button.textContent = 'Resend';
                  button.disabled = false;
-            }, 3500); // duration + 500ms
-
+            }, 3500);
         } catch (error) {
             console.error('Error resending invite:', error);
             showNotification('Error', error.message, { isError: true });
-            button.textContent = 'Resend'; // Reset button on error
+            button.textContent = 'Resend';
             button.disabled = false;
         }
     }
 
-    // --- Tab Switching Function ---
-function switchTab(activeTab) {
-    const subTab = document.getElementById('tab-submissions');
-    const subPanel = document.getElementById('panel-submissions');
-    const invTab = document.getElementById('tab-invites');
-    const invPanel = document.getElementById('panel-invites');
+    // --- [NEW] Tab Switching Function ---
+    function switchTab(activeTab) {
+        const subTab = document.getElementById('tab-submissions');
+        const subPanel = document.getElementById('panel-submissions');
+        const invTab = document.getElementById('tab-invites');
+        const invPanel = document.getElementById('panel-invites');
 
-    if (activeTab === 'submissions') {
-        // Activate submissions
-        subTab.classList.add('border-blue-600', 'text-blue-600');
-        subTab.classList.remove('border-transparent', 'text-gray-500');
-        subPanel.classList.remove('hidden');
-        // Deactivate invites
-        invTab.classList.add('border-transparent', 'text-gray-500');
-        invTab.classList.remove('border-blue-600', 'text-blue-600');
-        invPanel.classList.add('hidden');
-    } else {
-        // Activate invites
-        invTab.classList.add('border-blue-600', 'text-blue-600');
-        invTab.classList.remove('border-transparent', 'text-gray-500');
-        invPanel.classList.remove('hidden');
-        // Deactivate submissions
-        subTab.classList.add('border-transparent', 'text-gray-500');
-        subTab.classList.remove('border-blue-600', 'text-blue-600');
-        subPanel.classList.add('hidden');
+        if (activeTab === 'submissions') {
+            // Activate submissions
+            subTab.classList.add('border-blue-600', 'text-blue-600');
+            subTab.classList.remove('border-transparent', 'text-gray-500');
+            subPanel.classList.remove('hidden');
+            // Deactivate invites
+            invTab.classList.add('border-transparent', 'text-gray-500');
+            invTab.classList.remove('border-blue-600', 'text-blue-600');
+            invPanel.classList.add('hidden');
+        } else {
+            // Activate invites
+            invTab.classList.add('border-blue-600', 'text-blue-600');
+            invTab.classList.remove('border-transparent', 'text-gray-500');
+            invPanel.classList.remove('hidden');
+            // Deactivate submissions
+            subTab.classList.add('border-transparent', 'text-gray-500');
+            subTab.classList.remove('border-blue-600', 'text-blue-600');
+            subPanel.classList.add('hidden');
+        }
     }
-}
 
-// --- Function to Update Reviewer Status ---
-async function updateReviewerStatus(selectElement, email, interviewId) {
-    const newStatus = selectElement.value;
-    selectElement.disabled = true;
+    // --- [NEW] Function to Update Reviewer Status ---
+    // (This saves the GLOBAL status, not an individual review)
+    async function updateReviewerStatus(selectElement, email, interviewId) {
+        const newStatus = selectElement.value;
+        selectElement.disabled = true;
 
-    try {
-        const response = await fetch('/api/candidate/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                candidate_email: email, // Use email
-                status: newStatus,
-                interview_id: interviewId // Pass interviewId
-            })
-        });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.message || 'Failed to update status');
-        }
-        
-        showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 });
-
-    } catch (error) {
-        console.error('Error updating status:', error);
-        showNotification('Error', error.message, { isError: true });
-    } finally {
-        selectElement.disabled = false;
-    }
-}
-
-// --- Function to Fetch Submissions ---
-async function fetchSubmissions() {
-    if (!currentInterviewId) return;
-
-    const list = document.getElementById('submission-list');
-    try {
-        const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
-        if (!res.ok) {
-             const err = await res.json();
-             throw new Error(err.message || 'Could not load submissions');
-        }
-        
-        const submissions = await res.json();
-        list.innerHTML = ''; // Clear 'Loading...'
-
-        if (submissions.length === 0) {
-            list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
-            return;
-        }
-
-        // Map submission status text to badge colors
-        const statusColors = {
-            'Completed': 'bg-green-100 text-green-800',
-            'Started': 'bg-blue-100 text-blue-800',
-            'Opened': 'bg-yellow-100 text-yellow-800',
-            'Error': 'bg-red-100 text-red-800'
-        };
-
-        submissions.forEach(candidate => {
-            const li = document.createElement('li');
-            li.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 rounded-md hover:bg-gray-50';
+        try {
+            const response = await fetch('/api/candidate/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    candidate_email: email,
+                    status: newStatus,
+                    interview_id: interviewId
+                })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to update status');
+            }
             
-            // Your reviewer statuses
-            const reviewerStatuses = ['To Evaluate', 'Evaluated', 'Discarded'];
-            const optionsHTML = reviewerStatuses.map(s => 
-                // Select the one that matches the candidate's current status
-                `<option value="${s}" ${s === candidate.reviewer_status ? 'selected' : ''}>${s}</option>`
-            ).join('');
+            showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 });
 
-            li.innerHTML = `
-                <div class="flex-grow mb-2 sm:mb-0">
-                    <a href="/candidate-review.html?token=${candidate.candidate_token}&interview_id=${currentInterviewId}" 
-                       class="font-medium text-blue-600 hover:underline">
-                       ${candidate.name || 'Unnamed Candidate'}
-                    </a>
-                    
-                    <span class="ml-2 px-2 py-0.5 rounded-full text-xs ${statusColors[candidate.submission_status] || 'bg-gray-100 text-gray-800'}">
-                        ${candidate.submission_status}
-                    </span>
-                    <p class="text-xs text-gray-500">${candidate.email}</p>
-                </div>
-                
-                <div class="flex-shrink-0">
-                    <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" 
-                            class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        ${optionsHTML}
-                    </select>
-                </div>
-            `;
-            list.appendChild(li);
-        });
-
-    } catch (error) {
-        console.error('Failed to fetch submissions:', error);
-        list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showNotification('Error', error.message, { isError: true });
+        } finally {
+            selectElement.disabled = false;
+        }
     }
-}
+    
+    // --- [NEW] Function to Fetch Submissions ---
+    async function fetchSubmissions() {
+        if (!currentInterviewId) return;
 
+        const list = document.getElementById('submission-list');
+        try {
+            const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
+            if (!res.ok) {
+                 const err = await res.json();
+                 throw new Error(err.message || 'Could not load submissions');
+            }
+            
+            const submissions = await res.json();
+            list.innerHTML = ''; // Clear 'Loading...'
 
-    // --- Fetch Interview Details Function ---
+            if (submissions.length === 0) {
+                list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
+                return;
+            }
+
+            const statusColors = {
+                'Completed': 'bg-green-100 text-green-800',
+                'Started': 'bg-blue-100 text-blue-800',
+                'Opened': 'bg-yellow-100 text-yellow-800',
+                'Error': 'bg-red-100 text-red-800'
+            };
+
+            submissions.forEach(candidate => {
+                const li = document.createElement('li');
+                li.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 rounded-md hover:bg-gray-50';
+                
+                // These are the GLOBAL statuses from candidate_sessions
+                const reviewerStatuses = ['To Evaluate', 'Evaluated', 'Discarded'];
+                const optionsHTML = reviewerStatuses.map(s => 
+                    `<option value="${s}" ${s === candidate.reviewer_status ? 'selected' : ''}>${s}</option>`
+                ).join('');
+
+                li.innerHTML = `
+                    <div class="flex-grow mb-2 sm:mb-0">
+                        <!-- Link to the new candidate review page -->
+                        <a href="/candidate-review.html?token=${candidate.candidate_token}&interview_id=${currentInterviewId}" 
+                           class="font-medium text-blue-600 hover:underline">
+                           ${candidate.name || 'Unnamed Candidate'}
+                        </a>
+                        <span class="ml-2 px-2 py-0.5 rounded-full text-xs ${statusColors[candidate.submission_status] || 'bg-gray-100 text-gray-800'}">
+                            ${candidate.submission_status}
+                        </span>
+                        <p class="text-xs text-gray-500">${candidate.email}</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" 
+                                class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            ${optionsHTML}
+                        </select>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+        } catch (error) {
+            console.error('Failed to fetch submissions:', error);
+            list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
+        }
+    }
+
+    // --- Fetch Interview Details Function (UPDATED) ---
     async function fetchInterview() {
       const content = document.getElementById('interview-content');
       const loading = document.getElementById('loading-state');
@@ -420,9 +413,9 @@ async function fetchSubmissions() {
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
-      const from = params.get("from"); // Get 'from' for back link
+      const from = params.get("from"); 
 
-      currentInterviewId = id; // Store ID globally
+      currentInterviewId = id; 
 
       if (!id) {
         loading.style.display = 'none';
@@ -431,13 +424,11 @@ async function fetchSubmissions() {
         return;
       }
       
-      // Set back link dynamically
-      if (from && from !== 'null' && from !== 'undefined') { // Check if 'from' is valid
+      if (from && from !== 'null' && from !== 'undefined') {
           backLink.href = `/${from}`;
       } else {
-          backLink.href = '/admin_Dashboard.html'; // Sensible default
+          backLink.href = '/admin_Dashboard.html';
       }
-
 
       try {
         const res = await fetch(`/api/interview/${id}`);
@@ -447,15 +438,15 @@ async function fetchSubmissions() {
         }
         const data = await res.json();
 
-        // Populate Header Card
+        // Populate Header Card (Unchanged)
         document.getElementById("title").textContent = data.title;
         document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
-        document.getElementById("date").textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+        document.getElementById("date").textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
         document.getElementById("time").textContent = data.time || 'N/A';
         document.getElementById("scheduler-name").textContent = `${data.first_name || 'N/A'} ${data.last_name || ''}`;
         
         const statusBadge = document.getElementById("status-badge");
-        statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full'; // Reset
+        statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full';
         if (data.position_status === 'open') {
             statusBadge.textContent = 'Open';
             statusBadge.classList.add('bg-green-100', 'text-green-800');
@@ -464,7 +455,7 @@ async function fetchSubmissions() {
             statusBadge.classList.add('bg-red-100', 'text-red-800');
         }
 
-        // Populate Job Description
+        // Populate Job Description (Unchanged)
         const jdElement = document.getElementById("job-description");
         if (data.job_description) {
             jdElement.textContent = data.job_description;
@@ -473,7 +464,7 @@ async function fetchSubmissions() {
             jdElement.classList.add('italic', 'text-gray-500');
         }
         
-        // Populate Candidates with Resend Button
+        // Populate Candidates (Pending Invites Tab) (Unchanged)
         const candidateList = document.getElementById("candidate-list");
         candidateList.innerHTML = "";
         if (data.candidates && data.candidates.length > 0) {
@@ -508,15 +499,22 @@ async function fetchSubmissions() {
             candidateList.innerHTML = '<li class="text-sm text-gray-500 italic">No candidates are associated with this interview.</li>';
         }
 
-        // Populate Questions
+        // [UPDATED] Populate Questions
         const qList = document.getElementById("questions-list");
         qList.innerHTML = "";
         const questions = data.questions || [];
         const timeLimits = data.time_limits || [];
+        
         if (questions.length > 0) {
             questions.forEach((q, index) => {
                 const li = document.createElement("li");
-                li.className = "p-3 bg-gray-50 rounded-md flex items-start justify-between";
+                li.className = "p-3 bg-gray-50 rounded-md flex items-start justify-between question-item";
+                
+                // [NEW] Add classes to hide extra questions
+                if (index >= 5) {
+                    li.classList.add('extra-question');
+                }
+                
                 const time = timeLimits[index] || 0;
                 li.innerHTML = `
                     <span class="text-gray-800">${q}</span>
@@ -524,6 +522,11 @@ async function fetchSubmissions() {
                 `;
                 qList.appendChild(li);
             });
+
+            // [NEW] Show the "Show More" button if needed
+            if (questions.length > 5) {
+                document.getElementById('show-more-questions-btn').classList.remove('hidden');
+            }
         } else {
             qList.innerHTML = '<li class="text-sm text-gray-500 italic">No questions were added to this interview.</li>';
         }
@@ -531,7 +534,10 @@ async function fetchSubmissions() {
         // Show content
         loading.style.display = 'none';
         content.classList.remove('hidden');
-        fetchSubmissions();
+        
+        // --- [NEW] ---
+        // Fetch the submission data for the other tab
+        fetchSubmissions(); 
 
       } catch (err) {
         loading.style.display = 'none';
@@ -540,19 +546,28 @@ async function fetchSubmissions() {
       }
     }
 
+    // --- Run Fetch Function ---
     fetchInterview();
     
-    // Add event listener for the toggle questions button
-    const toggleBtn = document.getElementById('toggle-questions-btn');
-    const questionsList = document.getElementById('questions-list');
+    // --- [NEW] Event listeners for Show More/Less buttons ---
+    const showMoreBtn = document.getElementById('show-more-questions-btn');
+    const showLessBtn = document.getElementById('show-less-questions-btn');
     
-    if (toggleBtn && questionsList) { // Check if elements exist
-        toggleBtn.addEventListener('click', () => {
-            questionsList.classList.toggle('hidden');
-            const isHidden = questionsList.classList.contains('hidden');
-            toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
+    showMoreBtn.addEventListener('click', () => {
+        document.querySelectorAll('.extra-question').forEach(q => {
+            q.style.display = 'flex'; // Use flex to match the li's display
         });
-    }
+        showMoreBtn.classList.add('hidden');
+        showLessBtn.classList.remove('hidden');
+    });
+
+    showLessBtn.addEventListener('click', () => {
+        document.querySelectorAll('.extra-question').forEach(q => {
+            q.style.display = 'none'; // Hide them again
+        });
+        showLessBtn.classList.add('hidden');
+        showMoreBtn.classList.remove('hidden');
+    });
   </script>
 </body>
 </html>

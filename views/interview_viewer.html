@@ -1,430 +1,469 @@
 <!DOCTYPE html>
-<html lang="en" class="">
+<html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <title>HireXpert - Interview Viewer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-      }
-    </script>
-    <style type="text/tailwindcss">
+<meta charset="utf-8"/>
+<!-- TITLE has been updated -->
+<title>HireXpert - My Interviews</title>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
       :root {
-        --primary-color: #1173d4;
-        --secondary-color: #f0f2f4;
-        --text-primary: #111418;
-        --text-secondary: #617589;
+        --primary-50: #eff6ff;
+        --primary-600: #2563eb; /* Tailwind blue-600 */
+        --primary-color: #2563eb; /* Added for consistency */
+        --gray-500: #6b7280;
+        --info-50: #ecfeff;
+        --info-500: #06b6d4;
       }
-      .dark {
-        --secondary-color: #1f2937;
-        --text-primary: #f9fafb;
-        --text-secondary: #9ca3af;
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
-       .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
-      .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200; }
-      .status-closed { @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200; }
-      /* Custom style for whitespace in job description */
-      pre {
-        white-space: pre-wrap;
-        font-family: inherit;
+      #create-interview-btn {
+        background-color: var(--primary-600) !important;
+        color: white !important;
       }
-    </style>
+      .tab-active {
+        border-bottom-color: var(--primary-600);
+        color: var(--primary-600);
+        font-weight: 600;
+      }
+      .modal-hidden { display: none; }
+      /* Notification Modal Styles */
+      #notification-modal { transition: opacity 0.3s ease-out; }
+      #notification-modal > div { transition: all 0.3s ease-out; }
+</style>
 </head>
-<body class="bg-gray-50 font-sans dark:bg-gray-900 min-h-screen flex flex-col" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
+<div class="flex min-h-screen w-full flex-col">
 
-<!-- Header (Unchanged) -->
-<header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700 flex-shrink-0">
-    <div class="flex items-center gap-2">
-        <span class="text-2xl font-bold text-[var(--primary-color)]">HireXpert</span>
-        <span class="text-lg font-medium text-[var(--text-secondary)] hidden sm:block">/ Interview Viewer</span>
+  <!-- Header is from the PMO Dashboard -->
+  <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 text-gray-800">
+        <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
+        <h1 class="text-xl font-bold text-gray-900">HireXpert</h1>
+      </div>
+      <nav class="hidden md:flex items-center gap-4">
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">My Interviews</a>
+        <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html?department=PMO">Candidates</a>
+      </nav>
     </div>
     <div class="flex items-center gap-4">
-        <button id="logout-btn" class="hidden flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-             <span class="material-symbols-outlined">logout</span>
-             Logout
+      <div class="relative w-full max-w-xs">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+        <input id="search-bar" class="form-input w-full rounded-md border-gray-300 bg-white pl-10 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Search by title or ID..."/>
+      </div>
+      <button class="relative rounded-full p-2 hover:bg-gray-100">
+        <span class="material-symbols-outlined text-gray-600">notifications</span>
+      </button>
+
+      <div class="relative">
+          <button id="profile-menu-button" type="button" class="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <span class="sr-only">Open user menu</span>
+              <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                  <span id="profile-initials" class="text-sm font-medium text-gray-600"></span>
+              </div>
           </button>
-        <button id="dark-mode-toggle" class="flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Toggle theme">
-            <span class="material-symbols-outlined">dark_mode</span>
+
+          <div id="profile-menu-dropdown"
+               class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+               role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1">
+               <div class="border-b border-gray-200 px-4 py-3 text-sm">
+                  <p class="font-medium text-gray-900">Signed in as</p>
+                  <p id="user-email-display" class="truncate text-gray-500">Loading...</p>
+               </div>
+               <div class="py-1" role="none">
+                  <a href="/settings.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-profile">Edit Profile</a>
+               </div>
+               <div class="py-1" role="none">
+                  <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-logout">Sign out</a>
+               </div>
+          </div>
+      </div>
+      </div>
+  </header>
+
+  <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <!-- HEADING has been updated -->
+        <h2 class="text-3xl font-bold text-gray-900">My Assigned Interviews</h2>
+        <!-- Create button link has been updated -->
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=interview-viewer.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined">add</span>
+          <span>Create Interview</span>
         </button>
+      </div>
+
+      <!-- TABS for "Open" and "Closed" have been REMOVED -->
+      <!-- The new API fetches all interviews regardless of status -->
+
+      <!-- BULK ACTIONS BAR - "Move" buttons have been REMOVED -->
+      <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
+        <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
+        <div>
+          <!-- "Move to Closed" and "Re-open" buttons are gone -->
+          <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Invited</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">To Evaluate</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Evaluated</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Discarded</th>
+              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
+        </table>
+      </div>
     </div>
-</header>
+  </main>
+</div>
 
-<!-- [MODIFIED] Main Content Wrapper -->
-<!-- This tag is now a flex container to center the login page -->
-<main class="w-full flex-grow flex flex-col">
-
-    <!-- [MODIFIED] Login Section -->
-    <!-- This section is now a centered wrapper -->
-    <div id="login-section" class="hidden flex-grow flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <!-- [NEW] Logo added for modern look -->
-            <div class="flex justify-center mb-4">
-                 <span class="text-3xl font-bold text-[var(--primary-color)]">HireXpert</span>
-            </div>
-            <h1 class="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">Viewer Login</h1>
-            <form id="login-form">
-                <div class="space-y-4">
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-                        <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                        <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <!-- Error message container is unchanged -->
-                    <div id="login-error" class="text-sm text-red-600 dark:text-red-400 text-center" data-testid="login-error"></div>
-                    <div>
-                        <button type="submit" id="login-btn" class="w-full flex justify-center items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
-                            Login
-                        </button>
-                    </div>
-                </div>
-            </form>
+<!-- MODALS are unchanged -->
+<div id="confirm-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl">
+        <h3 id="confirm-modal-title" class="text-lg font-medium text-gray-900">Are you sure?</h3>
+        <div class="mt-2">
+            <p id="confirm-modal-text" class="text-sm text-gray-500">This action cannot be undone.</p>
+        </div>
+        <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+            <button id="confirm-modal-confirm-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2">Confirm</button>
+            <button id="confirm-modal-cancel-btn" type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
         </div>
     </div>
+</div>
 
-    <!-- [MODIFIED] Viewer Section -->
-    <!-- This section now has the layout classes that 'main' used to have -->
-    <div id="viewer-section" class="hidden w-full max-w-4xl mx-auto p-4 sm:p-8">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
-            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Interview Search</h1>
-            <span class="text-sm text-[var(--text-secondary)]">Welcome, <span id="viewer-email" class="font-medium"></span></span>
+<div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
+         role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
+        <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+             <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
         </div>
-        
-        <!-- Search Form (Unchanged) -->
-        <form id="search-form" class="flex items-center gap-3 mb-6 max-w-2xl mx-auto">
-            <label for="interview-id-input" class="sr-only">Interview Custom ID</label>
-            <input type="text" id="interview-id-input" placeholder="Enter Interview Custom ID (e.g. 25/Oct/0001/Test)" class="flex-grow rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <button type="submit" id="fetch-btn" class="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
-                <span class="material-symbols-outlined text-sm">search</span>
-                Fetch
-            </button>
-        </form>
-
-        <!-- Results Area (Unchanged) -->
-        <div id="results-container" class="space-y-8">
-            <div id="loading-message" class="hidden text-center p-4 text-[var(--text-secondary)]">
-                <span class="material-symbols-outlined animate-spin">refresh</span>
-                <p>Loading interview details...</p>
-            </div>
-
-            <div id="error-message" class="hidden text-center p-4 rounded-md bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300">
-                <!-- Error text set by JS -->
-            </div>
-
-            <!-- Full Interview Details Section (Unchanged) -->
-            <div id="interview-details-card" class="hidden space-y-8">
-                <!-- Header Card -->
-                <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
-                    <div class="flex flex-col md:flex-row justify-between md:items-start">
-                        <div>
-                            <h2 id="interview-title" class="text-3xl font-bold text-[var(--text-primary)]"></h2>
-                            <p id="interview-custom-id" class="text-sm text-[var(--text-secondary)] mt-1"></p>
-                        </div>
-                        <span id="interview-status-badge" class="status-badge mt-4 md:mt-0 flex-shrink-0"></span>
-                    </div>
-                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                        <div>
-                            <p class="text-gray-500 dark:text-gray-400 font-medium">Department</p>
-                            <p id="interview-dept" class="text-[var(--text-primary)] font-semibold"></p>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled By</p>
-                            <p id="interview-creator" class="text-[var(--text-primary)] font-semibold"></p>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled Date</p>
-                            <p id="interview-date" class="text-[var(--text-primary)] font-semibold"></p>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 dark:text-gray-400 font-medium">Scheduled Time</p>
-                            <p id="interview-time" class="text-[var(--text-primary)] font-semibold"></p>
-                        </div>
-                    </div>
-                </div>
-            
-                <!-- Job Description & Schedulers Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Job Description</h3>
-                        <pre id="job-description" class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
-                    </div>
-                    <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Assigned Schedulers</h3>
-                        <ul id="scheduler-list" class="space-y-3 max-h-96 overflow-y-auto">
-                            <!-- Schedulers will be populated by JS -->
-                        </ul>
-                    </div>
-                </div>
-            
-                <!-- Questions Card -->
-                <div class="bg-white shadow-lg rounded-lg p-6 dark:bg-gray-800 dark:border dark:border-gray-700">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-[var(--text-primary)]">Interview Questions</h3>
-                        <button id="toggle-questions-btn" class="text-sm font-semibold text-blue-600 hover:underline focus:outline-none dark:text-blue-400">Show All</button>
-                    </div>
-                    <ul id="questions-list" class="space-y-4 hidden">
-                        <!-- Questions will be populated by JS -->
-                    </ul>
-                </div>
-            </div>
-            
+        <h3 id="notification-modal-title" class="mt-4 text-lg font-medium text-gray-900">Success!</h3>
+        <div class="mt-2">
+            <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
         </div>
+        <div id="notification-modal-buttons" class="mt-5 sm:mt-6">
+            </div>
     </div>
-</main>
+</div>
 
-<!-- SCRIPT (Unchanged) -->
+<!-- SCRIPT has been modified as requested -->
 <script>
-    // --- Theme Management ---
-    const htmlElement = document.documentElement;
-    function applyTheme(theme) {
-        if (theme === 'dark') { htmlElement.classList.add('dark'); } 
-        else { htmlElement.classList.remove('dark'); }
-    }
-    function toggleDarkMode() {
-        const currentTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
-        setCookie('theme', currentTheme, 30);
-        applyTheme(currentTheme);
-    }
-    function setCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-    }
-    function getCookie(name) {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for(let i=0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-    // --- End Theme Management ---
+  // 'currentStatusFilter' and 'DEPARTMENT' have been REMOVED
+  let selectedInterviewIds = new Set();
+  let allInterviews = [];
+  // 'allInterviewStats' is no longer needed, stats are part of allInterviews
+ 
+  // --- Notification Modal Helpers (Unchanged) ---
+  const notificationModal = document.getElementById('notification-modal');
+  const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
 
+  const showModal = () => {
+    if (!notificationModal || !notificationDialog) return;
+    notificationModal.classList.remove('hidden');
+    setTimeout(() => {
+      notificationModal.classList.add('opacity-100');
+      notificationDialog.classList.remove('scale-95', 'opacity-0');
+      notificationDialog.classList.add('scale-100', 'opacity-100');
+    }, 10);
+  };
+  const hideModal = () => {
+    if (!notificationModal || !notificationDialog) return;
+    notificationModal.classList.remove('opacity-100');
+    notificationDialog.classList.remove('scale-100', 'opacity-100');
+    notificationDialog.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+      notificationModal.classList.add('hidden');
+    }, 300);
+  };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Get DOM Elements ---
-        const loginSection = document.getElementById('login-section');
-        const viewerSection = document.getElementById('viewer-section');
-        const loginForm = document.getElementById('login-form');
-        const loginBtn = document.getElementById('login-btn');
-        const loginError = document.getElementById('login-error');
-        const viewerEmail = document.getElementById('viewer-email');
-        const logoutBtn = document.getElementById('logout-btn');
+  // --- Utility and Notification Function (Unchanged) ---
+  function showNotification(title, text, options = {}) {
+      const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options;
+      const modalTitle = document.getElementById('notification-modal-title');
+      const modalText = document.getElementById('notification-modal-text');
+      const modalIcon = document.getElementById('notification-modal-icon');
+      const btnContainer = document.getElementById('notification-modal-buttons');
+
+      if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) {
+          alert(`${title}: ${text}`); return;
+      }
+      modalTitle.textContent = title;
+      modalText.textContent = text;
+      if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; }
+      else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; }
+      btnContainer.innerHTML = '';
+      if (onConfirm) {
+          btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3';
+          const confirmBtn = document.createElement('button');
+          confirmBtn.type = 'button';
+          confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2';
+          confirmBtn.textContent = confirmText;
+          confirmBtn.onclick = () => { hideModal(); onConfirm(); };
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0';
+          cancelBtn.textContent = cancelText;
+          cancelBtn.onclick = () => { hideModal(); };
+          btnContainer.appendChild(cancelBtn);
+          btnContainer.appendChild(confirmBtn);
+      } else {
+          btnContainer.className = 'mt-5 sm:mt-6';
+          if (duration === null || duration <= 0) {
+              const okBtn = document.createElement('button');
+              okBtn.type = 'button';
+              okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90';
+              okBtn.textContent = 'Got it';
+              okBtn.onclick = () => { hideModal(); };
+              btnContainer.appendChild(okBtn);
+          }
+      }
+      showModal();
+      if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); }
+  }
+
+  // --- Core Dashboard Functions ---
+  
+  // 'loadCounts' function has been REMOVED as tabs are gone
+
+  // --- renderTable has been UPDATED ---
+  function renderTable(searchTerm = '') {
+    const tbody = document.querySelector("#interviews-table-body");
+    tbody.innerHTML = "";
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const filteredInterviews = allInterviews.filter(interview => {
+        const titleMatch = interview.title.toLowerCase().includes(lowerCaseSearchTerm);
+        const idMatch = interview.custom_interview_id ? interview.custom_interview_id.toLowerCase().includes(lowerCaseSearchTerm) : false;
+        return titleMatch || idMatch;
+    });
+
+    if (filteredInterviews.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">No ${searchTerm ? 'matching' : ''} interviews found assigned to you.</td></tr>`;
+        return;
+    }
+
+    filteredInterviews.forEach((interview, index) => {
+        const tr = document.createElement("tr");
+        const isSelected = selectedInterviewIds.has(interview.id);
+        // Links have been UPDATED
+        const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html`;
+        const editLink = `/interview-edit.html?id=${interview.id}&from=interview-viewer.html`;
         
-        const searchForm = document.getElementById('search-form');
-        const fetchBtn = document.getElementById('fetch-btn');
-        const interviewIdInput = document.getElementById('interview-id-input');
-        const loadingMessage = document.getElementById('loading-message');
-        const errorMessage = document.getElementById('error-message');
-        const detailsCard = document.getElementById('interview-details-card');
-
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
-
-        // [NEW] Get elements for new details
-        const toggleBtn = document.getElementById('toggle-questions-btn');
-        const questionsList = document.getElementById('questions-list');
-
-        // --- Theme Setup ---
-        darkModeToggle.addEventListener('click', toggleDarkMode);
-        const savedTheme = getCookie('theme');
-        applyTheme(savedTheme || 'light'); // Default to light
-
-        // --- Event Listeners ---
-        loginForm.addEventListener('submit', handleLogin);
-        logoutBtn.addEventListener('click', handleLogout);
-        searchForm.addEventListener('submit', handleFetchInterview);
+        // --- NEW STATS LOGIC as requested ---
+        // The stats are now nested inside the interview object
+        const stats = interview.stats || {};
+        const invitedCount = stats.invited || 0;
+        const toEvaluateCount = stats.toEvaluate || 0;
+        const evaluatedCount = stats.evaluated || 0;
+        const discardedCount = stats.discarded || 0;
+        // --- END NEW STATS LOGIC ---
         
-        // [NEW] Event listener for toggle questions button
-        if (toggleBtn && questionsList) {
-            toggleBtn.addEventListener('click', () => {
-                questionsList.classList.toggle('hidden');
-                const isHidden = questionsList.classList.contains('hidden');
-                toggleBtn.textContent = isHidden ? 'Show All' : 'Hide All';
-            });
-        }
+        // --- tr.innerHTML now uses the new stats variables ---
+        tr.innerHTML = `
+            <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
+            <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
+            <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">${invitedCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">${toEvaluateCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">${evaluatedCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">${discardedCount}</span></td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
+                <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+  }
 
-        // --- Functions ---
-        function showViewer(email) {
-            viewerEmail.textContent = email;
-            loginSection.classList.add('hidden');
-            viewerSection.classList.remove('hidden');
-            logoutBtn.classList.remove('hidden');
+  // --- fetchAndRenderInterviews has been REPLACED ---
+  async function fetchAndRenderInterviews() {
+    try {
+        // Call our new "My Interviews" API
+        const res = await fetch('/api/me/assigned-interviews');
+        if (!res.ok) {
+            // This page is for logged-in users. Redirect if not authenticated.
+            if (res.status === 401) window.location.href = '/'; 
+            return;
         }
-
-        function showLogin() {
-            loginSection.classList.remove('hidden');
-            viewerSection.classList.add('hidden');
-            logoutBtn.classList.add('hidden');
-            detailsCard.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-            loadingMessage.classList.add('hidden');
-            interviewIdInput.value = '';
-        }
-
-        (async function checkSession() {
-            try {
-                const response = await fetch('/viewer/me');
-                if (!response.ok) {
-                    throw new Error('No session');
-                }
-                const viewer = await response.json();
-                showViewer(viewer.email);
-            } catch (err) {
-                showLogin();
-            }
-        })();
+        allInterviews = await res.json(); // This data now includes the stats
         
-        async function handleLogin(e) {
-            e.preventDefault();
-            loginError.textContent = '';
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Logging in...';
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            try {
-                const response = await fetch('/viewer/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || 'Login failed');
-                }
-                showViewer(data.email);
-            } catch (error) {
-                loginError.textContent = error.message;
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Login';
-            }
-        }
+        const searchBar = document.getElementById('search-bar');
+        renderTable(searchBar.value);
 
-        async function handleLogout() {
-            try {
-                await fetch('/viewer/logout');
-            } catch (err) {
-                console.error("Logout failed", err);
-            } finally {
-                showLogin();
-            }
-        }
+    } catch (err) { console.error("Error loading assigned interviews:", err); }
+  }
 
-        // [UPDATED] Real Data Fetch (now populates all fields)
-        async function handleFetchInterview(e) {
-            e.preventDefault();
-            const customId = interviewIdInput.value.trim();
-            if (!customId) return;
+  // --- Confirmation Modal Logic (Unchanged) ---
+  const confirmModal = document.getElementById('confirm-modal');
+  let confirmCallback = null;
 
-            // Reset UI
-            loadingMessage.classList.remove('hidden');
-            errorMessage.classList.add('hidden');
-            detailsCard.classList.add('hidden');
-            fetchBtn.disabled = true;
-            // [NEW] Reset question toggle button
-            if (toggleBtn && questionsList) {
-                questionsList.classList.add('hidden');
-                toggleBtn.textContent = 'Show All';
-            }
+  function showConfirmModal(title, text, onConfirm) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-text').textContent = text;
+      confirmCallback = onConfirm;
+      confirmModal.classList.remove('modal-hidden');
+  }
 
-            try {
-                const encodedId = encodeURIComponent(customId);
-                const response = await fetch(`/api/interview/by-custom-id?id=${encodedId}`);
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || 'Failed to fetch data.');
-                }
+  function hideConfirmModal() {
+      confirmModal.classList.add('modal-hidden');
+      confirmCallback = null;
+  }
 
-                // --- Populate All New Fields ---
+  // --- Bulk Action Bar Logic (UPDATED) ---
+  function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countSpan = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
 
-                // 1. Populate Header Card
-                document.getElementById('interview-title').textContent = data.title || 'No Title';
-                document.getElementById('interview-custom-id').textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
-                document.getElementById('interview-dept').textContent = data.department || 'N/A';
-                document.getElementById('interview-creator').textContent = (data.first_name && data.last_name) ? `${data.first_name} ${data.last_name}` : 'N/A';
-                document.getElementById('interview-date').textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
-                document.getElementById('interview-time').textContent = data.time || 'N/A';
-                
-                const statusBadge = document.getElementById('interview-status-badge');
-                statusBadge.textContent = data.position_status || 'Unknown';
-                if (data.position_status === 'open') {
-                    statusBadge.className = 'status-badge status-active';
-                } else {
-                    statusBadge.className = 'status-badge status-closed';
-                }
+    // "Move" buttons logic has been REMOVED
+ 
+    if (selectedInterviewIds.size > 0) {
+        bar.classList.remove('hidden');
+        countSpan.textContent = selectedInterviewIds.size;
+        
+        const visibleRowCount = document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
+        selectAllCheckbox.checked = selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
+    } else {
+        bar.classList.add('hidden');
+        selectAllCheckbox.checked = false;
+    }
+  }
 
-                // 2. Populate Job Description
-                const jdElement = document.getElementById("job-description");
-                if (data.job_description) {
-                    jdElement.textContent = data.job_description;
-                    jdElement.classList.remove('italic', 'text-gray-500', 'dark:text-gray-400');
-                } else {
-                    jdElement.textContent = "No job description was provided for this interview.";
-                    jdElement.classList.add('italic', 'text-gray-500', 'dark:text-gray-400');
-                }
-                
-                // 3. Populate Schedulers
-                const schedulerList = document.getElementById("scheduler-list");
-                schedulerList.innerHTML = "";
-                if (data.schedulers && data.schedulers.length > 0) {
-                    data.schedulers.forEach(scheduler => {
-                        const li = document.createElement("li");
-                        li.className = "text-sm text-[var(--text-primary)]";
-                        li.textContent = `${scheduler.first_name} ${scheduler.last_name} (${scheduler.email})`;
-                        schedulerList.appendChild(li);
-                    });
-                } else {
-                    schedulerList.innerHTML = '<li class="text-sm text-gray-500 italic dark:text-gray-400">No schedulers are assigned.</li>';
-                }
 
-                // 4. Populate Questions
-                const qList = document.getElementById("questions-list");
-                qList.innerHTML = "";
-                const questions = data.questions || [];
-                const timeLimits = data.time_limits || [];
-                if (questions.length > 0) {
-                    questions.forEach((q, index) => {
-                        const li = document.createElement("li");
-                        li.className = "p-3 bg-gray-50 dark:bg-gray-700 rounded-md flex items-start justify-between";
-                        const time = timeLimits[index] || 0;
-                        li.innerHTML = `
-                            <span class="text-gray-800 dark:text-gray-200">${q}</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4 pt-1">${time > 0 ? time + ' sec' : 'Untimed'}</span>
-                        `;
-                        qList.appendChild(li);
-                    });
-                } else {
-                    qList.innerHTML = '<li class="text-sm text-gray-500 italic dark:text-gray-400">No questions were added to this interview.</li>';
-                }
+  // --- Event Listeners ---
+  document.addEventListener('DOMContentLoaded', () => {
+    // Tab listeners have been REMOVED
+    const searchBar = document.getElementById('search-bar');
+    const tableBody = document.getElementById('interviews-table-body');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    // "Move" button listeners have been REMOVED
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+    const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
-                // Show the card
-                loadingMessage.classList.add('hidden');
-                detailsCard.classList.remove('hidden');
+    // Confirmation Modal Buttons (Unchanged)
+    confirmBtn.addEventListener('click', () => {
+        if (typeof confirmCallback === 'function') confirmCallback();
+        hideConfirmModal();
+    });
+    cancelBtn.addEventListener('click', hideConfirmModal);
 
-            } catch (error) {
-                loadingMessage.classList.add('hidden');
-                errorMessage.textContent = error.message;
-                errorMessage.classList.remove('hidden');
-            } finally {
-                fetchBtn.disabled = false;
-            }
+    // Tab Switching logic has been REMOVEd
+
+    // Row Checkbox Handling (Unchanged)
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-checkbox')) {
+            const id = e.target.dataset.id;
+            if (e.target.checked) selectedInterviewIds.add(id);
+            else selectedInterviewIds.delete(id);
+            updateBulkActionBar();
         }
     });
+
+    // Select All Checkbox Handling (Unchanged)
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            if (cb.closest('tr') && !cb.closest('tr').style.display?.includes('none')) {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) selectedInterviewIds.add(id);
+                else selectedInterviewIds.delete(id);
+            }
+        });
+        updateBulkActionBar();
+    });
+
+    // Bulk Action Buttons (UPDATED)
+    // "Move" button listeners are gone.
+    deleteSelectedBtn.addEventListener('click', () => {
+        showConfirmModal(
+            `Delete ${selectedInterviewIds.size} interviews?`,
+            "This action is permanent. All associated candidate data will also be deleted.",
+            async () => {
+                await fetch('/api/interviews/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviewIds: Array.from(selectedInterviewIds) })
+                });
+                selectedInterviewIds.clear();
+                updateBulkActionBar();
+                // loadCounts(); // Removed
+                fetchAndRenderInterviews();
+            }
+        );
+    });
+
+    // Search Bar (Client-side filtering) (Unchanged)
+    searchBar.addEventListener('input', (e) => {
+      renderTable(e.target.value);
+      updateBulkActionBar();
+    });
+
+    // --- Profile Dropdown & User Info Logic (Unchanged) ---
+    // This is the standard user logic, not the old visitor logic
+    const profileButton = document.getElementById('profile-menu-button');
+    const profileDropdown = document.getElementById('profile-menu-dropdown');
+    const profileInitials = document.getElementById('profile-initials');
+    const userEmailDisplay = document.getElementById('user-email-display');
+
+    async function fetchUserInfo() {
+        try {
+            const response = await fetch('/api/me'); // Calls the standard user auth route
+            if (!response.ok) {
+                 if (response.status === 401) { window.location.href = '/'; }
+                 else { throw new Error(`HTTP error! status: ${response.status}`); }
+                return;
+            }
+            const user = await response.json();
+            if (userEmailDisplay) userEmailDisplay.textContent = user.email || 'Error';
+            if (profileInitials && user.email) profileInitials.textContent = user.email.substring(0, 1).toUpperCase();
+        } catch (error) {
+            console.error("Failed to fetch user info:", error);
+            if (userEmailDisplay) userEmailDisplay.textContent = 'Error';
+        }
+    }
+
+    if (profileButton && profileDropdown) {
+        profileButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (event) => {
+            if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
+                profileDropdown.classList.add('hidden');
+            }
+        });
+        fetchUserInfo();
+    }
+    // --- End Profile Dropdown Logic ---
+
+
+    // Initial Load & Polling (UPDATED)
+    // loadCounts(); // Removed
+    fetchAndRenderInterviews();
+    setInterval(() => {
+        console.log("Refreshing My Assigned Interviews...");
+        // loadCounts(); // Removed
+        fetchAndRenderInterviews();
+    }, 15000);
+  });
 </script>
 
 </body>
 </html>
-
