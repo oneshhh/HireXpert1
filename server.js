@@ -6,7 +6,7 @@ require('dotenv').config();
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
-const pool = require("./db").default;
+const pool = require("./db");
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const pgSession = require('connect-pg-simple')(session);
