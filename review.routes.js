@@ -395,12 +395,12 @@ router.get("/me/assigned-interviews", async (req, res) => {
 
         // 2. Get all interviews assigned to this user
         const interviewQuery = `
-            SELECT i.*, u.first_name, u.last_name 
-            FROM interviews i
-            LEFT JOIN users u ON i.created_by_user_id = u.id
-            WHERE $1 = ANY(i.scheduler_ids)
-            ORDER BY i.created_at DESC
-        `;
+                    SELECT i.*, u.first_name, u.last_name 
+                    FROM interviews i
+                    LEFT JOIN users u ON i.created_by_user_id = u.id
+                    WHERE $1 = ANY(i.visitor_reviewer_ids)
+                    ORDER BY i.created_at DESC
+                `;
         const { rows: interviews } = await pool.query(interviewQuery, [user_id]);
 
         // 3. Combine the interviews with their stats

@@ -98,6 +98,7 @@
                     <p id="user-email-display" class="truncate text-gray-500">Loading...</p>
                 </div>
                 <div class="py-1" role="none">
+                    <!-- [FIXED] This link's href will be set dynamically by JavaScript -->
                     <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-logout">Sign out</a>
                 </div>
           </div>
@@ -109,15 +110,11 @@
     <div class="mx-auto max-w-7xl">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">My Assigned Interviews</h2>
-        <!-- Create Interview button is removed, as this is a reviewer-only page -->
       </div>
-
-      <!-- Tabs are removed, as this page shows all interviews (open or closed) -->
 
       <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
         <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
         <div>
-          <!-- Move buttons are removed, only Delete remains -->
           <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
         </div>
       </div>
@@ -145,7 +142,7 @@
   </main>
 </div>
 
-<!-- Modals (Copied from PMO Dashboard) -->
+<!-- Modals (No changes) -->
 <div id="confirm-modal" class="modal-hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl">
         <h3 id="confirm-modal-title" class="text-lg font-medium text-gray-900">Are you sure?</h3>
@@ -177,11 +174,11 @@
 <script>
   let selectedInterviewIds = new Set();
   let allInterviews = [];
+  let currentUserType = 'none'; // 'user' or 'visitor'
 
-  // --- Notification Modal Helpers (Copied) ---
+  // --- Notification Modal Helpers (No changes) ---
   const notificationModal = document.getElementById('notification-modal');
   const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
-  // ... (showModal, hideModal, showNotification functions are identical to PMO_Dashboard)
   const showModal = () => {
     if (!notificationModal || !notificationDialog) return;
     notificationModal.classList.remove('hidden');
@@ -243,8 +240,7 @@
       if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); }
   }
 
-
-  // --- Confirmation Modal Logic (Copied) ---
+  // --- Confirmation Modal Logic (No changes) ---
   const confirmModal = document.getElementById('confirm-modal');
   let confirmCallback = null;
   function showConfirmModal(title, text, onConfirm) {
@@ -259,19 +255,35 @@
   }
 
   // --- [NEW] Dashboard Functions ---
-  async function showDashboard(user) {
+  async function showDashboard(user, userType = 'user') {
       // 1. Populate user info in header
       if (user) {
           document.getElementById('user-email-display').textContent = user.email;
           document.getElementById('profile-initials').textContent = user.email.substring(0, 1).toUpperCase();
       }
       
-      // 2. Show dashboard, hide login
+      // 2. [FIXED] Set the correct logout link
+      const logoutLink = document.getElementById('user-menu-item-logout');
+      if (userType === 'visitor') {
+          logoutLink.href = '/viewer/logout';
+          // Make logout a client-side action for visitors
+          logoutLink.onclick = async (e) => {
+              e.preventDefault();
+              await fetch('/viewer/logout');
+              showLogin();
+          };
+      } else {
+          // Internal users use the standard /logout redirect
+          logoutLink.href = '/logout';
+          logoutLink.onclick = null; // Remove any client-side click handler
+      }
+      
+      // 3. Show dashboard, hide login
       document.getElementById('login-section').classList.add('hidden');
       document.getElementById('dashboard-section').classList.remove('hidden');
       
-      // 3. Fetch interviews
-      await fetchAndRenderInterviews();
+      // 4. Fetch interviews
+      await fetchAndRenderInterviews(userType);
   }
 
   function showLogin() {
@@ -279,13 +291,23 @@
       document.getElementById('dashboard-section').classList.add('hidden');
   }
 
-  // [UPDATED] Fetches only assigned interviews
-  async function fetchAndRenderInterviews() {
+  // [UPDATED] Fetches assigned interviews based on user type
+  async function fetchAndRenderInterviews(userType) {
     try {
-        const res = await fetch('/api/me/assigned-interviews');
+        // [FIXED] Call the correct API based on who is logged in
+        const apiUrl = userType === 'visitor' 
+            ? '/api/viewer/assigned-interviews' // API for visitors
+            : '/api/me/assigned-interviews';    // API for internal users (from review.routes.js)
+
+        const res = await fetch(apiUrl);
         if (!res.ok) {
-            // This handles the session check
-            if (res.status === 401) showLogin(); 
+            if (res.status === 401) {
+                // This can happen if a session expires
+                console.warn(`Session expired for ${userType}. Showing login.`);
+                showLogin();
+            } else {
+                throw new Error(`Failed to fetch interviews: ${res.statusText}`);
+            }
             return;
         }
         allInterviews = await res.json(); // Data now includes stats
@@ -293,10 +315,14 @@
         const searchBar = document.getElementById('search-bar');
         renderTable(searchBar.value);
 
-    } catch (err) { console.error("Error loading assigned interviews:", err); }
+    } catch (err) { 
+        console.error(`Error loading assigned interviews for ${userType}:`, err); 
+        // If fetching fails (e.g., API error), show the login page as a fallback
+        showLogin();
+    }
   }
 
-  // [UPDATED] Renders table with new stats structure
+  // [UPDATED] Renders table with new stats structure (No changes to this function)
   function renderTable(searchTerm = '') {
     const tbody = document.querySelector("#interviews-table-body");
     tbody.innerHTML = "";
@@ -318,13 +344,11 @@
         const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html`;
         const editLink = `/interview-edit.html?id=${interview.id}&from=interview-viewer.html`;
 
-        // --- NEW STATS LOGIC ---
         const stats = interview.stats || {};
         const invitedCount = stats.invited || 0;
         const toEvaluateCount = stats.toEvaluate || 0;
         const evaluatedCount = stats.evaluated || 0;
         const discardedCount = stats.discarded || 0;
-        // --- END NEW STATS LOGIC ---
         
         const statusClass = interview.position_status === 'open' ? 'text-green-600' : 'text-gray-500';
         const statusText = interview.position_status === 'open' ? 'Open' : 'Closed';
@@ -348,7 +372,7 @@
     });
   }
 
-  // --- Bulk Action Bar Logic (Copied) ---
+  // --- Bulk Action Bar Logic (No changes) ---
   function updateBulkActionBar() {
     const bar = document.getElementById('bulk-actions-bar');
     const countSpan = document.getElementById('selected-count');
@@ -369,9 +393,7 @@
 
   // --- Event Listeners ---
   document.addEventListener('DOMContentLoaded', () => {
-    // --- [NEW] Auth Elements ---
-    const loginSection = document.getElementById('login-section');
-    const dashboardSection = document.getElementById('dashboard-section');
+    // --- Auth Elements ---
     const loginForm = document.getElementById('login-form');
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
@@ -388,7 +410,7 @@
     const profileButton = document.getElementById('profile-menu-button');
     const profileDropdown = document.getElementById('profile-menu-dropdown');
 
-    // --- [NEW] Login Form Handler ---
+    // --- [FIXED] Login Form Handler ---
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = '';
@@ -397,7 +419,8 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         try {
-            const response = await fetch('/api/reviewer-login', {
+            // [FIXED] Call the correct API for VISITORS
+            const response = await fetch('/viewer/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -406,8 +429,8 @@
             if (!response.ok) {
                 throw new Error(data.message || 'Login failed');
             }
-            // On success, show the dashboard
-            showDashboard(data);
+            // On success, show the dashboard for a 'visitor'
+            showDashboard(data, 'visitor');
         } catch (error) {
             loginError.textContent = error.message;
         } finally {
@@ -416,14 +439,14 @@
         }
     });
 
-    // Confirmation Modal Buttons (Copied)
+    // Confirmation Modal Buttons (No changes)
     confirmBtn.addEventListener('click', () => {
         if (typeof confirmCallback === 'function') confirmCallback();
         hideConfirmModal();
     });
     cancelBtn.addEventListener('click', hideConfirmModal);
     
-    // Row Checkbox Handling (Copied)
+    // Row Checkbox Handling (No changes)
     tableBody.addEventListener('change', (e) => {
         if (e.target.classList.contains('row-checkbox')) {
             const id = e.target.dataset.id;
@@ -433,7 +456,7 @@
         }
     });
 
-    // Select All Checkbox Handling (Copied)
+    // Select All Checkbox Handling (No changes)
     selectAllCheckbox.addEventListener('change', (e) => {
         const checkboxes = tableBody.querySelectorAll('.row-checkbox');
         checkboxes.forEach(cb => {
@@ -447,7 +470,7 @@
         updateBulkActionBar();
     });
 
-    // Bulk Action Buttons (Copied, simplified)
+    // Bulk Action Buttons (No changes)
     deleteSelectedBtn.addEventListener('click', () => {
         showConfirmModal(
             `Delete ${selectedInterviewIds.size} interviews?`,
@@ -460,18 +483,19 @@
                 });
                 selectedInterviewIds.clear();
                 updateBulkActionBar();
-                fetchAndRenderInterviews(); // Refresh list
+                // [FIXED] Pass the current user type to the fetch function
+                await fetchAndRenderInterviews(currentUserType);
             }
         );
     });
 
-    // Search Bar (Copied)
+    // Search Bar (No changes)
     searchBar.addEventListener('input', (e) => {
       renderTable(e.target.value);
       updateBulkActionBar();
     });
 
-    // --- Profile Dropdown & User Info Logic ---
+    // Profile Dropdown (No changes)
     if (profileButton && profileDropdown) {
         profileButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -484,19 +508,34 @@
         });
     }
     
-    // --- [NEW] Initial Load Logic ---
+    // --- [FIXED] Initial Load Logic ---
     (async function checkSession() {
         try {
-            // Check for a standard user session
-            const response = await fetch('/api/me'); 
-            if (!response.ok) {
-                throw new Error('No session'); // Not logged in
+            // 1. Check for a standard user session (Admin, HR, etc.)
+            const userResponse = await fetch('/api/me'); 
+            if (userResponse.ok) {
+                const user = await userResponse.json();
+                currentUserType = 'user'; // Set global state
+                showDashboard(user, 'user'); // Show dashboard for internal 'user'
+                return; // Stop here
             }
-            const user = await response.json();
-            // If logged in, show the dashboard
-            showDashboard(user);
+
+            // 2. If no user session, check for a visitor session
+            const visitorResponse = await fetch('/viewer/me');
+            if (visitorResponse.ok) {
+                const visitor = await visitorResponse.json();
+                currentUserType = 'visitor'; // Set global state
+                showDashboard(visitor, 'visitor'); // Show dashboard for external 'visitor'
+                return; // Stop here
+            }
+
+            // 3. If both fail, show the login form
+            throw new Error('No active session');
+
         } catch (err) {
-            // If not logged in, show the login form
+            // If all session checks fail, show the login form
+            console.log('No active session, showing login.');
+            currentUserType = 'none';
             showLogin();
         }
     })();
