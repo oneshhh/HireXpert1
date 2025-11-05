@@ -315,13 +315,16 @@
         const searchBar = document.getElementById('search-bar');
         renderTable(searchBar.value);
 
-    } catch (err) { 
+} catch (err) { 
         console.error(`Error loading assigned interviews for ${userType}:`, err); 
-        // If fetching fails (e.g., API error), show the login page as a fallback
-        showLogin();
+        // This is a server or network error. Show a message, don't log out.
+        showNotification(
+            'Error Loading Interviews', 
+            'Could not load interview data. Please check your connection and try again.', 
+            { isError: true }
+        );
     }
-  }
-
+}
   // [UPDATED] Renders table with new stats structure (No changes to this function)
   function renderTable(searchTerm = '') {
     const tbody = document.querySelector("#interviews-table-body");
