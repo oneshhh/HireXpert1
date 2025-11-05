@@ -964,6 +964,48 @@ app.get("/api/me/details", async (req, res) => {
     }
 });
 
+// [ADD THIS NEW ROUTE] to server.js
+app.put("/api/visitors/:id", async (req, res) => {
+    // SECURITY: Only Admins can edit visitors
+    if (req.session.user?.activeDepartment !== 'Admin') {
+        return res.status(403).json({ message: "Forbidden: Only admins can edit visitors." });
+    }
+    
+    const { id } = req.params;
+    const { firstName, lastName, email, departments, password } = req.body;
+
+    if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required." });
+    }
+
+    try {
+        if (password && password.trim() !== '') {
+            // If a new password is provided, hash it
+            const saltRounds = 10;
+            const passwordHash = await bcrypt.hash(password, saltRounds);
+            await pool.query(
+                `UPDATE visitors SET first_name = $1, last_name = $2, email = $3, department = $4, password_hash = $5 WHERE id = $6`,
+                [firstName, lastName, email, departments || [], passwordHash, id]
+            );
+        } else {
+            // If no password, update without changing it
+            await pool.query(
+                `UPDATE visitors SET first_name = $1, last_name = $2, email = $3, department = $4 WHERE id = $5`,
+                [firstName, lastName, email, departments || [], id]
+            );
+        }
+        
+        res.json({ success: true, message: "Visitor updated successfully." });
+
+    } catch (error) {
+        console.error("Error updating visitor:", error);
+        if (error.code === '23505') { // Unique constraint (email)
+            return res.status(409).json({ message: "A visitor with this email already exists." });
+        }
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
+
 // 2. POST Route to update the logged-in user's profile
 app.post("/api/me/update", async (req, res) => {
     if (!req.session.user || !req.session.user.id) {
