@@ -14,6 +14,7 @@ const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
+const { Pool } = require('pg'); 
 
 // Middleware
 app.use(express.json());
@@ -21,28 +22,37 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
-app.use(session({
-    store: new pgSession({
-        pool: pool,                // Use your existing database pool
-        tableName: 'user_sessions',
-        createTableIfMissing: true // Good practice to add this
-    }),
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
-    resave: false,
-    
-    // [THE FIX] This is the most important change.
-    // Set to false to prevent empty sessions from being created
-    // and interfering with your real login session.
-    saveUninitialized: false, 
 
-    cookie: {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        
-        // [SECURITY IMPROVEMENT] Added httpOnly
-        httpOnly: true 
+const sessionPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
     }
+});
+
+app.use(session({
+    store: new pgSession({
+        pool: sessionPool,            // <-- THE FIX: Use the new SSL-enabled pool
+        tableName: 'user_sessions',
+        createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
+    resave: false,
+    
+    // This is correct, keep it false
+    saveUninitialized: false, 
+
+    cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        
+        // This correctly sets secure cookies only in production
+        secure: process.env.NODE_ENV === 'production', 
+        
+        sameSite: 'lax',
+        
+        // This is a great security setting, keep it
+        httpOnly: true 
+    }
 }));
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
