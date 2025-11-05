@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 require('dotenv').config();
 
 // =================================================================
@@ -6,7 +6,6 @@ require('dotenv').config();
 // =================================================================
 console.log("\n--- DEBUGGING DATABASE CONNECTION ---");
 console.log(`[INFO] Attempting to load DATABASE_URL from .env file...`);
-console.log(`Database connected successfully!`);
 
 if (!process.env.DATABASE_URL) {
     console.error("\n[FATAL] DATABASE_URL is UNDEFINED.");
@@ -24,10 +23,6 @@ console.log("-------------------------------------\n");
 // =================================================================
 
 
-// NEW, MORE ROBUST SSL LOGIC
-const isProduction = process.env.NODE_ENV === 'production';
-const isRenderDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('.render.com');
-const useSsl = isProduction || isRenderDb;
 
 const connectionConfig = {
   connectionString: process.env.DATABASE_URL,
@@ -69,5 +64,5 @@ const pool = new Pool(connectionConfig);
   }
 })();
 
-module.exports = pool;
+export default pool;
 

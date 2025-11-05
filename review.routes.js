@@ -1,7 +1,7 @@
 // review.routes.js
 const express = require('express');
 const router = express.Router();
-const pool = require('./db'); // <-- Your pg Pool from db.js
+const pool = require('./db').default; // <-- Your pg Pool from db.js
 const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2nd DB
 
 /**
