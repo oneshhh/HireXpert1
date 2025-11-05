@@ -61,6 +61,18 @@
                 </button>
             </div>
         </form>
+
+        <!-- START OF NEW SECTION -->
+        <div class="text-center">
+            <p class="text-sm text-gray-600">
+                Are you a reviewer?
+                <a href="/interview_viewer.html" class="font-medium text-[var(--primary-color)] hover:text-[var(--primary-color-hover)]">
+                    Reviewer Login
+                </a>
+            </p>
+        </div>
+        <!-- END OF NEW SECTION -->
+
     </div>
 
     <!-- This script provides the modern fetch-based submission logic -->
@@ -87,7 +99,7 @@
           } else {
             // If the login fails, the server sends an error message as plain text.
             const errorMessage = await response.text();
-            alert(errorMessage);
+            alert(errorMessage); // Using alert for simplicity as it was in the original
           }
         } catch (error) {
           // Handle network errors (e.g., server is down)
@@ -99,4 +111,3 @@
     
 </body>
 </html>
-
