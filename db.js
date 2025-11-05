@@ -2,11 +2,10 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // =================================================================
-// ===========        START OF DEBUGGING BLOCK           ===========
+// ===========           START OF DEBUGGING BLOCK          ===========
 // =================================================================
 console.log("\n--- DEBUGGING DATABASE CONNECTION ---");
 console.log(`[INFO] Attempting to load DATABASE_URL from .env file...`);
-console.log(`Database connected successfully!`);
 
 if (!process.env.DATABASE_URL) {
     console.error("\n[FATAL] DATABASE_URL is UNDEFINED.");
@@ -17,28 +16,34 @@ if (!process.env.DATABASE_URL) {
     console.log("-------------------------------------\n");
     // Exit the process to prevent the crash and make the error clear
     process.exit(1);
+} else {
+    // This is a more accurate log. It just means the variable was found.
+    console.log(`[INFO] DATABASE_URL found. Will attempt connection...`);
 }
 console.log("-------------------------------------\n");
 // =================================================================
-// ===========         END OF DEBUGGING BLOCK            ===========
+// ===========            END OF DEBUGGING BLOCK           ===========
 // =================================================================
 
 
-// NEW, MORE ROBUST SSL LOGIC
-const isProduction = process.env.NODE_ENV === 'production';
-const isRenderDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('.render.com');
-const useSsl = isProduction || isRenderDb;
-
+// --- THE CORRECT SSL LOGIC FOR SUPABASE ---
+// Supabase is a cloud database and ALWAYS requires SSL,
+// whether you are in production (Render) or local development (your laptop).
 const connectionConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: useSsl ? { rejectUnauthorized: false } : false,
+  ssl: { 
+    rejectUnauthorized: false 
+  }
 };
+// --- END OF NEW LOGIC ---
 
 const pool = new Pool(connectionConfig);
 
+// This async block is a great way to test the connection on startup.
 (async () => {
-  const client = await pool.connect();
+  let client; // Define client outside try
   try {
+    client = await pool.connect(); // Test the connection
     await client.query(`
       CREATE TABLE IF NOT EXISTS interviews (
         id UUID PRIMARY KEY,
@@ -61,13 +66,17 @@ const pool = new Pool(connectionConfig);
       )
     `);
 
+    // This is the *real* success message
     console.log("✅ Connected to PostgreSQL & ensured all tables are correctly configured.");
   } catch (err) {
-    console.error("❌ Error setting up database tables:", err);
+    // If the connection fails (e.g., ECONNREFUSED), this will log it.
+    console.error("❌ Error during database startup connection or table setup:", err);
   } finally {
-    client.release();
+    if (client) {
+      // Only release the client if it was successfully connected
+      client.release();
+    }
   }
 })();
 
 module.exports = pool;
-
