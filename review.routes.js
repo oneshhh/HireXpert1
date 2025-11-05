@@ -368,6 +368,64 @@ router.get("/evaluations", async (req, res) => {
     }
 });
 
+
+// --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
+// (Path becomes: GET /api/viewer/assigned-interviews)
+router.get("/viewer/assigned-interviews", async (req, res) => {
+    // Check for the *viewer* session, not the *user* session
+    if (!req.session.viewer || !req.session.viewer.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    // Get the ID from the viewer session
+    const user_id = req.session.viewer.id;
+
+    try {
+        // 1. Get all stats (this query is the same)
+        const statsResult = await pool.query(`
+            SELECT interview_id, status, COUNT(*) as count 
+            FROM candidate_sessions 
+            GROUP BY interview_id, status
+        `);
+        
+        const stats = {};
+        for (const row of statsResult.rows) {
+            if (!stats[row.interview_id]) {
+                stats[row.interview_id] = {};
+            }
+            stats[row.interview_id][row.status] = parseInt(row.count);
+        }
+
+        // 2. Get all interviews assigned to this user (this query is the same)
+        const interviewQuery = `
+                    SELECT i.*, u.first_name, u.last_name 
+                    FROM interviews i
+                    LEFT JOIN users u ON i.created_by_user_id = u.id
+                    WHERE $1 = ANY(i.visitor_reviewer_ids)
+                    ORDER BY i.created_at DESC
+                `;
+        // Use the user_id from the viewer session
+        const { rows: interviews } = await pool.query(interviewQuery, [user_id]);
+
+        // 3. Combine the interviews with their stats (this is the same)
+        const response = interviews.map(interview => {
+            const interviewStats = stats[interview.id] || {};
+            return {
+                ...interview,
+                stats: { 
+                    invited: interviewStats['Invited'] || 0,
+                    toEvaluate: interviewStats['To Evaluate'] || 0,
+                    evaluated: interviewStats['Evaluated'] || 0,
+                    discarded: interviewStats['Discarded'] || 0
+                }
+            };
+        });
+
+        res.json(response);
+    } catch (err) {
+        console.error("Error fetching assigned interviews for viewer:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 // --- API for the "My Interviews" Dashboard ---
 // (Path becomes: GET /api/me/assigned-interviews)
 router.get("/me/assigned-interviews", async (req, res) => {
