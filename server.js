@@ -24,16 +24,24 @@ app.use(cors({ origin: "*" }));
 app.use(session({
     store: new pgSession({
         pool: pool,                // Use your existing database pool
-        tableName: 'user_sessions' // Name of the table to store sessions
+        tableName: 'user_sessions',
+        createTableIfMissing: true // Good practice to add this
     }),
     secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
     resave: false,
-    saveUninitialized: true,
+    
+    // [THE FIX] This is the most important change.
+    // Set to false to prevent empty sessions from being created
+    // and interfering with your real login session.
+    saveUninitialized: false, 
+
     cookie: {
-        // Set cookie maxAge to 30 days in milliseconds (previous value was incorrect)
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        
+        // [SECURITY IMPROVEMENT] Added httpOnly
+        httpOnly: true 
     }
 }));
 
