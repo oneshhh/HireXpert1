@@ -1,5 +1,5 @@
 const express = require("express");
-const session = require("express-session");
+const cookieSession = require('cookie-session');
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 require('dotenv').config();
@@ -9,7 +9,6 @@ const cors = require("cors");
 const pool = require("./db");
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
-const pgSession = require('connect-pg-simple')(session);
 const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
@@ -22,30 +21,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
 
-app.use(session({
-    store: new pgSession({
-        pool: pool,                  // <-- THE FIX: Use the shared pool
-        tableName: 'user_sessions',
-        createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
-    resave: false,
-    
-    // This is correct, keep it false
-    saveUninitialized: false, 
-
-    cookie: {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        
-        // This correctly sets secure cookies only in production
-        secure: process.env.NODE_ENV === 'production', 
-        
-        sameSite: 'lax',
-        
-        // This is a great security setting, keep it
-        httpOnly: true 
-    }
-}));
+app.use(
+  cookieSession({
+    name: 'session', // The name of the cookie
+    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    
+    // Cookie Security settings (you already had these)
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  })
+);
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 
