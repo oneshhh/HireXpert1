@@ -22,8 +22,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
 
-console.log("CRITICAL_DEBUG: PGStore is connecting with this URL:", process.env.DATABASE_URL);
-
 app.use(session({
     store: new pgSession({
         pool: pool,                  // <-- THE FIX: Use the shared pool
