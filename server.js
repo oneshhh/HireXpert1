@@ -141,23 +141,11 @@ app.post("/login", async (req, res) => {
                 };
                 console.log('Session user set:', req.session.user); // Logging
 
-                // Explicitly save the session before redirecting
-                req.session.save((err) => {
-                    if (err) {
-                        console.error("Error saving session before redirect:", err);
-                        // Make sure to RETURN here to stop execution
-                        return res.status(500).send("Login failed due to session save error.");
-                    }
-
-                    console.log('Session saved successfully, redirecting...');
-                    if (department === 'Admin') {
-                        // Make sure to RETURN here
-                        return res.redirect('/admin_Dashboard.html');
-                    }
-                    // Make sure to RETURN here
-                    return res.redirect(`/${department}_Dashboard.html`);
-                    // --- END OF REDIRECTS ---
-                });
+                // cookie-session automatically saves on response, so just redirect
+                if (department === 'Admin') {
+                    return res.redirect('/admin_Dashboard.html');
+                }
+                return res.redirect(`/${department}_Dashboard.html`);
 
             } else { // Added 'else' for clarity if password doesn't match
                  res.status(401).send("Invalid credentials.");
@@ -188,16 +176,16 @@ app.get("/api/me", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error("Logout error:", err);
-            return res.status(500).send("Could not log out.");
-        }
-        // Clear the cookie (optional but good practice)
-        res.clearCookie('connect.sid'); // Use the default cookie name, adjust if you changed it
-        // Redirect to the login page
-        res.redirect('/');
-    });
+    // For cookie-session, clear the session by setting it to null
+    try {
+        req.session = null;
+    } catch (err) {
+        console.error("Error clearing session on logout:", err);
+    }
+    // Clear the cookie name you set in cookieSession (name: 'session')
+    res.clearCookie('session');
+    // Redirect to the login page
+    res.redirect('/');
 });
 
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
@@ -1037,16 +1025,10 @@ app.post("/api/me/update", async (req, res) => {
         // IMPORTANT: Update the email in the session if it changed
         if (req.session.user.email !== email) {
              req.session.user.email = email;
-             // Force session save if email changed
-             req.session.save(err => {
-                 if (err) {
-                    console.error("Error saving session after email update:", err);
-                    // Proceed even if session save fails, but log it
-                 }
-                 res.json({ success: true, message: "Profile updated successfully." });
-             });
+             // cookie-session saves automatically at response time
+             return res.json({ success: true, message: "Profile updated successfully." });
         } else {
-            res.json({ success: true, message: "Profile updated successfully." });
+            return res.json({ success: true, message: "Profile updated successfully." });
         }
 
     } catch (error) {
@@ -1076,16 +1058,10 @@ app.post("/viewer/login", async (req, res) => {
                     email: viewer.email,
                     name: `${viewer.first_name} ${viewer.last_name}`
                 };
-                // Save session and send response
-                req.session.save((err) => {
-                    if (err) {
-                        console.error("Error saving viewer session:", err);
-                        return res.status(500).json({ message: "Login failed (session error)." });
-                    }
-                    res.json({
-                        success: true,
-                        email: viewer.email
-                    });
+                // cookie-session auto-saves on response
+                return res.json({
+                    success: true,
+                    email: viewer.email
                 });
             } else {
                 res.status(401).json({ message: "Invalid credentials." });
@@ -1098,7 +1074,6 @@ app.post("/viewer/login", async (req, res) => {
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
-
 
 // ADD THIS NEW ROUTE to server.js
 app.post("/api/reviewer-login", async (req, res) => {
@@ -1122,17 +1097,11 @@ app.post("/api/reviewer-login", async (req, res) => {
                     activeDepartment: user.department[0] // Just pick the first department
                 };
                 
-                req.session.save((err) => {
-                    if (err) {
-                        return res.status(500).json({ message: "Session save error." });
-                    }
-                    // On success, just send back the user data
-                    // The frontend will handle showing the dashboard
-                    res.json({
-                        success: true,
-                        id: user.id,
-                        email: user.email
-                    });
+                // cookie-session auto-saves on response
+                return res.json({
+                    success: true,
+                    id: user.id,
+                    email: user.email
                 });
             } else {
                  res.status(401).json({ message: "Invalid credentials." });
@@ -1161,14 +1130,14 @@ app.get("/viewer/me", (req, res) => {
 // 3. Viewer Logout Route
 app.get("/viewer/logout", (req, res) => {
     if (req.session.viewer) {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error("Viewer logout error:", err);
-                return res.status(500).send("Could not log out.");
-            }
-            res.clearCookie('connect.sid');
-            res.json({ success: true, message: "Logged out." });
-        });
+        try {
+            req.session = null;
+        } catch (err) {
+            console.error("Viewer logout error:", err);
+            return res.status(500).send("Could not log out.");
+        }
+        res.clearCookie('session');
+        return res.json({ success: true, message: "Logged out." });
     } else {
         res.json({ success: true, message: "No session to clear." });
     }
