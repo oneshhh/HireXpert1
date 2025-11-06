@@ -14,7 +14,6 @@ const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
-const { Pool } = require('pg'); 
 
 // Middleware
 app.use(express.json());
@@ -22,17 +21,9 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
-
-const sessionPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
 app.use(session({
     store: new pgSession({
-        pool: sessionPool,            // <-- THE FIX: Use the new SSL-enabled pool
+        pool: pool,            // <-- THE FIX: Use the new SSL-enabled pool
         tableName: 'user_sessions',
         createTableIfMissing: true
     }),
