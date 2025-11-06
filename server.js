@@ -409,8 +409,8 @@ app.post("/schedule", async (req, res) => {
 
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
         if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
-        if (!visitorReviewerIds || visitorReviewerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
-        
+        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
+
         const now = new Date();
         const year = now.getFullYear().toString().slice(-2);
         const month = now.toLocaleString('en-US', { month: 'short' });
@@ -424,11 +424,12 @@ app.post("/schedule", async (req, res) => {
         while (timeLimits.length < questions.length) timeLimits.push(0);
         
         const interviewId = uuidv4();
-            await client.query(
+        await client.query(
             `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, visitor_reviewer_ids)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
-            [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, visitorReviewerIds]
-            );
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
+            [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
+        );
+
         
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
@@ -797,7 +798,8 @@ app.post("/api/interview/:id/update", async (req, res) => {
         await client.query('BEGIN');
 
         // 1. Destructure all expected data from the request body
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds: visitorReviewerIds } = req.body;
+        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+
         
         // 2. Data validation and cleanup
         if (!Array.isArray(questions)) questions = [String(questions || '')];
@@ -811,7 +813,7 @@ app.post("/api/interview/:id/update", async (req, res) => {
         );
 
         // 4. Handle adding and emailing new candidates
-        const candidateEmails = (newEmails || '').split(',').map(email => email.trim()).filter(email => email);
+        const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         if (candidateEmails.length > 0) {
             // Fetch interview details needed for the email
             const interviewResult = await client.query('SELECT title, date, time, department FROM interviews WHERE id = $1', [id]);
