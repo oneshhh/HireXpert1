@@ -23,8 +23,7 @@ app.use(express.static("public"));
 app.use(cors({ origin: "*" }));
 app.use(session({
     store: new pgSession({
-        connectionString: process.env.DATABASE_URL, // <-- Give it the URL directly
-        ssl: { rejectUnauthorized: false }, // <-- Give it the SSL config directly
+        pool: pool,                  // <-- THE FIX: Use the shared pool
         tableName: 'user_sessions',
         createTableIfMissing: true
     }),
