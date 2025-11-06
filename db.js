@@ -40,6 +40,7 @@ const connectionConfig = {
 const pool = new Pool(connectionConfig);
 
 // This async block is a great way to test the connection on startup.
+/*
 (async () => {
   let client; // Define client outside try
   try {
@@ -78,5 +79,6 @@ const pool = new Pool(connectionConfig);
     }
   }
 })();
+*/
 
 module.exports = pool;
