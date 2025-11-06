@@ -30,10 +30,14 @@ console.log("-------------------------------------\n");
 // Supabase is a cloud database and ALWAYS requires SSL,
 // whether you are in production (Render) or local development (your laptop).
 const connectionConfig = {
-  connectionString: process.env.DATABASE_URL,
-  ssl: { 
-    rejectUnauthorized: false 
-  }
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    ssl: { 
+        rejectUnauthorized: false 
+    }
 };
 // --- END OF NEW LOGIC ---
 
