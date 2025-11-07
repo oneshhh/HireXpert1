@@ -113,27 +113,89 @@
           schedulerSelect.innerHTML = '<option disabled>Error loading users.</option>';
       }
   }
+  async function getActiveDepartment() {
+    try {
+      const res = await fetch('/api/me');
+      if (!res.ok) {
+        throw new Error('Not authenticated or failed to get session');
+      }
+      const user = await res.json();
+      return user.activeDepartment || null;
+    } catch (err) {
+      console.error('Failed to get active department:', err);
+      return null;
+    }
+  }
 
+  // Load schedulers from the visitors table filtered by department (uses server's /api/visitors/by-dept)
+  async function loadSchedulers(department) {
+      try {
+          const schedulerSelect = document.getElementById('schedulerIds');
+          schedulerSelect.innerHTML = '<option disabled>Loading reviewers...</option>';
+
+          if (!department) {
+              schedulerSelect.innerHTML = '<option disabled>Please select an interview department first.</option>';
+              return;
+          }
+
+          const response = await fetch(`/api/visitors/by-dept?department=${encodeURIComponent(department)}`);
+          if (!response.ok) {
+              if (response.status === 401) throw new Error('Your session may have expired. Please log in again.');
+              throw new Error('Failed to load reviewers for this department.');
+          }
+
+          const visitors = await response.json();
+          schedulerSelect.innerHTML = ''; // clear
+
+          if (!Array.isArray(visitors) || visitors.length === 0) {
+              schedulerSelect.innerHTML = `<option disabled>No reviewers found for ${department}.</option>`;
+              return;
+          }
+
+          visitors.forEach(visitor => {
+              const option = document.createElement('option');
+              option.value = visitor.id; // visitor id
+              // show name and email so schedulers are easy to pick
+              const name = `${visitor.first_name || ''} ${visitor.last_name || ''}`.trim();
+              option.textContent = name ? `${name} — ${visitor.email}` : visitor.email;
+              schedulerSelect.appendChild(option);
+          });
+      } catch (error) {
+          console.error('Error loading schedulers (visitors):', error);
+          const schedulerSelect = document.getElementById('schedulerIds');
+          if (schedulerSelect) schedulerSelect.innerHTML = '<option disabled>Error loading reviewers.</option>';
+      }
+  }
+
+  // Modified loadInterview to fetch department first, then load schedulers (visitors), then fetch interview
   async function loadInterview() {
     try {
-      await loadSchedulers(); // Load schedulers first
+      // 1) Get active department and load visitors (schedulers) for it
+      const activeDept = await getActiveDepartment();
+      await loadSchedulers(activeDept);
+
+      // 2) Then fetch the interview itself
       const res = await fetch(`/api/interview/${interviewId}`);
       if (!res.ok) throw new Error('Interview not found');
       const interview = await res.json();
 
-      document.getElementById("title").value = interview.title;
-      document.getElementById("custom-id-display").textContent = `Editing Interview ID: ${interview.custom_interview_id}`;
+      // 3) Populate form fields (unchanged)
+      document.getElementById("title").value = interview.title || '';
+      document.getElementById("custom-id-display").textContent = `Editing Interview ID: ${interview.custom_interview_id || ''}`;
       document.getElementById("created-by-name").textContent = `${interview.first_name || ''} ${interview.last_name || ''}`.trim() || 'N/A';
 
-      // Pre-select assigned schedulers
+      // 4) Pre-select assigned schedulers (scheduler_ids should now match visitor IDs)
       const schedulerIds = new Set(interview.scheduler_ids || []);
       Array.from(schedulerSelect.options).forEach(option => {
-          if (schedulerIds.has(option.value)) {
+          // option.value is a string; ensure types match
+          if (schedulerIds.has(option.value) || schedulerIds.has(option.value.toString())) {
               option.selected = true;
+          } else {
+              option.selected = false;
           }
       });
 
-      // Populate current candidates
+      // 5) Populate current candidates
       candidatesList.innerHTML = '';
       if (interview.candidates && interview.candidates.length > 0) {
         interview.candidates.forEach(c => {
@@ -146,12 +208,12 @@
         candidatesList.innerHTML = '<li class="text-gray-500 italic">No candidates have been invited yet.</li>';
       }
 
-      // Populate questions
+      // 6) Populate questions (existing addQuestion function can be used)
       questionsContainer.innerHTML = "";
       const questions = interview.questions || [];
       const timeLimits = interview.time_limits || [];
       questions.forEach((q, i) => addQuestion(q, timeLimits[i] || 0));
-      
+
       document.getElementById('loading-state').style.display = 'none';
       document.getElementById('content-container').classList.remove('hidden');
 
@@ -160,6 +222,15 @@
       document.getElementById('loading-state').innerHTML = `<p class="text-red-500">Failed to load interview. ${err.message}</p>`;
     }
   }
+
+  // Call loadInterview() on page load (it will call the visitors-by-dept route first)
+  document.addEventListener('DOMContentLoaded', () => {
+    if (interviewId) {
+      loadInterview();
+    } else {
+      document.getElementById('loading-state').innerHTML = '<p class="text-red-500">No interview id provided in URL.</p>';
+    }
+  });
 
   function addQuestion(value = "", timeLimit = 0) {
     const div = document.createElement("div");
