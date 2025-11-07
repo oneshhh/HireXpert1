@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>HireXpert - GTA Interviews</title>
+<title>HireXpert- GTA Interviews</title>
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -247,18 +247,37 @@
       } catch (err) { console.error("Error loading counts:", err); }
   }
 
+  // --- REPLACED: renderTable() & fetchAndRenderInterviews() ---
+
+  /**
+   * Given an array of candidate rows for one interview, compute counts for statuses.
+   * Status strings used: 'Invited', 'To Evaluate', 'Evaluated', 'Discarded'
+   */
+  function computeStatsFromCandidates(candidates) {
+    const s = { invited: 0, toEvaluate: 0, evaluated: 0, discarded: 0 };
+    if (!Array.isArray(candidates)) return s;
+    candidates.forEach(c => {
+      const status = (c.status || '').toString();
+      if (status === 'Invited') s.invited++;
+      else if (status === 'To Evaluate') s.toEvaluate++;
+      else if (status === 'Evaluated') s.evaluated++;
+      else if (status === 'Discarded') s.discarded++;
+    });
+    return s;
+  }
+
   function renderTable(searchTerm = '') {
     const tbody = document.querySelector("#interviews-table-body");
     tbody.innerHTML = "";
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const lowerCaseSearchTerm = (searchTerm || '').toLowerCase();
+
     const filteredInterviews = allInterviews.filter(interview => {
-        const titleMatch = interview.title.toLowerCase().includes(lowerCaseSearchTerm);
-        const idMatch = interview.custom_interview_id ? interview.custom_interview_id.toLowerCase().includes(lowerCaseSearchTerm) : false;
+        const titleMatch = (interview.title || '').toLowerCase().includes(lowerCaseSearchTerm);
+        const idMatch = (interview.custom_interview_id || '').toLowerCase().includes(lowerCaseSearchTerm);
         return titleMatch || idMatch;
     });
 
     if (filteredInterviews.length === 0) {
-        // <<< CHANGED message to mention GTA
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">No ${searchTerm ? 'matching' : currentStatusFilter} interviews found for ${DEPARTMENT}.</td></tr>`;
         return;
     }
@@ -266,17 +285,24 @@
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
-        const viewLink = `/interview-view.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
-        const editLink = `/interview-edit.html?id=${interview.id}&from=GTA_Dashboard.html`; // <<< CHANGED from
+        const viewLink = `/interview-view.html?id=${interview.id}&from=GTA_Dashboard.html`;
+        const editLink = `/interview-edit.html?id=${interview.id}&from=GTA_Dashboard.html`;
+
+        const stats = interview.stats || { invited: 0, toEvaluate: 0, evaluated: 0, discarded: 0 };
+        const invitedCount = stats.invited || 0;
+        const toEvaluateCount = stats.toEvaluate || 0;
+        const evaluatedCount = stats.evaluated || 0;
+        const discardedCount = stats.discarded || 0;
+
         tr.innerHTML = `
             <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
             <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
             <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">5</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">2</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">1</span></td>
-            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">0</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">${invitedCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">${toEvaluateCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">${evaluatedCount}</span></td>
+            <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">${discardedCount}</span></td>
             <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
                 <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
                 <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
@@ -290,11 +316,38 @@
     try {
       const url = `/api/interviews?department=${DEPARTMENT}&position_status=${currentStatusFilter}`;
       const res = await fetch(url);
-      allInterviews = await res.json();
+      if (!res.ok) throw new Error('Failed to fetch interviews');
+      const interviews = await res.json();
+
+      if (!Array.isArray(interviews) || interviews.length === 0) {
+        allInterviews = [];
+        renderTable(document.getElementById('search-bar')?.value || '');
+        return;
+      }
+
+      const interviewsWithStats = await Promise.all(interviews.map(async (iv) => {
+        try {
+          const candRes = await fetch(`/api/interview/${encodeURIComponent(iv.id)}/candidates`);
+          if (!candRes.ok) { iv.stats = { invited: 0, toEvaluate: 0, evaluated: 0, discarded: 0 }; return iv; }
+          const candidates = await candRes.json();
+          iv.stats = computeStatsFromCandidates(candidates);
+          return iv;
+        } catch (err) {
+          console.warn(`Failed to fetch candidates for interview ${iv.id}:`, err);
+          iv.stats = { invited: 0, toEvaluate: 0, evaluated: 0, discarded: 0 };
+          return iv;
+        }
+      }));
+
+      allInterviews = interviewsWithStats;
       const searchBar = document.getElementById('search-bar');
-      renderTable(searchBar.value);
-    } catch (err) { console.error("Error loading interviews:", err); }
+      renderTable(searchBar?.value || '');
+    } catch (err) {
+      console.error("Error loading interviews:", err);
+    }
   }
+
+  // --- End replaced functions ---
 
   // --- Confirmation Modal Logic ---
   const confirmModal = document.getElementById('confirm-modal');
@@ -365,8 +418,8 @@
         currentStatusFilter = newStatus;
         openTab.classList.toggle('tab-active', newStatus === 'open');
         closedTab.classList.toggle('tab-active', newStatus === 'closed');
-        fetchAndRenderInterviews(); // Fetch new data for the tab
-        selectedInterviewIds.clear(); // Clear selection on tab switch
+        fetchAndRenderInterviews();
+        selectedInterviewIds.clear();
         updateBulkActionBar();
     }
     openTab.addEventListener('click', () => switchTab('open'));
@@ -454,7 +507,7 @@
     // Search Bar (Client-side filtering)
     searchBar.addEventListener('input', (e) => {
       renderTable(e.target.value);
-      updateBulkActionBar(); // Update select-all based on filtered results
+      updateBulkActionBar();
     });
 
     // --- Profile Dropdown & User Info Logic ---
