@@ -15,7 +15,7 @@
       }
       body { font-family: 'Inter', sans-serif; }
 
-      /* Resend button */
+      /* Resend & Copy buttons */
       .resend-btn {
         padding: 0.25rem 0.6rem;
         font-size: 0.78rem;
@@ -33,6 +33,19 @@
       .resend-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
       .resend-btn:disabled { opacity: 0.6; cursor: not-allowed; background-color: #f3f4f6; color: #9ca3af; }
 
+      .copy-btn {
+        min-width: 56px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        background-color: #EEF2FF;
+        color: #4C1D95;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .copy-btn:hover { filter: brightness(0.98); }
+
       /* Notification Modal */
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
@@ -42,35 +55,36 @@
         - Use CSS grid with 3 columns:
           1) flexible content (email and small details)
           2) fixed column for status badge (keeps alignment)
-          3) fixed column for button (keeps alignment)
+          3) fixed column for buttons (keeps alignment)
       */
       .candidate-line {
         display: grid;
-        grid-template-columns: 1fr 120px 90px; /* email | status | button */
+        grid-template-columns: 1fr 120px 170px; /* email | status | actions (copy+resend) */
         gap: 12px;
         align-items: center;
       }
       .candidate-line .candidate-info {
-        min-width: 0; /* allow truncation/wrapping inside flex item */
+        min-width: 0; /* allow truncation/wrapping inside */
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
-      /* Emails: show fully by wrapping. Title attribute still present for tooltip. */
+      /* Emails: smaller font and wrap-friendly */
       .candidate-email {
-        overflow-wrap: anywhere; /* allow long emails to wrap */
+        overflow-wrap: anywhere;
         word-break: break-word;
         white-space: normal;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         color: #111827;
+        line-height: 1.2;
       }
-      .candidate-email.small { font-size: 0.85rem; color: #6b7280; }
+      .candidate-email.small { font-size: 0.78rem; color: #6b7280; }
 
       /* Status tag - fixed width column, center align inside */
       .candidate-status {
         display: inline-block;
-        padding: 4px 8px;
+        padding: 6px 10px;
         border-radius: 999px;
         text-align: center;
         font-size: 0.78rem;
@@ -79,10 +93,10 @@
         white-space: nowrap;
       }
 
-      /* Submission items (review submissions) - same grid for alignment when wider */
+      /* Submission items (review submissions) - two columns: info | controls */
       .submission-item {
         display: grid;
-        grid-template-columns: 1fr 140px; /* candidate info | controls */
+        grid-template-columns: 1fr 140px; /* info | controls */
         gap: 12px;
         align-items: center;
       }
@@ -235,7 +249,7 @@
     const hideModal = () => { if (!notificationModal || !notificationDialog) return; notificationModal.classList.remove('opacity-100'); notificationDialog.classList.remove('scale-100', 'opacity-100'); notificationDialog.classList.add('scale-95', 'opacity-0'); setTimeout(() => { notificationModal.classList.add('hidden'); }, 300); };
     function showNotification(title, text, options = {}) { const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', duration = null } = options; const modalTitle = document.getElementById('notification-modal-title'); const modalText = document.getElementById('notification-modal-text'); const modalIcon = document.getElementById('notification-modal-icon'); const btnContainer = document.getElementById('notification-modal-buttons'); if (!notificationModal || !modalTitle || !modalText || !modalIcon || !btnContainer) { alert(`${title}: ${text}`); return; } modalTitle.textContent = title; modalText.textContent = text; if (isError) { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100"; } else { modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`; modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"; } btnContainer.innerHTML = ''; if (onConfirm) { btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'; const confirmBtn = document.createElement('button'); confirmBtn.type = 'button'; confirmBtn.className = isError ? 'inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2' : 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:col-start-2'; confirmBtn.textContent = confirmText; confirmBtn.onclick = () => { hideModal(); onConfirm(); }; const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.className = 'mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0'; cancelBtn.textContent = cancelText; cancelBtn.onclick = () => { hideModal(); }; btnContainer.appendChild(cancelBtn); btnContainer.appendChild(confirmBtn); } else { btnContainer.className = 'mt-5 sm:mt-6'; if (duration === null || duration <= 0) { const okBtn = document.createElement('button'); okBtn.type = 'button'; okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90'; okBtn.textContent = 'Got it'; okBtn.onclick = () => { hideModal(); }; btnContainer.appendChild(okBtn); } } showModal(); if (duration > 0 && !onConfirm) { setTimeout(() => { hideModal(); }, duration); } }
 
-    // --- Resend Invite Function (Unchanged) ---
+    // --- Resend Invite Function (Unchanged logic) ---
     async function resendInvite(button, candidateEmail) {
         if (!currentInterviewId) { showNotification('Error', 'Interview ID not found.', { isError: true }); return; }
         button.disabled = true; const originalText = button.textContent; button.textContent = 'Sending...';
@@ -246,34 +260,90 @@
         } catch (error) { console.error('Error resending invite:', error); showNotification('Error', error.message, { isError: true }); button.textContent = originalText; button.disabled = false; }
     }
 
+    // --- Copy helper ---
+    function copyEmail(button, email) {
+      if (!navigator.clipboard) {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = email;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) { console.error(e); }
+        document.body.removeChild(ta);
+        const prev = button.textContent;
+        button.textContent = 'Copied';
+        button.disabled = true;
+        setTimeout(() => { button.textContent = prev; button.disabled = false; }, 1300);
+        return;
+      }
+
+      navigator.clipboard.writeText(email).then(() => {
+        const prev = button.textContent;
+        button.textContent = 'Copied';
+        button.disabled = true;
+        setTimeout(() => { button.textContent = prev; button.disabled = false; }, 1300);
+      }).catch(err => {
+        console.error('Copy failed', err);
+        showNotification('Error', 'Could not copy email to clipboard', { isError: true });
+      });
+    }
+
     // --- Tab Switching Function (Unchanged) ---
     function switchTab(activeTab) {
-        const subTab = document.getElementById('tab-submissions'); const subPanel = document.getElementById('panel-submissions'); const invTab = document.getElementById('tab-invites'); const invPanel = document.getElementById('panel-invites');
+        const subTab = document.getElementById('tab-submissions');
+        const subPanel = document.getElementById('panel-submissions');
+        const invTab = document.getElementById('tab-invites');
+        const invPanel = document.getElementById('panel-invites');
         if (activeTab === 'submissions') {
-            subTab.classList.add('border-blue-600', 'text-blue-600'); subTab.classList.remove('border-transparent', 'text-gray-500'); subPanel.classList.remove('hidden'); invTab.classList.add('border-transparent', 'text-gray-500'); invTab.classList.remove('border-blue-600', 'text-blue-600'); invPanel.classList.add('hidden');
+            subTab.classList.add('border-blue-600', 'text-blue-600');
+            subTab.classList.remove('border-transparent', 'text-gray-500');
+            subPanel.classList.remove('hidden');
+            invTab.classList.add('border-transparent', 'text-gray-500');
+            invTab.classList.remove('border-blue-600', 'text-blue-600');
+            invPanel.classList.add('hidden');
         } else {
-            invTab.classList.add('border-blue-600', 'text-blue-600'); invTab.classList.remove('border-transparent', 'text-gray-500'); invPanel.classList.remove('hidden'); subTab.classList.add('border-transparent', 'text-gray-500'); subTab.classList.remove('border-blue-600', 'text-blue-600'); subPanel.classList.add('hidden');
+            invTab.classList.add('border-blue-600', 'text-blue-600');
+            invTab.classList.remove('border-transparent', 'text-gray-500');
+            invPanel.classList.remove('hidden');
+            subTab.classList.add('border-transparent', 'text-gray-500');
+            subTab.classList.remove('border-blue-600', 'text-blue-600');
+            subPanel.classList.add('hidden');
         }
     }
 
     // --- Function to Update Reviewer Status (Unchanged) ---
     async function updateReviewerStatus(selectElement, email, interviewId) {
-        const newStatus = selectElement.value; selectElement.disabled = true; try { const response = await fetch('/api/candidate/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_email: email, status: newStatus, interview_id: interviewId }) }); if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Failed to update status'); } showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 }); } catch (error) { console.error('Error updating status:', error); showNotification('Error', error.message, { isError: true }); } finally { selectElement.disabled = false; } }
+        const newStatus = selectElement.value;
+        selectElement.disabled = true;
+        try {
+            const response = await fetch('/api/candidate/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_email: email, status: newStatus, interview_id: interviewId }) });
+            if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Failed to update status'); }
+            showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 });
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showNotification('Error', error.message, { isError: true });
+        } finally {
+            selectElement.disabled = false;
+        }
+    }
 
     // --- Function to Fetch Submissions (UI tweaks only) ---
     async function fetchSubmissions() {
-        if (!currentInterviewId) return; const list = document.getElementById('submission-list');
+        if (!currentInterviewId) return;
+        const list = document.getElementById('submission-list');
         try {
             const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
             if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Could not load submissions'); }
-            const submissions = await res.json(); list.innerHTML = '';
+            const submissions = await res.json();
+            list.innerHTML = '';
             if (submissions.length === 0) { list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>'; return; }
             const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Started': 'bg-blue-100 text-blue-800', 'Opened': 'bg-yellow-100 text-yellow-800', 'Error': 'bg-red-100 text-red-800' };
 
             submissions.forEach(candidate => {
-                const li = document.createElement('li'); li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
+                const li = document.createElement('li');
+                li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
 
-                // left: candidate info (name + email + status badge)
+                // left: candidate info (name + email)
                 const left = document.createElement('div');
                 left.style.minWidth = '0';
                 left.innerHTML = `
@@ -299,96 +369,165 @@
                 list.appendChild(li);
             });
         } catch (error) {
-            console.error('Failed to fetch submissions:', error); list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
+            console.error('Failed to fetch submissions:', error);
+            list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
         }
     }
 
     // --- Fetch Interview Details Function (UPDATED UI only) ---
     async function fetchInterview() {
-      const content = document.getElementById('interview-content'); const loading = document.getElementById('loading-state'); const errorDiv = document.getElementById('error-state'); const errorMessage = document.getElementById('error-message'); const backLink = document.getElementById('back-link');
-      const params = new URLSearchParams(window.location.search); const id = params.get("id"); const from = params.get("from"); currentInterviewId = id;
-      if (!id) { loading.style.display = 'none'; errorDiv.classList.remove('hidden'); errorMessage.textContent = "No interview ID provided in the URL."; return; }
+      const content = document.getElementById('interview-content');
+      const loading = document.getElementById('loading-state');
+      const errorDiv = document.getElementById('error-state');
+      const errorMessage = document.getElementById('error-message');
+      const backLink = document.getElementById('back-link');
+
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      const from = params.get("from");
+      currentInterviewId = id;
+
+      if (!id) {
+        loading.style.display = 'none';
+        errorDiv.classList.remove('hidden');
+        errorMessage.textContent = "No interview ID provided in the URL.";
+        return;
+      }
       if (from && from !== 'null' && from !== 'undefined') { backLink.href = `/${from}`; } else { backLink.href = '/admin_Dashboard.html'; }
 
       try {
-        const res = await fetch(`/api/interview/${id}`); if (!res.ok) { const errData = await res.json(); throw new Error(errData.message || "Interview not found"); } const data = await res.json();
+        const res = await fetch(`/api/interview/${id}`);
+        if (!res.ok) { const errData = await res.json(); throw new Error(errData.message || "Interview not found"); }
+        const data = await res.json();
 
         // Populate Header Card (UI only)
-        document.getElementById("title").textContent = data.title; document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
+        document.getElementById("title").textContent = data.title;
+        document.getElementById("custom-id").textContent = `ID: ${data.custom_interview_id || 'N/A'}`;
         document.getElementById("date").textContent = data.date ? new Date(data.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : 'N/A';
         document.getElementById("time").textContent = data.time || 'N/A';
         document.getElementById("scheduler-name").textContent = `${data.first_name || 'N/A'} ${data.last_name || ''}`;
-        const statusBadge = document.getElementById("status-badge"); statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full'; if (data.position_status === 'open') { statusBadge.textContent = 'Open'; statusBadge.classList.add('bg-green-100', 'text-green-800'); } else { statusBadge.textContent = 'Closed'; statusBadge.classList.add('bg-red-100', 'text-red-800'); }
+
+        const statusBadge = document.getElementById("status-badge");
+        statusBadge.className = 'mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full';
+        if (data.position_status === 'open') { statusBadge.textContent = 'Open'; statusBadge.classList.add('bg-green-100', 'text-green-800'); }
+        else { statusBadge.textContent = 'Closed'; statusBadge.classList.add('bg-red-100', 'text-red-800'); }
 
         // Populate Job Description
-        const jdElement = document.getElementById("job-description"); if (data.job_description) { jdElement.textContent = data.job_description; } else { jdElement.textContent = "No job description was provided for this interview."; jdElement.classList.add('italic', 'text-gray-500'); }
+        const jdElement = document.getElementById("job-description");
+        if (data.job_description) { jdElement.textContent = data.job_description; }
+        else { jdElement.textContent = "No job description was provided for this interview."; jdElement.classList.add('italic', 'text-gray-500'); }
 
-        // Populate Candidates (Pending Invites Tab) - UI tweaks only
-        const candidateList = document.getElementById("candidate-list"); candidateList.innerHTML = "";
+        // --- Populate Candidates (Pending Invites Tab) ---
+        const candidateList = document.getElementById("candidate-list");
+        candidateList.innerHTML = "";
         if (data.candidates && data.candidates.length > 0) {
-            data.candidates.forEach(candidate => {
-                const li = document.createElement("li");
-                li.className = 'candidate-line text-sm pr-2 py-2';
+          data.candidates.forEach(candidate => {
+            const li = document.createElement("li");
+            li.className = 'candidate-line text-sm pr-2 py-2 items-center';
 
-                // Column 1: email + small meta (flexible)
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'candidate-info';
-                infoDiv.innerHTML = `<div class="candidate-email" title="${candidate.candidate_email}">${candidate.candidate_email}</div>`;
+            // Column 1: email (smaller font) and optional meta
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'candidate-info';
+            const emailDiv = document.createElement('div');
+            emailDiv.className = 'candidate-email';
+            emailDiv.style.fontSize = '0.85rem';
+            emailDiv.style.lineHeight = '1.25';
+            emailDiv.textContent = candidate.candidate_email;
+            emailDiv.title = candidate.candidate_email;  // tooltip for full email
+            infoDiv.appendChild(emailDiv);
 
-                // Column 2: status (fixed)
-                const statusDiv = document.createElement('div');
-                statusDiv.style.display = 'flex';
-                statusDiv.style.justifyContent = 'center';
-                statusDiv.style.alignItems = 'center';
-                const statusSpan = document.createElement('span');
-                statusSpan.className = 'candidate-status';
-                if (candidate.status === 'Completed') { statusSpan.classList.add('bg-green-100'); statusSpan.style.color = '#065F46'; } else { statusSpan.classList.add('bg-yellow-100'); statusSpan.style.color = '#92400E'; }
-                statusSpan.textContent = candidate.status;
-                statusDiv.appendChild(statusSpan);
+            // Column 2: status tag (fixed column)
+            const statusDiv = document.createElement('div');
+            statusDiv.style.display = 'flex';
+            statusDiv.style.justifyContent = 'center';
+            statusDiv.style.alignItems = 'center';
+            const statusSpan = document.createElement('span');
+            statusSpan.className = 'candidate-status';
+            const st = (candidate.status || '').toString().toLowerCase();
+            if (st.includes('completed')) {
+              statusSpan.classList.add('bg-green-100'); statusSpan.style.color = '#065F46';
+              statusSpan.textContent = 'Completed';
+            } else if (st.includes('error')) {
+              statusSpan.classList.add('bg-red-100'); statusSpan.style.color = '#7F1D1D';
+              statusSpan.textContent = (candidate.status || 'Error');
+            } else {
+              statusSpan.classList.add('bg-yellow-100'); statusSpan.style.color = '#92400E';
+              statusSpan.textContent = (candidate.status || 'Pending');
+            }
+            statusDiv.appendChild(statusSpan);
 
-                // Column 3: resend button (fixed)
-                const btnDiv = document.createElement('div');
-                btnDiv.style.display = 'flex';
-                btnDiv.style.justifyContent = 'flex-end';
-                btnDiv.style.alignItems = 'center';
-                const resendButton = document.createElement('button');
-                resendButton.className = 'resend-btn';
-                resendButton.textContent = 'Resend';
-                resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
-                btnDiv.appendChild(resendButton);
+            // Column 3: action buttons (Copy + Resend), fixed column
+            const btnDiv = document.createElement('div');
+            btnDiv.style.display = 'flex';
+            btnDiv.style.justifyContent = 'flex-end';
+            btnDiv.style.alignItems = 'center';
+            btnDiv.style.gap = '8px';
 
-                li.appendChild(infoDiv);
-                li.appendChild(statusDiv);
-                li.appendChild(btnDiv);
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = () => copyEmail(copyBtn, candidate.candidate_email);
 
-                candidateList.appendChild(li);
-            });
+            // Resend button
+            const resendButton = document.createElement('button');
+            resendButton.className = 'resend-btn';
+            resendButton.textContent = 'Resend';
+            resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
+
+            btnDiv.appendChild(copyBtn);
+            btnDiv.appendChild(resendButton);
+
+            // Build row
+            li.appendChild(infoDiv);
+            li.appendChild(statusDiv);
+            li.appendChild(btnDiv);
+
+            candidateList.appendChild(li);
+          });
         } else {
-            candidateList.innerHTML = '<li class="text-sm text-gray-500 italic">No candidates are associated with this interview.</li>';
+          candidateList.innerHTML = '<li class="text-sm text-gray-500 italic">No candidates are associated with this interview.</li>';
         }
 
         // Populate Questions (unchanged logic)
-        const qList = document.getElementById("questions-list"); qList.innerHTML = ""; const questions = data.questions || []; const timeLimits = data.time_limits || [];
+        const qList = document.getElementById("questions-list");
+        qList.innerHTML = "";
+        const questions = data.questions || [];
+        const timeLimits = data.time_limits || [];
         if (questions.length > 0) {
             questions.forEach((q, index) => {
-                const li = document.createElement("li"); li.className = "p-3 bg-gray-50 rounded-md flex items-start justify-between question-item"; if (index >= 5) li.classList.add('extra-question'); const time = timeLimits[index] || 0; li.innerHTML = `<span class="text-gray-800">${q}</span><span class="text-xs text-gray-500 whitespace-nowrap ml-4 pt-1">${time > 0 ? time + ' sec' : 'Untimed'}</span>`; qList.appendChild(li);
+                const li = document.createElement("li");
+                li.className = "p-3 bg-gray-50 rounded-md flex items-start justify-between question-item";
+                if (index >= 5) li.classList.add('extra-question');
+                const time = timeLimits[index] || 0;
+                li.innerHTML = `<span class="text-gray-800">${q}</span><span class="text-xs text-gray-500 whitespace-nowrap ml-4 pt-1">${time > 0 ? time + ' sec' : 'Untimed'}</span>`;
+                qList.appendChild(li);
             });
             if (questions.length > 5) { document.getElementById('show-more-questions-btn').classList.remove('hidden'); }
-        } else { qList.innerHTML = '<li class="text-sm text-gray-500 italic">No questions were added to this interview.</li>'; }
+        } else {
+            qList.innerHTML = '<li class="text-sm text-gray-500 italic">No questions were added to this interview.</li>';
+        }
 
         // Show content
-        loading.style.display = 'none'; content.classList.remove('hidden');
+        loading.style.display = 'none';
+        content.classList.remove('hidden');
+
         // Fetch submissions for the other tab
         fetchSubmissions();
 
-      } catch (err) { loading.style.display = 'none'; errorDiv.classList.remove('hidden'); errorMessage.textContent = err.message; }
+      } catch (err) {
+        loading.style.display = 'none';
+        errorDiv.classList.remove('hidden');
+        errorMessage.textContent = err.message;
+      }
     }
 
     // --- Run Fetch Function ---
     fetchInterview();
 
     // --- Show More / Less buttons (unchanged) ---
-    const showMoreBtn = document.getElementById('show-more-questions-btn'); const showLessBtn = document.getElementById('show-less-questions-btn');
+    const showMoreBtn = document.getElementById('show-more-questions-btn');
+    const showLessBtn = document.getElementById('show-less-questions-btn');
     showMoreBtn.addEventListener('click', () => { document.querySelectorAll('.extra-question').forEach(q => { q.style.display = 'flex'; }); showMoreBtn.classList.add('hidden'); showLessBtn.classList.remove('hidden'); });
     showLessBtn.addEventListener('click', () => { document.querySelectorAll('.extra-question').forEach(q => { q.style.display = 'none'; }); showLessBtn.classList.add('hidden'); showMoreBtn.classList.remove('hidden'); });
   </script>
