@@ -5,6 +5,7 @@
     <title>Interview Details</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
     <style>
       :root {
         --primary-color: #2563eb; /* Tailwind blue-600 */
@@ -13,39 +14,99 @@
         --text-secondary: #617589;
       }
       body { font-family: 'Inter', sans-serif; }
-      /* Style for the resend button */
+
+      /* Resend button */
       .resend-btn {
-        padding: 0.25rem 0.5rem; /* py-1 px-2 */
-        font-size: 0.75rem; /* text-xs */
-        font-weight: 500; /* font-medium */
-        color: #2563eb; /* text-blue-600 */
-        background-color: #dbeafe; /* bg-blue-100 */
-        border-radius: 0.25rem; /* rounded */
+        padding: 0.25rem 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #2563eb;
+        background-color: #dbeafe;
+        border-radius: 0.25rem;
         cursor: pointer;
         transition: background-color 0.15s ease, box-shadow 0.15s ease;
         white-space: nowrap;
+        min-width: 60px;
+        text-align: center;
       }
       .resend-btn:hover { background-color: #bfdbfe; }
-      .resend-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
-      .resend-btn:disabled { opacity: 0.5; cursor: not-allowed; background-color: #f3f4f6; color: #9ca3af; }
-      /* Notification Modal Styles */
+      .resend-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+      .resend-btn:disabled { opacity: 0.6; cursor: not-allowed; background-color: #f3f4f6; color: #9ca3af; }
+
+      /* Notification Modal */
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
 
-      /* Extra small tweaks to keep badges and buttons aligned */
-      .candidate-line { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-      .candidate-info { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-      .candidate-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .candidate-status { flex-shrink: 0; }
+      /*
+        Candidate row layout:
+        - Use CSS grid with 3 columns:
+          1) flexible content (email and small details)
+          2) fixed column for status badge (keeps alignment)
+          3) fixed column for button (keeps alignment)
+      */
+      .candidate-line {
+        display: grid;
+        grid-template-columns: 1fr 120px 90px; /* email | status | button */
+        gap: 12px;
+        align-items: center;
+      }
+      .candidate-line .candidate-info {
+        min-width: 0; /* allow truncation/wrapping inside flex item */
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-      /* Visually center the header stats on larger screens but keep stacked on mobile */
+      /* Emails: show fully by wrapping. Title attribute still present for tooltip. */
+      .candidate-email {
+        overflow-wrap: anywhere; /* allow long emails to wrap */
+        word-break: break-word;
+        white-space: normal;
+        font-size: 0.95rem;
+        color: #111827;
+      }
+      .candidate-email.small { font-size: 0.85rem; color: #6b7280; }
+
+      /* Status tag - fixed width column, center align inside */
+      .candidate-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 600;
+        min-width: 100px;
+        white-space: nowrap;
+      }
+
+      /* Submission items (review submissions) - same grid for alignment when wider */
+      .submission-item {
+        display: grid;
+        grid-template-columns: 1fr 140px; /* candidate info | controls */
+        gap: 12px;
+        align-items: center;
+      }
+      @media (max-width: 640px) {
+        /* Stack columns on very small screens */
+        .candidate-line, .submission-item {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .candidate-status { min-width: unset; text-align: left; }
+      }
+
+      /* Header stats: center on desktop, stacked on mobile */
+      .header-stats { gap: 16px; }
       @media (min-width: 768px) {
         .header-stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; align-items: center; }
       }
 
-      /* Ensure submissions list items keep layout consistent */
-      .submission-item { display: flex; flex-direction: column; }
-      @media (min-width: 640px) { .submission-item { flex-direction: row; align-items: center; justify-content: space-between; } }
+      /* Small visual helpers */
+      .question-item { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+      .bg-blue-100 { background-color: #DBEAFE; color: #1E3A8A; }
+      .bg-yellow-100 { background-color: #FEF3C7; color: #92400E; }
+      .bg-green-100 { background-color: #DCFCE7; color: #065F46; }
+      .bg-red-100 { background-color: #FEE2E2; color: #7F1D1D; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -66,7 +127,7 @@
     </div>
 
     <div id="interview-content" class="hidden space-y-8">
-        <!-- Interview Header Card (Unchanged) -->
+        <!-- Interview Header Card -->
         <div class="bg-white shadow-lg rounded-lg p-6">
             <div class="flex flex-col md:flex-row justify-between md:items-center">
                 <div>
@@ -75,6 +136,7 @@
                 </div>
                 <div id="status-badge" class="mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full"></div>
             </div>
+
             <!-- CENTERED STATS ROW -->
             <div class="mt-6 border-t border-gray-200 pt-6 text-sm header-stats">
                 <div>
@@ -92,26 +154,24 @@
             </div>
         </div>
 
-        <!-- Job Description & Candidate Grid (Unchanged) -->
-        <!-- NOTE: The 'Submitted Feedback' logic is on candidate-review.html -->
+        <!-- Job Description & Candidate Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
                 <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
             </div>
-            
-            <!-- [UPDATED] Candidates Card with New Tabs -->
+
+            <!-- Candidates Card with Tabs -->
             <div class="bg-white shadow-lg rounded-lg">
-                <!-- Tab Headers -->
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex" aria-label="Tabs">
-                        <button id="tab-submissions" 
+                        <button id="tab-submissions"
                                 onclick="switchTab('submissions')"
-                                class="w-1/2 border-b-2 border-blue-600 py-4 px-1 text-center text-sm font-medium text-blue-600" 
+                                class="w-1/2 border-b-2 border-blue-600 py-4 px-1 text-center text-sm font-medium text-blue-600"
                                 aria-current="page">
                             Review Submissions
                         </button>
-                        <button id="tab-invites" 
+                        <button id="tab-invites"
                                 onclick="switchTab('invites')"
                                 class="w-1/2 border-b-2 border-transparent py-4 px-1 text-center text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
                             Pending Submissions
@@ -119,7 +179,6 @@
                     </nav>
                 </div>
 
-                <!-- Tab Panels -->
                 <div class="p-6">
                     <!-- Panel 1: Review Submissions -->
                     <div id="panel-submissions">
@@ -127,6 +186,7 @@
                             <li class="text-sm text-gray-500 italic">Loading submissions...</li>
                         </ul>
                     </div>
+
                     <!-- Panel 2: Pending Invites -->
                     <div id="panel-invites" class="hidden">
                         <ul id="candidate-list" class="space-y-3 max-h-96 overflow-y-auto"></ul>
@@ -135,7 +195,7 @@
             </div>
         </div>
 
-        <!-- [UPDATED] Interview Questions Card -->
+        <!-- Interview Questions Card -->
         <div class="bg-white shadow-lg rounded-lg p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-gray-800">Interview Questions</h3>
@@ -149,7 +209,7 @@
     </div>
   </main>
 
-  <!-- Notification Modal (Unchanged) -->
+  <!-- Notification Modal -->
   <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
     <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
          role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -199,7 +259,7 @@
     // --- Function to Update Reviewer Status (Unchanged) ---
     async function updateReviewerStatus(selectElement, email, interviewId) {
         const newStatus = selectElement.value; selectElement.disabled = true; try { const response = await fetch('/api/candidate/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_email: email, status: newStatus, interview_id: interviewId }) }); if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Failed to update status'); } showNotification('Status Saved', `Set to ${newStatus}.`, { duration: 1500 }); } catch (error) { console.error('Error updating status:', error); showNotification('Error', error.message, { isError: true }); } finally { selectElement.disabled = false; } }
-    
+
     // --- Function to Fetch Submissions (UI tweaks only) ---
     async function fetchSubmissions() {
         if (!currentInterviewId) return; const list = document.getElementById('submission-list');
@@ -209,23 +269,33 @@
             const submissions = await res.json(); list.innerHTML = '';
             if (submissions.length === 0) { list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>'; return; }
             const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Started': 'bg-blue-100 text-blue-800', 'Opened': 'bg-yellow-100 text-yellow-800', 'Error': 'bg-red-100 text-red-800' };
+
             submissions.forEach(candidate => {
                 const li = document.createElement('li'); li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
-                const reviewerStatuses = ['To Evaluate', 'Evaluated', 'Discarded'];
-                const optionsHTML = reviewerStatuses.map(s => `<option value="${s}" ${s === candidate.reviewer_status ? 'selected' : ''}>${s}</option>`).join('');
 
-                li.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="min-w-0">
-                            <a href="/candidate-review.html?token=${candidate.candidate_token}&interview_id=${currentInterviewId}" class="font-medium text-blue-600 hover:underline">${candidate.name || 'Unnamed Candidate'}</a>
-                            <span class="ml-2 px-2 py-0.5 rounded-full text-xs ${statusColors[candidate.submission_status] || 'bg-gray-100 text-gray-800'} candidate-status">${candidate.submission_status}</span>
-                            <p class="text-xs text-gray-500 candidate-email" title="${candidate.email}">${candidate.email}</p>
-                        </div>
-                    </div>
-                    <div class="mt-3 sm:mt-0 sm:flex-shrink-0">
-                        <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">${optionsHTML}</select>
-                    </div>
+                // left: candidate info (name + email + status badge)
+                const left = document.createElement('div');
+                left.style.minWidth = '0';
+                left.innerHTML = `
+                  <div style="font-weight:600;color:#1f2937">${candidate.name || 'Unnamed Candidate'}</div>
+                  <div class="candidate-email small" title="${candidate.email}">${candidate.email}</div>
                 `;
+
+                // right: controls (status select + optional link)
+                const right = document.createElement('div');
+                right.style.display = 'flex';
+                right.style.gap = '8px';
+                right.style.alignItems = 'center';
+                right.innerHTML = `
+                  <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="To Evaluate" ${candidate.reviewer_status === 'To Evaluate' ? 'selected' : ''}>To Evaluate</option>
+                    <option value="Evaluated" ${candidate.reviewer_status === 'Evaluated' ? 'selected' : ''}>Evaluated</option>
+                    <option value="Discarded" ${candidate.reviewer_status === 'Discarded' ? 'selected' : ''}>Discarded</option>
+                  </select>
+                `;
+
+                li.appendChild(left);
+                li.appendChild(right);
                 list.appendChild(li);
             });
         } catch (error) {
@@ -252,24 +322,45 @@
 
         // Populate Job Description
         const jdElement = document.getElementById("job-description"); if (data.job_description) { jdElement.textContent = data.job_description; } else { jdElement.textContent = "No job description was provided for this interview."; jdElement.classList.add('italic', 'text-gray-500'); }
-        
+
         // Populate Candidates (Pending Invites Tab) - UI tweaks only
         const candidateList = document.getElementById("candidate-list"); candidateList.innerHTML = "";
         if (data.candidates && data.candidates.length > 0) {
             data.candidates.forEach(candidate => {
-                const li = document.createElement("li"); li.className = 'candidate-line text-sm pr-2 py-1';
+                const li = document.createElement("li");
+                li.className = 'candidate-line text-sm pr-2 py-2';
 
-                const infoDiv = document.createElement('div'); infoDiv.className = 'candidate-info flex-grow min-w-0';
+                // Column 1: email + small meta (flexible)
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'candidate-info';
+                infoDiv.innerHTML = `<div class="candidate-email" title="${candidate.candidate_email}">${candidate.candidate_email}</div>`;
 
-                const emailSpan = document.createElement('span'); emailSpan.className = 'text-gray-800 candidate-email'; emailSpan.textContent = candidate.candidate_email; emailSpan.title = candidate.candidate_email; // show full on hover
+                // Column 2: status (fixed)
+                const statusDiv = document.createElement('div');
+                statusDiv.style.display = 'flex';
+                statusDiv.style.justifyContent = 'center';
+                statusDiv.style.alignItems = 'center';
+                const statusSpan = document.createElement('span');
+                statusSpan.className = 'candidate-status';
+                if (candidate.status === 'Completed') { statusSpan.classList.add('bg-green-100'); statusSpan.style.color = '#065F46'; } else { statusSpan.classList.add('bg-yellow-100'); statusSpan.style.color = '#92400E'; }
+                statusSpan.textContent = candidate.status;
+                statusDiv.appendChild(statusSpan);
 
-                const statusSpan = document.createElement('span'); statusSpan.className = `px-2 py-1 rounded-full text-xs whitespace-nowrap candidate-status ${candidate.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`; statusSpan.textContent = candidate.status;
+                // Column 3: resend button (fixed)
+                const btnDiv = document.createElement('div');
+                btnDiv.style.display = 'flex';
+                btnDiv.style.justifyContent = 'flex-end';
+                btnDiv.style.alignItems = 'center';
+                const resendButton = document.createElement('button');
+                resendButton.className = 'resend-btn';
+                resendButton.textContent = 'Resend';
+                resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
+                btnDiv.appendChild(resendButton);
 
-                infoDiv.appendChild(emailSpan); infoDiv.appendChild(statusSpan);
+                li.appendChild(infoDiv);
+                li.appendChild(statusDiv);
+                li.appendChild(btnDiv);
 
-                const resendButton = document.createElement('button'); resendButton.className = 'resend-btn'; resendButton.textContent = 'Resend'; resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
-
-                li.appendChild(infoDiv); li.appendChild(resendButton);
                 candidateList.appendChild(li);
             });
         } else {
@@ -295,7 +386,7 @@
 
     // --- Run Fetch Function ---
     fetchInterview();
-    
+
     // --- Show More / Less buttons (unchanged) ---
     const showMoreBtn = document.getElementById('show-more-questions-btn'); const showLessBtn = document.getElementById('show-less-questions-btn');
     showMoreBtn.addEventListener('click', () => { document.querySelectorAll('.extra-question').forEach(q => { q.style.display = 'flex'; }); showMoreBtn.classList.add('hidden'); showLessBtn.classList.remove('hidden'); });
