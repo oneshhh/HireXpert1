@@ -1,154 +1,101 @@
-// db.js
-// Flexible DB loader: prefers split env vars (DB_HOST/DB_USER/DB_PASSWORD) and falls back to DATABASE_URL.
-// Includes SSL options: accept self-signed (quick fix) or use a provided CA via PG_SSL_CERT.
-// Exports: { pool, waitForDb }
+// db.js — debug-hardened quick-fix (prefers DATABASE_URL, forces quick TLS accept, conservative pool)
+// Replace your current db.js with this. This is intended as a temporary debugging/repair step.
 
 const { Pool } = require('pg');
 const fs = require('fs');
-
-// Load .env (local dev). Render/Prod will provide actual env vars.
 require('dotenv').config();
 
-// -----------------------
-// Tunables (change in-code or override with env if desired)
-// -----------------------
-const DEFAULT_MAX_CLIENTS = 3;
-const DEFAULT_IDLE_MS = 30000;
-const DEFAULT_CONN_TIMEOUT_MS = 5000;
-const DEFAULT_RETRIES = 6;
-const DEFAULT_BACKOFF_BASE_MS = 1000;
+// ----------------- Hard-coded conservative settings (temporary) -----------------
+const MAX_CLIENTS = 1;                     // VERY conservative while debugging/recovering
+const IDLE_TIMEOUT_MS = 30000;
+const CONNECTION_TIMEOUT_MS = 20000;       // give slow nodes more time
+const WAIT_RETRIES = 6;
+const WAIT_BASE_MS = 1000;
 
-// If you want to force quick-accept of self-signed certs in-code, set FORCE_ACCEPT_SELF_SIGNED = true
-// But better: set env PG_ACCEPT_SELF_SIGNED=true in Render (or locally) if you need the quick fix.
-const FORCE_ACCEPT_SELF_SIGNED = false;
-
-// -----------------------
-// Helper: mask a connection string for logs (do not print secrets)
-// -----------------------
-function maskDatabaseUrl(url) {
-  try {
-    const u = new URL(url);
-    const user = u.username || 'user';
-    return `${user}:*****@${u.hostname}:${u.port || '5432'}${u.pathname || ''}`;
-  } catch (e) {
-    return 'invalid-url';
-  }
-}
-
-// -----------------------
-// Determine connection config
-// Prefer split vars (DB_HOST, DB_USER, DB_PASSWORD). Otherwise, use DATABASE_URL.
-// -----------------------
-const hasSplit = !!(process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD);
-
+// ----------------- Choose connection source -----------------
+const usingDatabaseUrl = !!process.env.DATABASE_URL;
 let poolOptions = {};
-let using = '';
 
-if (hasSplit) {
-  using = 'split-vars';
-  const host = process.env.DB_HOST;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-  const port = parseInt(process.env.DB_PORT || '6543', 10); // default to Supabase pooler port if omitted
-  const database = process.env.DB_NAME || process.env.DB_DATABASE || 'postgres';
-
+if (usingDatabaseUrl) {
+  // Prefer explicit DATABASE_URL (use same string you tested locally)
+  poolOptions = { connectionString: process.env.DATABASE_URL };
+  console.log('[DB] Using DATABASE_URL (preferred). Masked:', (() => {
+    try { const u = new URL(process.env.DATABASE_URL); return `${u.username}:*****@${u.hostname}:${u.port}${u.pathname}`; } catch(e){ return '[invalid DATABASE_URL]'; }
+  })());
+} else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD) {
+  // Fallback to split vars
   poolOptions = {
-    host,
-    port,
-    user,
-    password,
-    database
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || '6543', 10),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME || 'postgres'
   };
-
-} else if (process.env.DATABASE_URL) {
-  using = 'database-url';
-  poolOptions = {
-    connectionString: process.env.DATABASE_URL
-  };
+  console.log('[DB] Using split DB env vars. Host:', poolOptions.host + ':' + poolOptions.port, 'User:', poolOptions.user);
 } else {
-  console.error('[DB] ERROR: No database configuration found. Set DB_HOST/DB_USER/DB_PASSWORD OR DATABASE_URL.');
-  // Exit early to avoid confusing runtime errors
+  console.error('[DB] No DATABASE_URL and no DB_HOST/DB_USER/DB_PASSWORD — exiting.');
   process.exit(1);
 }
 
-// -----------------------
-// Pool tunables (allow env override, otherwise use defaults)
-const maxClients = Number(process.env.PG_MAX_CLIENTS || DEFAULT_MAX_CLIENTS);
-const idleMs = Number(process.env.PG_IDLE_MS || DEFAULT_IDLE_MS);
-const connTimeoutMs = Number(process.env.PG_CONN_TIMEOUT_MS || DEFAULT_CONN_TIMEOUT_MS);
+// ----------------- SSL quick-fix (temporary) -----------------
+// Force the quick workaround: do not verify certificate chain during this recovery period.
+// WARNING: this is insecure. Replace with proper CA (PG_SSL_CERT) as soon as possible.
+poolOptions.ssl = { rejectUnauthorized: false };
+console.warn('[DB] QUICK FIX: SSL certificate verification disabled (rejectUnauthorized=false). This is insecure and temporary.');
 
-poolOptions.max = maxClients;
-poolOptions.idleTimeoutMillis = idleMs;
-poolOptions.connectionTimeoutMillis = connTimeoutMs;
-// -----------------------
+// ----------------- Pool tunables -----------------
+poolOptions.max = Number(process.env.PG_MAX_CLIENTS || MAX_CLIENTS);
+poolOptions.idleTimeoutMillis = Number(process.env.PG_IDLE_MS || IDLE_TIMEOUT_MS);
+poolOptions.connectionTimeoutMillis = Number(process.env.PG_CONN_TIMEOUT_MS || CONNECTION_TIMEOUT_MS);
 
-// -----------------------
-// SSL handling
-// Priority:
-// 1. If FORCE_ACCEPT_SELF_SIGNED or PG_ACCEPT_SELF_SIGNED=true -> rejectUnauthorized: false (quick fix).
-// 2. Else if PG_SSL_CERT provided (PEM text) -> write PEM to /tmp and use it (secure).
-// 3. Else -> default strict verification (rejectUnauthorized: true).
-// -----------------------
-let ssl;
-const acceptSelfSignedEnv = (process.env.PG_ACCEPT_SELF_SIGNED || '').toLowerCase() === 'true';
-
-if (FORCE_ACCEPT_SELF_SIGNED || acceptSelfSignedEnv) {
-  ssl = { rejectUnauthorized: false };
-  console.warn('[DB] WARNING: accepting self-signed TLS certs (rejectUnauthorized=false). This is INSECURE — use only short-term.');
-} else if (process.env.PG_SSL_CERT) {
-  try {
-    const caPath = '/tmp/pg_ca.pem';
-    fs.writeFileSync(caPath, process.env.PG_SSL_CERT, { encoding: 'utf8' });
-    const ca = fs.readFileSync(caPath).toString();
-    ssl = { rejectUnauthorized: true, ca };
-    console.log('[DB] Using PG_SSL_CERT for TLS verification (CA loaded).');
-  } catch (e) {
-    console.error('[DB] Failed to write/read PG_SSL_CERT. Falling back to strict verification without CA. Error:', e);
-    ssl = { rejectUnauthorized: true };
-  }
-} else {
-  // If NODE_ENV === 'production' we keep strict verification, otherwise still strict by default.
-  ssl = { rejectUnauthorized: true };
-}
-
-// Attach ssl to poolOptions. If poolOptions already has connectionString, pg accepts ssl too.
-poolOptions.ssl = ssl;
-
-// -----------------------
-// Create Pool
-// -----------------------
+// ----------------- Create pool and logging -----------------
 const pool = new Pool(poolOptions);
 
-// Pool-level error logging
 pool.on('error', (err) => {
-  console.error('[DB] Unexpected PG pool error:', err && err.stack ? err.stack : err);
+  console.error('[DB] Pool error:', err && err.stack ? err.stack : err);
 });
 
-// -----------------------
-// waitForDb helper with retries + exponential backoff
-// -----------------------
-async function waitForDb(retries = DEFAULT_RETRIES, baseDelay = DEFAULT_BACKOFF_BASE_MS) {
-  const label = using === 'split-vars' ? `${process.env.DB_HOST || 'unknown-host'}:${process.env.DB_PORT || '6543'}` :
-    (process.env.DATABASE_URL ? maskDatabaseUrl(process.env.DATABASE_URL) : 'unknown-url');
+// ----------------- Improved waitForDb with AggregateError drilling -----------------
+async function waitForDb(retries = WAIT_RETRIES, baseDelay = WAIT_BASE_MS) {
+  const label = usingDatabaseUrl
+    ? (process.env.DATABASE_URL ? (() => { try { const u = new URL(process.env.DATABASE_URL); return `${u.hostname}:${u.port}`; } catch(e){ return 'DATABASE_URL'; } })() : 'DATABASE_URL')
+    : `${poolOptions.host}:${poolOptions.port}`;
 
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
       client.release();
-      console.log(`[DB] Connected successfully (${label}). pool max=${maxClients}, ssl.rejectUnauthorized=${ssl.rejectUnauthorized}`);
+      console.log(`[DB] Connected successfully (${label}). pool.max=${poolOptions.max}, ssl.rejectUnauthorized=${poolOptions.ssl.rejectUnauthorized}`);
       return;
     } catch (err) {
       const delay = baseDelay * Math.pow(2, i);
-      // show both code and message and stack to help debugging
-      console.warn(`[DB] Connection attempt ${i + 1}/${retries} failed: ${err && err.code ? err.code : err.message}. Retrying in ${delay}ms`);
-      if (err && err.stack) console.debug(err.stack);
+      // If AggregateError from pg-pool, it contains .errors array
+      if (err && err.name === 'AggregateError' && Array.isArray(err.errors)) {
+        console.warn(`[DB] Connection attempt ${i+1}/${retries} failed with AggregateError: ${err.message}. Retrying in ${delay}ms`);
+        err.errors.forEach((e, idx) => {
+          console.error(`[DB]   inner[${idx}] -> code=${e.code || 'n/a'} message=${e.message || e}`);
+          if (e.stack) console.debug(e.stack);
+        });
+      } else {
+        console.warn(`[DB] Connection attempt ${i+1}/${retries} failed: ${err && (err.code || err.message) ? (err.code || err.message) : err}. Retrying in ${delay}ms`);
+        if (err && err.stack) console.debug(err.stack);
+      }
       await new Promise(r => setTimeout(r, delay));
     }
   }
-  throw new Error('Failed to connect to the database after retries');
+
+  // Final failure
+  // Capture one last attempt error for logs (connect once more to get proper final error if possible)
+  try {
+    const client = await pool.connect();
+    client.release();
+    console.log('[DB] Unexpectedly connected on final attempt.');
+    return;
+  } catch (finalErr) {
+    console.error('[DB] Final connect attempt failed:', finalErr && (finalErr.code || finalErr.message) ? (finalErr.code || finalErr.message) : finalErr);
+    if (finalErr && finalErr.stack) console.debug(finalErr.stack);
+    throw new Error('Failed to connect to the database after retries');
+  }
 }
 
-// -----------------------
-// Export
-// -----------------------
 module.exports = { pool, waitForDb };
