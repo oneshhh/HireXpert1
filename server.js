@@ -6,7 +6,7 @@ require('dotenv').config();
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
-const { pool, waitForDb } = require('./db');
+const { pool } = require('./db');
 const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
@@ -1195,12 +1195,7 @@ app.get("/candidate-review.html", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
 });
 // ---------- Start server ----------
-(async () => {
-  try {
-    await waitForDb(); // retries a few times
-    app.listen(PORT, () => console.log(`Server running on :${PORT}`));
-  } catch (err) {
-    console.error('Failed to start - DB unreachable:', err);
-    process.exit(1); // fail the process so Render restarts or you can inspect logs
-  }
-})();
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
