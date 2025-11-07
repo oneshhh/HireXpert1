@@ -1,87 +1,82 @@
+// db.js
 const { Pool } = require('pg');
+const fs = require('fs');
+
+// Load .env for local dev (Render/Prod will use real env)
 require('dotenv').config();
 
-// =================================================================
-// ===========           START OF DEBUGGING BLOCK          ===========
-// =================================================================
-console.log("\n--- DEBUGGING DATABASE CONNECTION ---");
-console.log(`[INFO] Attempting to load separate DB variables (DB_HOST, DB_USER...)`);
+const isProd = process.env.NODE_ENV === 'production';
 
-// [THE FIX] Check for the new variables, not DATABASE_URL
-if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_PASSWORD) {
-    console.error("\n[FATAL] DB_HOST, DB_USER, or DB_PASSWORD are UNDEFINED.");
-    console.error("This is the cause of the crash. Please check the following:");
-    console.error("1. Are these variables set in the Render Environment Dashboard?");
-    console.error("2. Are the variable names spelled correctly?");
-    console.log("-------------------------------------\n");
-    // Exit the process to prevent the crash and make the error clear
-    process.exit(1);
-} else {
-    // This is a more accurate log.
-    console.log(`[INFO] Database variables found. Will attempt connection to host: ${process.env.DB_HOST}`);
+// Support either a single DATABASE_URL OR individual DB_* vars
+const useUrl = !!process.env.DATABASE_URL;
+
+const connectionString = process.env.DATABASE_URL || null;
+
+// If not using DATABASE_URL, build a config from DB_HOST / DB_USER / ...
+const host = process.env.DB_HOST || null;
+const user = process.env.DB_USER || null;
+const password = process.env.DB_PASSWORD || null;
+const database = process.env.DB_NAME || process.env.DB_DATABASE || 'postgres';
+
+// parse port with sensible default for Supabase pooler (6543) or fallback to 5432
+const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : (process.env.SUPABASE_POOLER === 'true' ? 6543 : 5432);
+
+// Pool tunables (small conservative defaults — adjust via env on Render)
+const MAX_CLIENTS = Number(process.env.PG_MAX_CLIENTS || 3);
+const IDLE_TIMEOUT_MS = Number(process.env.PG_IDLE_MS || 30000);
+const CONNECTION_TIMEOUT_MS = Number(process.env.PG_CONN_TIMEOUT_MS || 5000);
+
+// SSL handling: For local/dev we allow self-signed; set rejectUnauthorized=true in production and provide CA if needed
+const ssl = isProd ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
+
+// Validate we have either a connection string or host/user/password
+if (!connectionString && (!host || !user || !password)) {
+  console.warn('[DB] WARNING: DATABASE_URL not set and DB_HOST/DB_USER/DB_PASSWORD not fully provided.');
+  console.warn('[DB] If you intended to use split variables, please set DB_HOST, DB_USER, DB_PASSWORD (or set DATABASE_URL).');
+  // Do NOT exit here - let waitForDb handle startup retries; exiting immediately can obscure real runtime behavior.
 }
-console.log("-------------------------------------\n");
-// =================================================================
-// ===========            END OF DEBUGGING BLOCK           ===========
-// =================================================================
 
-
-// --- THE CORRECT SSL LOGIC FOR SUPABASE ---
-// This config is correct and uses the new variables.
-const connectionConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    ssl: { 
-        rejectUnauthorized: false 
-    }
+// Build pool options
+const poolOptions = connectionString ? {
+  connectionString,
+  max: MAX_CLIENTS,
+  idleTimeoutMillis: IDLE_TIMEOUT_MS,
+  connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+  ssl
+} : {
+  host,
+  port,
+  user,
+  password,
+  database,
+  max: MAX_CLIENTS,
+  idleTimeoutMillis: IDLE_TIMEOUT_MS,
+  connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+  ssl
 };
-// --- END OF NEW LOGIC ---
 
-const pool = new Pool(connectionConfig);
+const pool = new Pool(poolOptions);
 
-// This async block is a great way to test the connection on startup.
-/*
-(async () => {
-  let client; // Define client outside try
-  try {
-    client = await pool.connect(); // Test the connection
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS interviews (
-        id UUID PRIMARY KEY,
-        title TEXT NOT NULL,
-        questions TEXT[] NOT NULL,
-        time_limits INTEGER[] NOT NULL,
-        date DATE NOT NULL,
-        time TEXT NOT NULL
-      )
-    `);
+// Pool-level error handling
+pool.on('error', (err) => {
+  console.error('[DB] Unexpected PG pool error:', err);
+});
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS candidate_sessions (
-          session_id UUID PRIMARY KEY,
-        .interview_id UUID REFERENCES interviews(id) ON DELETE CASCADE,
-          candidate_email VARCHAR(255) NOT NULL,
-          status VARCHAR(50) DEFAULT 'Invited',
-          results JSONB,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
+// Helper: waitForDb with retries + exponential backoff
+async function waitForDb(retries = 6, baseDelayMs = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      client.release();
+      console.log('[DB] connected (host:', (connectionString ? '(via DATABASE_URL)' : host) + ', port:', port + ')');
+      return;
+    } catch (err) {
+      const delay = baseDelayMs * Math.pow(2, i); // exponential backoff
+      console.warn(`[DB] connect attempt ${i + 1}/${retries} failed: ${err.code || err.message}. retrying in ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error('Failed to connect to the database after retries');
+}
 
-    // This is the *real* success message
-    console.log("✅ Connected to PostgreSQL & ensured all tables are correctly configured.");
-  } catch (err) {
-    // If the connection fails (e.g., ECONNREFUSED), this will log it.
-    console.error("❌ Error during database startup connection or table setup:", err);
-  } finally {
-    if (client) {
-      // Only release the client if it was successfully connected
-      client.release();
-    }
-  }
-})();
-*/
-
-module.exports = pool;
+module.exports = { pool, waitForDb };
