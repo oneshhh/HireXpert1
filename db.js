@@ -98,4 +98,4 @@ async function waitForDb(retries = WAIT_RETRIES, baseDelay = WAIT_BASE_MS) {
   }
 }
 
-module.exports = { pool, waitForDb };
+module.exports = pool;
