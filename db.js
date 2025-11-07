@@ -1,82 +1,85 @@
-// db.js
+// db.js  — Supabase / Render safe version (Option A quick fix)
+// All important tunables are set in-code (hard-coded) per your request.
+
 const { Pool } = require('pg');
 const fs = require('fs');
-
-// Load .env for local dev (Render/Prod will use real env)
 require('dotenv').config();
 
-const isProd = process.env.NODE_ENV === 'production';
-
-// Support either a single DATABASE_URL OR individual DB_* vars
-const useUrl = !!process.env.DATABASE_URL;
-
-const connectionString = process.env.DATABASE_URL || null;
-
-// If not using DATABASE_URL, build a config from DB_HOST / DB_USER / ...
-const host = process.env.DB_HOST || null;
-const user = process.env.DB_USER || null;
-const password = process.env.DB_PASSWORD || null;
-const database = process.env.DB_NAME || process.env.DB_DATABASE || 'postgres';
-
-// parse port with sensible default for Supabase pooler (6543) or fallback to 5432
-const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : (process.env.SUPABASE_POOLER === 'true' ? 6543 : 5432);
-
-// Pool tunables (small conservative defaults — adjust via env on Render)
-const MAX_CLIENTS = Number(process.env.PG_MAX_CLIENTS || 3);
-const IDLE_TIMEOUT_MS = Number(process.env.PG_IDLE_MS || 30000);
-const CONNECTION_TIMEOUT_MS = Number(process.env.PG_CONN_TIMEOUT_MS || 5000);
-
-// SSL handling: For local/dev we allow self-signed; set rejectUnauthorized=true in production and provide CA if needed
-const ssl = isProd ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
-
-// Validate we have either a connection string or host/user/password
-if (!connectionString && (!host || !user || !password)) {
-  console.warn('[DB] WARNING: DATABASE_URL not set and DB_HOST/DB_USER/DB_PASSWORD not fully provided.');
-  console.warn('[DB] If you intended to use split variables, please set DB_HOST, DB_USER, DB_PASSWORD (or set DATABASE_URL).');
-  // Do NOT exit here - let waitForDb handle startup retries; exiting immediately can obscure real runtime behavior.
+// ---------------------------
+// Basic env checks (no secrets printed)
+// ---------------------------
+if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_PASSWORD) {
+  console.error("[FATAL] Missing DB_HOST / DB_USER / DB_PASSWORD. Please set them in the environment.");
+  process.exit(1);
 }
 
-// Build pool options
-const poolOptions = connectionString ? {
-  connectionString,
-  max: MAX_CLIENTS,
-  idleTimeoutMillis: IDLE_TIMEOUT_MS,
-  connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
-  ssl
-} : {
-  host,
-  port,
-  user,
-  password,
-  database,
-  max: MAX_CLIENTS,
-  idleTimeoutMillis: IDLE_TIMEOUT_MS,
-  connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
-  ssl
+// ---------------------------
+// Hard-coded tunables (in-code)
+// ---------------------------
+// Per your request — these values are enforced in the code (not relying on env vars)
+const PG_MAX_CLIENTS = 3;            // small per-instance pool to avoid pooler saturation
+const PG_IDLE_MS = 30000;           // 30s
+const PG_CONN_TIMEOUT_MS = 5000;    // 5s
+const FORCE_NODE_ENV_PRODUCTION = true; // if true, we treat runtime as production for SSL logic
+const FORCE_ACCEPT_SELF_SIGNED = true;  // Option A quick fix: accept self-signed certs (INSECURE — short-term)
+
+// ---------------------------
+// Build connection config
+// ---------------------------
+const connectionConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || "6543", 10), // default to Supabase pooler port
+  database: process.env.DB_NAME || "postgres",
+  max: PG_MAX_CLIENTS,
+  idleTimeoutMillis: PG_IDLE_MS,
+  connectionTimeoutMillis: PG_CONN_TIMEOUT_MS
 };
 
-const pool = new Pool(poolOptions);
+// ---------------------------
+// SSL handling (Option A)
+// ---------------------------
+let ssl;
+if (FORCE_ACCEPT_SELF_SIGNED) {
+  ssl = { rejectUnauthorized: false };
+  console.warn("[DB] QUICK FIX: accepting self-signed certs (rejectUnauthorized=false). This is insecure; replace with CA later.");
+} else {
+  // If you later want strict verification, set FORCE_ACCEPT_SELF_SIGNED = false and provide PG_SSL_CERT via env.
+  if (process.env.PG_SSL_CERT) {
+    const caPath = '/tmp/pg_ca.pem';
+    fs.writeFileSync(caPath, process.env.PG_SSL_CERT);
+    ssl = { rejectUnauthorized: true, ca: fs.readFileSync(caPath).toString() };
+    console.log('[DB] Using PG_SSL_CERT for TLS verification');
+  } else {
+    ssl = { rejectUnauthorized: true };
+  }
+}
+connectionConfig.ssl = ssl;
 
-// Pool-level error handling
+// ---------------------------
+// Create pool and helpers
+// ---------------------------
+const pool = new Pool(connectionConfig);
+
 pool.on('error', (err) => {
-  console.error('[DB] Unexpected PG pool error:', err);
+  console.error("[DB] Unexpected PG pool error:", err);
 });
 
-// Helper: waitForDb with retries + exponential backoff
-async function waitForDb(retries = 6, baseDelayMs = 1000) {
+async function waitForDb(retries = 6, baseDelay = 1000) {
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
       client.release();
-      console.log('[DB] connected (host:', (connectionString ? '(via DATABASE_URL)' : host) + ', port:', port + ')');
+      console.log(`[DB] ✅ Connected successfully to ${process.env.DB_HOST}:${connectionConfig.port}`);
       return;
     } catch (err) {
-      const delay = baseDelayMs * Math.pow(2, i); // exponential backoff
-      console.warn(`[DB] connect attempt ${i + 1}/${retries} failed: ${err.code || err.message}. retrying in ${delay}ms`);
-      await new Promise((r) => setTimeout(r, delay));
+      const delay = baseDelay * Math.pow(2, i);
+      console.warn(`[DB] Connection attempt ${i + 1}/${retries} failed: ${err.code || err.message}. Retrying in ${delay} ms…`);
+      await new Promise(r => setTimeout(r, delay));
     }
   }
-  throw new Error('Failed to connect to the database after retries');
+  throw new Error("Failed to connect to the database after retries");
 }
 
 module.exports = { pool, waitForDb };
