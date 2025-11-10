@@ -244,39 +244,93 @@
 
     /**
      * [UPDATED] Saves the *entire* evaluation to the new endpoint
+     * REPLACED: improved version that correctly reads interview & candidate values and posts with cookies
      */
     async function saveFinalEvaluation(button) {
+        // Resolve evaluation data and safe identifiers
         const evaluationData = getFullEvaluationData();
 
-        button.disabled = true;
-        button.textContent = 'Saving...';
+        // Prefer explicit values but fallback to current globals if necessary
+        const interviewId = evaluationData.interview_id || currentInterviewId || (new URLSearchParams(window.location.search)).get('interview_id');
+        const candidateEmail = evaluationData.candidate_email || currentCandidateEmail || (new URLSearchParams(window.location.search)).get('candidate_email');
 
-        try {
-            const response = await fetch('/api/evaluations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',            // <--- IMPORTANT: include cookies
-            body: JSON.stringify({
-                interview_id: interviewId,
-                candidate_email: candidateEmail,
-                ratings: ratingsObj,
-                comments: commentsText
-            })
-            });
+        // Disable button & update UI
+        if (button) {
+            button.disabled = true;
+            const originalText = button.textContent;
+            button.textContent = 'Saving...';
 
+            try {
+                // Build the payload. Keep ratings shape compatible with your server.
+                const payload = {
+                    interview_id: interviewId,
+                    candidate_email: candidateEmail,
+                    // Simple ratings object using overall rating + summary
+                    ratings: {
+                        overall: evaluationData.rating,
+                        notes: evaluationData.notes
+                    },
+                    comments: evaluationData.summary || ''
+                };
 
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
+                const response = await fetch('/api/evaluations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
 
-            showNotification('Success', 'Your evaluation has been saved!');
-            myEvaluation = evaluationData; // Store our saved data
+                let result = null;
+                try { result = await response.json(); } catch(e) { /* ignore */ }
 
-        } catch (error) {
-            console.error('Error saving evaluation:', error);
-            showNotification('Error', error.message, true);
-        } finally {
-            button.disabled = false;
-            button.textContent = 'Save Final Evaluation';
+                if (!response.ok) {
+                    const msg = result && result.message ? result.message : `Server returned ${response.status}`;
+                    throw new Error(msg);
+                }
+
+                // success
+                myEvaluation = evaluationData; // store locally
+                showNotification('Success', 'Your evaluation has been saved!');
+                // refresh other reviews panel if present
+                try { await fetchOtherReviews(await getMyUserId()); } catch(e){ console.warn('refresh other reviews failed', e); }
+
+            } catch (error) {
+                console.error('Error saving evaluation:', error);
+                showNotification('Error', error.message || 'Failed to save evaluation.', true);
+            } finally {
+                // restore button
+                button.disabled = false;
+                button.textContent = 'Save Final Evaluation';
+            }
+        } else {
+            // No button passed: still attempt to save (headless)
+            try {
+                const payload = {
+                    interview_id: interviewId,
+                    candidate_email: candidateEmail,
+                    ratings: {
+                        overall: evaluationData.rating,
+                        notes: evaluationData.notes
+                    },
+                    comments: evaluationData.summary || ''
+                };
+                const response = await fetch('/api/evaluations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(()=>({message:'Server error'}));
+                    throw new Error(err.message || `Server ${response.status}`);
+                }
+                myEvaluation = evaluationData;
+                showNotification('Success', 'Your evaluation has been saved!');
+                try { await fetchOtherReviews(await getMyUserId()); } catch(e){ console.warn('refresh other reviews failed', e); }
+            } catch (error) {
+                console.error('Error saving evaluation:', error);
+                showNotification('Error', error.message || 'Failed to save evaluation.', true);
+            }
         }
     }
 
