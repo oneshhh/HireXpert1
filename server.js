@@ -1184,16 +1184,14 @@ app.get("/interview_viewer.html", (req, res) => {
 // Add this to your "Static Page Routes" section in server.js
 
 app.get("/candidate-review.html", (req, res) => {
-    // --- Recommended Security Check ---
-    // Ensure user is logged in before sending the page
-    if (!req.session.user) {
-        return res.redirect('/'); // Redirect to login if not authenticated
-    }
-    // --- End of Security Check ---
+  // Allow either an internal user (admin/staff) or a viewer (external reviewer)
+  if (!req.session.user && !req.session.viewer) {
+    return res.redirect('/'); // redirect if not authenticated at all
+  }
 
-    // If logged in, send the file
-    res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
+  res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
 });
+
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
