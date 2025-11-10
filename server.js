@@ -161,19 +161,36 @@ app.post("/login", async (req, res) => {
 
 // API endpoint to get current user info and login, logout functions
 app.get("/api/me", (req, res) => {
-    if (req.session.user) {
-        // Only send necessary, non-sensitive info
-        res.json({
-            id: req.session.user.id,
-            email: req.session.user.email,
-            activeDepartment: req.session.user.activeDepartment
-            // You could add first_name, last_name if needed later
-        });
-    } else {
-        // Not logged in
-        res.status(401).json({ message: "Not authenticated" });
-    }
+  // If internal user is logged in, return the usual minimal user info
+  if (req.session && req.session.user) {
+    return res.json({
+      type: 'user',
+      id: req.session.user.id,
+      email: req.session.user.email,
+      activeDepartment: req.session.user.activeDepartment,
+      first_name: req.session.user.first_name || null,
+      last_name: req.session.user.last_name || null
+    });
+  }
+
+  // If an external viewer is logged in, return a limited viewer profile
+  if (req.session && req.session.viewer) {
+    const v = req.session.viewer;
+    // Return only non-sensitive fields so client can distinguish viewer vs user
+    return res.json({
+      type: 'viewer',
+      viewer: {
+        id: v.id,
+        email: v.email,
+        name: v.name || null
+      }
+    });
+  }
+
+  // No session at all
+  return res.status(401).json({ message: "Not authenticated" });
 });
+
 
 app.get("/logout", (req, res) => {
     // For cookie-session, clear the session by setting it to null
