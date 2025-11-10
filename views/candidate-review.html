@@ -333,16 +333,31 @@
     /**
      * [NEW] Fetches my user ID to filter reviews
      */
-    async function getMyUserId() {
-        try {
-            const response = await fetch('/api/me'); // Standard auth check
-            if (!response.ok) return null;
-            const user = await response.json();
-            return user.id;
-        } catch (e) {
-            return null;
-        }
+async function getMyUserId() {
+    try {
+        const response = await fetch('/api/me'); // Standard auth check
+        if (!response.ok) return null;
+        const body = await response.json();
+
+        // Normal shapes we've seen:
+        // 1) { id, email, ... }  -> internal user
+        // 2) { type: 'user', id, email, ... } -> internal user
+        // 3) { type: 'viewer', viewer: { id, email, name } } -> external viewer
+
+        if (!body || typeof body !== 'object') return null;
+
+        if (body.id) return body.id; // plain user object
+        if (body.type === 'user' && body.id) return body.id;
+        if (body.type === 'viewer' && body.viewer && body.viewer.id) return body.viewer.id;
+
+        // No recognizable id found
+        return null;
+    } catch (e) {
+        console.error('getMyUserId error:', e);
+        return null;
     }
+}
+
 
     /**
      * [UPDATED] Fetches all candidate details and answers
@@ -369,10 +384,13 @@
         }
         
         const myUserId = await getMyUserId();
+        // If no internal user id found, assume we might be a viewer.
+        // Don't force a redirect here — viewers should be allowed to view candidate details.
         if (!myUserId) {
-            window.location.href = '/'; // Redirect if not logged in
-            return;
+            console.warn('No internal user id found; continuing as viewer (if session exists).');
+            // myUserId will be null for viewers; downstream code handles that.
         }
+
 
         try {
             // This API call (from review.routes.js) gets videos, questions, etc.
