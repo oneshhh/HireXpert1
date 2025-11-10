@@ -247,6 +247,9 @@ router.post('/answer/review', async (req, res) => {
     }
 });
 
+console.log('POST /api/evaluations headers.cookie=', req.headers.cookie, ' session=', req.session);
+
+
 // --- API for SAVING an individual review ---
 // (Path becomes: POST /api/evaluations)
 router.post("/evaluations", async (req, res) => {
@@ -282,6 +285,9 @@ router.post("/evaluations", async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+console.log('POST /api/evaluations headers.cookie=', req.headers.cookie, ' session=', req.session);
+
 
 // --- API for GETTING all reviews for a candidate ---
 // --- POST /api/evaluations (allow viewer OR user) ---
