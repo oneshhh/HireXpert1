@@ -287,29 +287,28 @@ router.post("/evaluations", async (req, res) => {
 // --- API for GETTING all reviews for a candidate ---
 // --- POST /api/evaluations (allow viewer OR user) ---
 // DIAGNOSTIC POST /api/evaluations (replace existing handler with this)
+// diagnostic POST handler for /api/evaluations (paste in review.routes.js)
 router.post('/evaluations', async (req, res) => {
   try {
-    // Log incoming request cookie + session state for debugging (remove after debugging)
-    console.log('--- POST /api/evaluations called ---');
-    console.log('Request headers.cookie:', req.headers.cookie || '<no cookie header>');
-    console.log('req.session (exists?):', !!req.session);
-    console.log('req.session.user:', req.session ? !!req.session.user : false);
-    console.log('req.session.viewer:', req.session ? !!req.session.viewer : false);
-    console.log('POST /api/evaluations headers.cookie=', req.headers.cookie, ' session=', req.session);
+    console.log('--- DIAGNOSTIC POST /api/evaluations ---');
+    console.log('Incoming cookies header:', req.headers.cookie || '<NO COOKIE HEADER>');
+    // If using cookie-session, req.session should be an object (even if empty)
+    console.log('req.session present?', !!req.session);
+    console.log('req.session keys:', req.session ? Object.keys(req.session) : '<no session>');
+    console.log('req.session.user:', req.session && !!req.session.user);
+    console.log('req.session.viewer:', req.session && !!req.session.viewer);
 
-    // enforce authentication: allow internal users or viewers
+    // then the normal permissive auth check
     if (!req.session || (!req.session.user && !req.session.viewer)) {
-      console.warn('POST /api/evaluations - unauthorized (no user/viewer in session)');
+      console.warn('DIAGNOSTIC: unauthorized - no user/viewer in session');
       return res.status(401).json({ message: 'You must be logged in.' });
     }
 
-    // Normal saving logic (same as before)
+    // proceed to save (same as before)
     const { interview_id, candidate_email, ratings, comments } = req.body || {};
     if (!interview_id || !candidate_email || !ratings) {
       return res.status(400).json({ message: 'Missing required fields: interview_id, candidate_email, ratings' });
     }
-
-    // choose legacy user id or store viewer id prefixed
     const legacyUserId = req.session.user ? req.session.user.id : `viewer:${req.session.viewer.id}`;
     const ratingsJson = typeof ratings === 'string' ? ratings : JSON.stringify(ratings);
     const commentsSafe = comments ? String(comments) : '';
@@ -321,12 +320,10 @@ router.post('/evaluations', async (req, res) => {
     `;
     const vals = [interview_id, candidate_email, legacyUserId, ratingsJson, commentsSafe];
     const { rows } = await pool.query(insertQ, vals);
-
-    console.log('POST /api/evaluations - saved OK, id:', rows[0] ? rows[0].id : '<no id returned>');
+    console.log('DIAGNOSTIC: saved evaluation id=', rows[0] && rows[0].id);
     return res.json({ message: 'Evaluation saved', evaluation: rows[0] || null });
-
   } catch (err) {
-    console.error('POST /api/evaluations - ERROR:', err);
+    console.error('DIAGNOSTIC POST /api/evaluations error:', err);
     return res.status(500).json({ message: err.message || 'Internal server error' });
   }
 });
