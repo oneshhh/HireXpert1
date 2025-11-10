@@ -345,7 +345,7 @@
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
         const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html`;
-        const editLink = `/interview-edit.html?id=${interview.id}&from=interview-viewer.html`;
+
 
         const stats = interview.stats || {};
         const invitedCount = stats.invited || 0;
@@ -368,7 +368,6 @@
             <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">${discardedCount}</span></td>
             <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
                 <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
-                <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
             </td>
         `;
         tbody.appendChild(tr);

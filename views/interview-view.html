@@ -37,17 +37,6 @@
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
 
-      /*
-        LAYOUT:
-        Make the right column (candidates) wider by adjusting grid spans:
-        - job description: lg:col-span-1
-        - candidates card: lg:col-span-2
-      */
-
-      /* Candidate row layout:
-        3 columns: email/info | status (fixed) | actions (fixed)
-        Use minmax(0, 1fr) for the email column to let it take remaining space without breaking grid.
-      */
       .candidate-line {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 140px 110px; /* email | status | actions (resend) */
