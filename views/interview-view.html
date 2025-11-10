@@ -286,53 +286,91 @@
             selectElement.disabled = false;
         }
     }
+    // --- Fetch Submissions Function (UPDATED to new UI) ---
+    
+async function fetchSubmissions() {
+  if (!currentInterviewId) return;
+  const list = document.getElementById('submission-list');
 
-    // --- Function to Fetch Submissions (UI tweaks only) ---
-    async function fetchSubmissions() {
-        if (!currentInterviewId) return;
-        const list = document.getElementById('submission-list');
-        try {
-            const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
-            if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Could not load submissions'); }
-            const submissions = await res.json();
-            list.innerHTML = '';
-            if (submissions.length === 0) { list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>'; return; }
-            const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Started': 'bg-blue-100 text-blue-800', 'Opened': 'bg-yellow-100 text-yellow-800', 'Error': 'bg-red-100 text-red-800' };
-
-            submissions.forEach(candidate => {
-                const li = document.createElement('li');
-                li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
-
-                // left: candidate info (name + email)
-                const left = document.createElement('div');
-                left.style.minWidth = '0';
-                left.innerHTML = `
-                  <div style="font-weight:600;color:#1f2937">${candidate.name || 'Unnamed Candidate'}</div>
-                  <div class="candidate-email small" title="${candidate.email}">${candidate.email}</div>
-                `;
-
-                // right: controls (status select + optional link)
-                const right = document.createElement('div');
-                right.style.display = 'flex';
-                right.style.gap = '8px';
-                right.style.alignItems = 'center';
-                right.innerHTML = `
-                  <select onchange="updateReviewerStatus(this, '${candidate.email}', '${currentInterviewId}')" class="text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="To Evaluate" ${candidate.reviewer_status === 'To Evaluate' ? 'selected' : ''}>To Evaluate</option>
-                    <option value="Evaluated" ${candidate.reviewer_status === 'Evaluated' ? 'selected' : ''}>Evaluated</option>
-                    <option value="Discarded" ${candidate.reviewer_status === 'Discarded' ? 'selected' : ''}>Discarded</option>
-                  </select>
-                `;
-
-                li.appendChild(left);
-                li.appendChild(right);
-                list.appendChild(li);
-            });
-        } catch (error) {
-            console.error('Failed to fetch submissions:', error);
-            list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
-        }
+  try {
+    const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({message:'Failed to load'}));
+      throw new Error(err.message || 'Could not load submissions');
     }
+
+    const submissions = await res.json();
+    list.innerHTML = '';
+
+    if (!Array.isArray(submissions) || submissions.length === 0) {
+      list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
+      return;
+    }
+
+    // render each candidate row
+    submissions.forEach(candidate => {
+      const li = document.createElement('li');
+      li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
+
+      // left: candidate info (clickable name + email)
+      const left = document.createElement('div');
+      left.style.minWidth = '0';
+
+      // build token (try commonly used fields)
+      const token = candidate.candidate_token || candidate.token || candidate.token_id || candidate.token || '';
+
+      // clickable name (falls back to plain text if no token)
+      const nameHtml = token
+        ? `<a href="/candidate-review.html?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(currentInterviewId)}" class="font-medium text-blue-600 hover:underline">${(candidate.name || 'Unnamed Candidate')}</a>`
+        : `<span style="font-weight:600;color:#1f2937">${(candidate.name || 'Unnamed Candidate')}</span>`;
+
+      // email line (keeps tooltip)
+      const emailHtml = `<div class="candidate-email small" title="${candidate.email || ''}">${candidate.email || ''}</div>`;
+
+      left.innerHTML = `${nameHtml}${emailHtml}`;
+
+      // right: controls (status select + optional link)
+      const right = document.createElement('div');
+      right.style.display = 'flex';
+      right.style.gap = '8px';
+      right.style.alignItems = 'center';
+
+      // status select
+      const select = document.createElement('select');
+      select.className = 'text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500';
+      select.innerHTML = `
+        <option value="To Evaluate">To Evaluate</option>
+        <option value="Evaluated">Evaluated</option>
+        <option value="Discarded">Discarded</option>
+      `;
+      if (candidate.reviewer_status) {
+        select.value = candidate.reviewer_status;
+      }
+      // attach onchange handler (keeps previous behavior)
+      select.onchange = function() { updateReviewerStatus(this, candidate.email, currentInterviewId); };
+
+      right.appendChild(select);
+
+      // optional: keep the candidate review quick-link if candidate has a direct review URL (older behavior)
+      // (commented out by default) 
+      // if (token) {
+      //   const quick = document.createElement('a');
+      //   quick.href = `/candidate-review.html?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(currentInterviewId)}`;
+      //   quick.textContent = 'Open';
+      //   quick.className = 'text-xs text-primary-600 hover:underline';
+      //   right.appendChild(quick);
+      // }
+
+      li.appendChild(left);
+      li.appendChild(right);
+      list.appendChild(li);
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch submissions:', error);
+    list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
+  }
+}
 
     // --- Fetch Interview Details Function (UPDATED UI only) ---
     async function fetchInterview() {
