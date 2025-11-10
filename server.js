@@ -19,18 +19,20 @@ app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(cors({ origin: "*" }));
+app.use(cors({
+  origin: 'https://hirexpert-1ecv.onrender.com', // use your exact origin; or an array of allowed origins
+  credentials: true
+}));
 
 app.use(
   cookieSession({
-    name: 'session', // The name of the cookie
+    name: 'session', // cookie name
     secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    
-    // Cookie Security settings (you already had these)
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: true,        // MUST be true in production (HTTPS). Leave true on Render.
+    sameSite: 'none',    // allow cross-site XHR cookies when credentials:true
+    // remove resave/saveUninitialized (not applicable to cookie-session)
   })
 );
 
