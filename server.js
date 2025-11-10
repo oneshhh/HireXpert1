@@ -1183,33 +1183,14 @@ app.get("/interview_viewer.html", (req, res) => {
 
 // Add this to your "Static Page Routes" section in server.js
 
-// DIAGNOSTIC ROUTE - paste over your existing /candidate-review.html handler
 app.get("/candidate-review.html", (req, res) => {
-  try {
-    console.log('--- /candidate-review.html requested ---');
-    console.log('Headers.cookie:', req.headers.cookie || '<no cookie header>');
-    console.log('Session (raw req.session):', JSON.stringify(req.session || {}, null, 2));
-
-    // Show helpful flags about the session cookie and session store presence
-    const sessionExists = !!(req.session && (req.session.user || req.session.viewer));
-    console.log('Has user session?', !!req.session.user);
-    console.log('Has viewer session?', !!req.session.viewer);
-    console.log('sessionExists (user || viewer):', sessionExists);
-
-    // Return a JSON payload to the browser (so you can inspect network tab)
-    return res.status(200).json({
-      message: '/candidate-review.html diagnostic response',
-      headers_cookie: req.headers.cookie || null,
-      session: req.session || null,
-      hasUser: !!(req.session && req.session.user),
-      hasViewer: !!(req.session && req.session.viewer)
-    });
-  } catch (err) {
-    console.error('Diagnostic route error:', err);
-    return res.status(500).send('Diagnostic error - check server logs');
+  // Allow either an internal user (admin/staff) or a viewer (external reviewer)
+  if (!req.session.user && !req.session.viewer) {
+    return res.redirect('/'); // redirect if not authenticated at all
   }
-});
 
+  res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
+});
 
 // ---------- Start server ----------
 app.listen(PORT, () => {

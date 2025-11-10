@@ -268,25 +268,26 @@ router.post("/evaluations", async (req, res) => {
 // --- API for GETTING all reviews for a candidate ---
 // (Path becomes: GET /api/evaluations)
 router.get("/evaluations", async (req, res) => {
-    if (!req.session.user) {
+    // Allow either internal users or viewers to GET evaluations (read-only).
+    // Keep POST /evaluations (save) restricted to internal users only.
+    if (!req.session.user && !req.session.viewer) {
         return res.status(401).json({ message: "You must be logged in." });
     }
-    const { interview_id, candidate_email } = req.query; // e.g., /api/evaluations?interview_id=...
 
+    const { interview_id, candidate_email } = req.query;
     if (!interview_id || !candidate_email) {
         return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
     }
 
-    // Join with 'users' table to get the reviewer's name
-    const query = `
-        SELECT e.*, u.first_name, u.last_name 
-        FROM reviewer_evaluations e
-        JOIN users u ON e.user_id = u.id
-        WHERE e.interview_id = $1 AND e.candidate_email = $2
-        ORDER BY e.updated_at DESC;
-    `;
-    
     try {
+        // Join with 'users' table to get reviewer names (this is safe even for viewers)
+        const query = `
+            SELECT e.*, u.first_name, u.last_name 
+            FROM reviewer_evaluations e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.interview_id = $1 AND e.candidate_email = $2
+            ORDER BY e.updated_at DESC;
+        `;
         const { rows } = await pool.query(query, [interview_id, candidate_email]);
         res.json(rows); // Returns an array of all review objects
     } catch (error) {
@@ -294,6 +295,7 @@ router.get("/evaluations", async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
