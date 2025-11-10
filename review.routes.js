@@ -285,52 +285,29 @@ router.post("/evaluations", async (req, res) => {
 
 // --- API for GETTING all reviews for a candidate ---
 // --- POST /api/evaluations (allow viewer OR user) ---
-// ----------------- COPY-PASTE START -----------------
-// GET /api/evaluations
-// Example URL: /api/evaluations?interview_id=...&candidate_email=...
-router.get('/evaluations', async (req, res) => {
-  try {
-    // Allow either internal users or visitors to READ evaluations
-    if (!req.session || (!req.session.user && !req.session.viewer)) {
-      return res.status(401).json({ message: 'You must be logged in to view evaluations.' });
-    }
-
-    const { interview_id, candidate_email } = req.query || {};
-    if (!interview_id || !candidate_email) {
-      return res.status(400).json({ message: 'Missing interview_id or candidate_email' });
-    }
-
-    // Basic query: returns evaluations and user name if available
-    const query = `
-      SELECT e.*, u.first_name, u.last_name
-      FROM reviewer_evaluations e
-      LEFT JOIN users u ON e.user_id = u.id
-      WHERE e.interview_id = $1 AND e.candidate_email = $2
-      ORDER BY e.created_at DESC
-    `;
-    const { rows } = await pool.query(query, [interview_id, candidate_email]);
-    return res.json(rows || []);
-  } catch (err) {
-    console.error('GET /evaluations error:', err);
-    return res.status(500).json({ message: err.message || 'Internal server error' });
-  }
-});
-
-// POST /api/evaluations
-// Accepts both internal users and visitors (no DB schema change required)
+// DIAGNOSTIC POST /api/evaluations (replace existing handler with this)
 router.post('/evaluations', async (req, res) => {
   try {
+    // Log incoming request cookie + session state for debugging (remove after debugging)
+    console.log('--- POST /api/evaluations called ---');
+    console.log('Request headers.cookie:', req.headers.cookie || '<no cookie header>');
+    console.log('req.session (exists?):', !!req.session);
+    console.log('req.session.user:', req.session ? !!req.session.user : false);
+    console.log('req.session.viewer:', req.session ? !!req.session.viewer : false);
+
+    // enforce authentication: allow internal users or viewers
     if (!req.session || (!req.session.user && !req.session.viewer)) {
+      console.warn('POST /api/evaluations - unauthorized (no user/viewer in session)');
       return res.status(401).json({ message: 'You must be logged in.' });
     }
 
+    // Normal saving logic (same as before)
     const { interview_id, candidate_email, ratings, comments } = req.body || {};
     if (!interview_id || !candidate_email || !ratings) {
       return res.status(400).json({ message: 'Missing required fields: interview_id, candidate_email, ratings' });
     }
 
-    // decide what to store in legacy user_id column
-    // if internal user, keep their id; if viewer, store viewer id prefixed so it's distinguishable
+    // choose legacy user id or store viewer id prefixed
     const legacyUserId = req.session.user ? req.session.user.id : `viewer:${req.session.viewer.id}`;
     const ratingsJson = typeof ratings === 'string' ? ratings : JSON.stringify(ratings);
     const commentsSafe = comments ? String(comments) : '';
@@ -340,15 +317,18 @@ router.post('/evaluations', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING *;
     `;
-    const values = [interview_id, candidate_email, legacyUserId, ratingsJson, commentsSafe];
-    const { rows } = await pool.query(insertQ, values);
+    const vals = [interview_id, candidate_email, legacyUserId, ratingsJson, commentsSafe];
+    const { rows } = await pool.query(insertQ, vals);
+
+    console.log('POST /api/evaluations - saved OK, id:', rows[0] ? rows[0].id : '<no id returned>');
     return res.json({ message: 'Evaluation saved', evaluation: rows[0] || null });
+
   } catch (err) {
-    console.error('POST /evaluations error:', err);
+    console.error('POST /api/evaluations - ERROR:', err);
     return res.status(500).json({ message: err.message || 'Internal server error' });
   }
 });
-// ----------------- COPY-PASTE END -----------------
+
 
 
 

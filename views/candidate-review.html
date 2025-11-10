@@ -253,10 +253,17 @@
 
         try {
             const response = await fetch('/api/evaluations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(evaluationData)
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',            // <--- IMPORTANT: include cookies
+            body: JSON.stringify({
+                interview_id: interviewId,
+                candidate_email: candidateEmail,
+                ratings: ratingsObj,
+                comments: commentsText
+            })
             });
+
 
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
