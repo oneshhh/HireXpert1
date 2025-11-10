@@ -4,6 +4,24 @@ const router = express.Router();
 const pool = require('./db'); // <-- Your pg Pool from db.js
 const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2nd DB
 
+// Allow visitors (req.session.viewer) to perform read-only GETs.
+// Keep POST/PUT/DELETE restricted to internal users (req.session.user).
+function allowViewerForGets(req, res, next) {
+  if (req.method === 'GET') {
+    if (req.session && (req.session.user || req.session.viewer)) {
+      return next();
+    }
+    return res.status(401).json({ message: "You must be logged in." });
+  }
+  // non-GET (writes) must be internal user
+  if (req.session && req.session.user) return next();
+  return res.status(401).json({ message: "You must be logged in." });
+}
+
+// Apply this middleware to all routes in this router
+router.use(allowViewerForGets);
+
+
 /**
  * Endpoint 1: GET /api/interview/:id/submissions
  * This is the complex query that uses both databases.
@@ -295,8 +313,6 @@ router.get("/evaluations", async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-
-
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
 // (Path becomes: GET /api/viewer/assigned-interviews)
