@@ -510,39 +510,66 @@
         });
     }
     
-    // --- [FIXED] Initial Load Logic ---
-    (async function checkSession() {
-        try {
-            // 1. Check for a standard user session (Admin, HR, etc.)
-            const userResponse = await fetch('/api/me'); 
-            if (userResponse.ok) {
-                const user = await userResponse.json();
-                currentUserType = 'user'; // Set global state
-                showDashboard(user, 'user'); // Show dashboard for internal 'user'
-                return; // Stop here
-            }
+    // --- [FIXED] Initial Load Logic ---// 
+(async function checkSession() {
+  try {
+    // 1) Try the main /api/me first
+    const userResponse = await fetch('/api/me');
+    if (userResponse.ok) {
+      const payload = await userResponse.json();
 
-            // 2. If no user session, check for a visitor session
-            const visitorResponse = await fetch('/viewer/me');
-            if (visitorResponse.ok) {
-                const visitor = await visitorResponse.json();
-                currentUserType = 'visitor'; // Set global state
-                showDashboard(visitor, 'visitor'); // Show dashboard for external 'visitor'
-                return; // Stop here
-            }
-
-            // 3. If both fail, show the login form
-            throw new Error('No active session');
-
-        } catch (err) {
-            // If all session checks fail, show the login form
-            console.log('No active session, showing login.');
-            currentUserType = 'none';
-            showLogin();
+      // Normalize shapes:
+      // - payload might be { email, id, ... }
+      // - or { type: 'user', id, email, ... }
+      // - or { type: 'viewer', viewer: { id, email, name } } (unlikely here, but be safe)
+      let normalizedUser = null;
+      if (payload && typeof payload === 'object') {
+        if (payload.email) {
+          normalizedUser = payload; // already has email
+        } else if (payload.type === 'user' && payload.email) {
+          normalizedUser = { id: payload.id, email: payload.email, ...payload };
+        } else if (payload.type === 'viewer' && payload.viewer && payload.viewer.email) {
+          // if server returned viewer inside /api/me for some reason
+          normalizedUser = { id: payload.viewer.id, email: payload.viewer.email, name: payload.viewer.name };
         }
-    })();
+      }
 
-  });
+      if (normalizedUser) {
+        currentUserType = (payload.type === 'viewer') ? 'visitor' : 'user';
+        showDashboard(normalizedUser, currentUserType === 'visitor' ? 'visitor' : 'user');
+        return;
+      } else {
+        // If /api/me returned something unexpected but ok, fall through and check /viewer/me
+        console.warn('/api/me returned an unexpected shape:', payload);
+      }
+    }
+
+    // 2) Check visitor session explicitly
+    const visitorResponse = await fetch('/viewer/me');
+    if (visitorResponse.ok) {
+      const visitorPayload = await visitorResponse.json();
+      // visitorPayload is expected to be { id, email, ... }
+      if (visitorPayload && visitorPayload.email) {
+        currentUserType = 'visitor';
+        // normalize into expected shape for showDashboard
+        const normalizedVisitor = { id: visitorPayload.id, email: visitorPayload.email, name: visitorPayload.name || null };
+        showDashboard(normalizedVisitor, 'visitor');
+        return;
+      } else {
+        console.warn('/viewer/me returned but missing email:', visitorPayload);
+      }
+    }
+
+    // 3) No active session found
+    throw new Error('No active session');
+
+  } catch (err) {
+    console.log('No active session or session shape mismatch — showing login.', err);
+    currentUserType = 'none';
+    showLogin();
+  }
+})();
+    });
 </script>
 
 </body>
