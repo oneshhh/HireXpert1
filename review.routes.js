@@ -284,35 +284,49 @@ router.post("/evaluations", async (req, res) => {
 });
 
 // --- API for GETTING all reviews for a candidate ---
-// (Path becomes: GET /api/evaluations)
-router.get("/evaluations", async (req, res) => {
-    // Allow either internal users or viewers to GET evaluations (read-only).
-    // Keep POST /evaluations (save) restricted to internal users only.
-    if (!req.session.user && !req.session.viewer) {
-        return res.status(401).json({ message: "You must be logged in." });
+// --- POST /api/evaluations (allow viewer OR user) ---
+// Stores a 'submitted_by' marker inside the ratings JSON to mark visitor submissions.
+router.post('/evaluations', async (req, res) => {
+  try {
+    if (!req.session || (!req.session.user && !req.session.viewer)) {
+      return res.status(401).json({ message: 'You must be logged in.' });
     }
 
-    const { interview_id, candidate_email } = req.query;
-    if (!interview_id || !candidate_email) {
-        return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
+    const { interview_id, candidate_email, ratings, comments } = req.body || {};
+    if (!interview_id || !candidate_email || !ratings) {
+      return res.status(400).json({ message: 'Missing required fields: interview_id, candidate_email, ratings' });
     }
 
-    try {
-        // Join with 'users' table to get reviewer names (this is safe even for viewers)
-        const query = `
-            SELECT e.*, u.first_name, u.last_name 
-            FROM reviewer_evaluations e
-            JOIN users u ON e.user_id = u.id
-            WHERE e.interview_id = $1 AND e.candidate_email = $2
-            ORDER BY e.updated_at DESC;
-        `;
-        const { rows } = await pool.query(query, [interview_id, candidate_email]);
-        res.json(rows); // Returns an array of all review objects
-    } catch (error) {
-        console.error("Error fetching evaluations:", error);
-        res.status(500).json({ message: error.message });
-    }
+    const isViewer = !!req.session.viewer;
+    const submitter = isViewer ? { type: 'viewer', id: req.session.viewer.id } : { type: 'user', id: req.session.user.id };
+
+    // Build enhanced ratings JSON with submission metadata
+    let ratingsObj = (typeof ratings === 'string') ? JSON.parse(ratings) : (ratings || {});
+    ratingsObj._submitted_by = submitter; // small audit meta field
+
+    const ratingsJson = JSON.stringify(ratingsObj);
+    const commentsSafe = comments ? String(comments) : '';
+
+    const insertQuery = `
+      INSERT INTO reviewer_evaluations
+        (interview_id, candidate_email, user_id, ratings, comments, created_at)
+      VALUES
+        ($1, $2, $3, $4, $5, NOW())
+      RETURNING *;
+    `;
+
+    // For legacy user_id keep same behaviour: set to user.id if internal user, otherwise NULL
+    const legacyUserId = req.session.user ? req.session.user.id : null;
+    const values = [interview_id, candidate_email, legacyUserId, ratingsJson, commentsSafe];
+
+    const { rows } = await pool.query(insertQuery, values);
+    return res.json({ message: 'Evaluation saved', evaluation: rows[0] });
+  } catch (err) {
+    console.error('Error saving evaluation (embed meta):', err);
+    return res.status(500).json({ message: err.message || 'Internal server error' });
+  }
 });
+
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
 // (Path becomes: GET /api/viewer/assigned-interviews)
