@@ -38,35 +38,45 @@
       #notification-modal > div { transition: all 0.3s ease-out; }
 
       /*
-        Candidate row layout:
-        - Use CSS grid with 3 columns:
-          1) flexible content (email and small details)
-          2) fixed column for status badge (keeps alignment)
-          3) fixed column for actions (resend)
+        LAYOUT:
+        Make the right column (candidates) wider by adjusting grid spans:
+        - job description: lg:col-span-1
+        - candidates card: lg:col-span-2
+      */
+
+      /* Candidate row layout:
+        3 columns: email/info | status (fixed) | actions (fixed)
+        Use minmax(0, 1fr) for the email column to let it take remaining space without breaking grid.
       */
       .candidate-line {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 120px 100px; /* email | status | actions (resend) */
+        grid-template-columns: minmax(0, 1fr) 140px 110px; /* email | status | actions (resend) */
         gap: 12px;
         align-items: center;
       }
       .candidate-line .candidate-info {
-        min-width: 0; /* allow truncation */
+        min-width: 0; /* allow proper truncation/wrapping inside grid */
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
-      /* Emails: single-line with ellipsis (no vertical breaking) */
+      /* Emails: allow wrapping (so full email visible across lines), but avoid single-letter vertical stacking */
       .candidate-email {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-size: 0.85rem;
-        color: #111827;
-        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        font-size: 0. ninerem; /* fallback removed, will set below */
+        font-size: 0. ninerem;
       }
-      .candidate-email.small { font-size: 0.78rem; color: #6b7280; }
+      /* small text variant used in submissions */
+      .candidate-email.small {
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+
+      /* Ensure reasonable font sizes (fixing earlier accidental decimals) */
+      .candidate-email { font-size: 0.92rem; color: #111827; line-height: 1.25; }
 
       /* Status tag - fixed width column, center align inside */
       .candidate-status {
@@ -76,17 +86,22 @@
         text-align: center;
         font-size: 0.78rem;
         font-weight: 600;
-        min-width: 100px;
+        min-width: 110px;
         white-space: nowrap;
       }
 
-      /* Submission items (review submissions) - two columns: info | controls */
+      /* Submission items (review submissions) - layout with status visible */
       .submission-item {
         display: grid;
-        grid-template-columns: 1fr 140px; /* info | controls */
+        grid-template-columns: minmax(0, 1fr) 140px; /* info | controls (status/select) */
         gap: 12px;
         align-items: center;
       }
+
+      /* Remove underline on hover for links inside submission-item */
+      .submission-item a { text-decoration: none; color: #1e3a8a; }
+      .submission-item a:hover { text-decoration: none; color: #1e40af; }
+
       @media (max-width: 640px) {
         /* Stack columns on very small screens */
         .candidate-line, .submission-item {
@@ -156,15 +171,17 @@
             </div>
         </div>
 
-        <!-- Job Description & Candidate Grid -->
+        <!-- Job Description & Candidate Grid
+             NOTE: make candidates card wider: job description col-span = 1, candidates col-span = 2
+        -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 bg-white shadow-lg rounded-lg p-6">
+            <div class="lg:col-span-1 bg-white shadow-lg rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Job Description</h3>
                 <pre id="job-description" class="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto"></pre>
             </div>
 
-            <!-- Candidates Card with Tabs -->
-            <div class="bg-white shadow-lg rounded-lg">
+            <!-- Candidates Card with Tabs (wider now) -->
+            <div class="lg:col-span-2 bg-white shadow-lg rounded-lg">
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex" aria-label="Tabs">
                         <button id="tab-submissions"
@@ -286,93 +303,95 @@
             selectElement.disabled = false;
         }
     }
-    // --- Fetch Submissions Function (UPDATED to new UI) ---
-    
-async function fetchSubmissions() {
-  if (!currentInterviewId) return;
-  const list = document.getElementById('submission-list');
 
-  try {
-    const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
-    if (!res.ok) {
-      const err = await res.json().catch(()=>({message:'Failed to load'}));
-      throw new Error(err.message || 'Could not load submissions');
-    }
+    // --- Function to Fetch Submissions (Restored name link + status tag) ---
+    async function fetchSubmissions() {
+      if (!currentInterviewId) return;
+      const list = document.getElementById('submission-list');
 
-    const submissions = await res.json();
-    list.innerHTML = '';
+      try {
+        const res = await fetch(`/api/interview/${currentInterviewId}/submissions`);
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({message:'Failed to load'}));
+          throw new Error(err.message || 'Could not load submissions');
+        }
 
-    if (!Array.isArray(submissions) || submissions.length === 0) {
-      list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
-      return;
-    }
+        const submissions = await res.json();
+        list.innerHTML = '';
 
-    // render each candidate row
-    submissions.forEach(candidate => {
-      const li = document.createElement('li');
-      li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
+        if (!Array.isArray(submissions) || submissions.length === 0) {
+          list.innerHTML = '<li class="text-sm text-gray-500 italic">No candidate submissions found for this interview.</li>';
+          return;
+        }
 
-      // left: candidate info (clickable name + email)
-      const left = document.createElement('div');
-      left.style.minWidth = '0';
+        // status color mapping for submission status badges
+        const statusClassMap = {
+          'completed': 'bg-green-100',
+          'started': 'bg-blue-100',
+          'opened': 'bg-yellow-100',
+          'error': 'bg-red-100'
+        };
 
-      // build token (try commonly used fields)
-      const token = candidate.candidate_token || candidate.token || candidate.token_id || candidate.token || '';
+        submissions.forEach(candidate => {
+          const li = document.createElement('li');
+          li.className = 'submission-item p-2 rounded-md hover:bg-gray-50';
 
-      // clickable name (falls back to plain text if no token)
-      const nameHtml = token
-        ? `<a href="/candidate-review.html?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(currentInterviewId)}" class="font-medium text-blue-600 hover:underline">${(candidate.name || 'Unnamed Candidate')}</a>`
-        : `<span style="font-weight:600;color:#1f2937">${(candidate.name || 'Unnamed Candidate')}</span>`;
+          // left: candidate info (clickable name + status badge under name + email)
+          const left = document.createElement('div');
+          left.style.minWidth = '0';
 
-      // email line (keeps tooltip)
-      const emailHtml = `<div class="candidate-email small" title="${candidate.email || ''}">${candidate.email || ''}</div>`;
+          // token fallback
+          const token = candidate.candidate_token || candidate.token || candidate.token_id || '';
 
-      left.innerHTML = `${nameHtml}${emailHtml}`;
+          // candidate name link (no underline on hover)
+          const nameLink = token
+            ? `<a href="/candidate-review.html?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(currentInterviewId)}" class="font-medium">${(candidate.name || 'Unnamed Candidate')}</a>`
+            : `<span style="font-weight:600;color:#1f2937">${(candidate.name || 'Unnamed Candidate')}</span>`;
 
-      // right: controls (status select + optional link)
-      const right = document.createElement('div');
-      right.style.display = 'flex';
-      right.style.gap = '8px';
-      right.style.alignItems = 'center';
+          // submission status badge (Opened/Completed/Error)
+          const submissionStatus = (candidate.submission_status || candidate.status || '').toString();
+          const stKey = submissionStatus.toLowerCase();
+          let statusBadgeHtml = '';
+          if (submissionStatus) {
+            const cls = statusClassMap[stKey] || 'bg-gray-100';
+            const displayText = submissionStatus || 'Status';
+            statusBadgeHtml = `<span class="candidate-status ${cls}" style="margin-left:8px">${displayText}</span>`;
+          }
 
-      // status select
-      const select = document.createElement('select');
-      select.className = 'text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500';
-      select.innerHTML = `
-        <option value="To Evaluate">To Evaluate</option>
-        <option value="Evaluated">Evaluated</option>
-        <option value="Discarded">Discarded</option>
-      `;
-      if (candidate.reviewer_status) {
-        select.value = candidate.reviewer_status;
+          // email (wrap-capable, full visible)
+          const emailHtml = `<div class="candidate-email small" title="${candidate.email || ''}">${candidate.email || ''}</div>`;
+
+          left.innerHTML = `${nameLink} ${statusBadgeHtml} ${emailHtml}`;
+
+          // right: controls (reviewer select)
+          const right = document.createElement('div');
+          right.style.display = 'flex';
+          right.style.gap = '8px';
+          right.style.alignItems = 'center';
+
+          const select = document.createElement('select');
+          select.className = 'text-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500';
+          select.innerHTML = `
+            <option value="To Evaluate">To Evaluate</option>
+            <option value="Evaluated">Evaluated</option>
+            <option value="Discarded">Discarded</option>
+          `;
+          if (candidate.reviewer_status) select.value = candidate.reviewer_status;
+          select.onchange = function() { updateReviewerStatus(this, candidate.email, currentInterviewId); };
+
+          right.appendChild(select);
+
+          li.appendChild(left);
+          li.appendChild(right);
+          list.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Failed to fetch submissions:', error);
+        list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
       }
-      // attach onchange handler (keeps previous behavior)
-      select.onchange = function() { updateReviewerStatus(this, candidate.email, currentInterviewId); };
+    }
 
-      right.appendChild(select);
-
-      // optional: keep the candidate review quick-link if candidate has a direct review URL (older behavior)
-      // (commented out by default) 
-      // if (token) {
-      //   const quick = document.createElement('a');
-      //   quick.href = `/candidate-review.html?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(currentInterviewId)}`;
-      //   quick.textContent = 'Open';
-      //   quick.className = 'text-xs text-primary-600 hover:underline';
-      //   right.appendChild(quick);
-      // }
-
-      li.appendChild(left);
-      li.appendChild(right);
-      list.appendChild(li);
-    });
-
-  } catch (error) {
-    console.error('Failed to fetch submissions:', error);
-    list.innerHTML = `<li class="text-sm text-red-500">${error.message}</li>`;
-  }
-}
-
-    // --- Fetch Interview Details Function (UPDATED UI only) ---
+    // --- Fetch Interview Details Function (UI data + pending invites rendering) ---
     async function fetchInterview() {
       const content = document.getElementById('interview-content');
       const loading = document.getElementById('loading-state');
@@ -423,16 +442,19 @@ async function fetchSubmissions() {
             const li = document.createElement("li");
             li.className = 'candidate-line text-sm pr-2 py-2 items-center';
 
-            // Column 1: email (single-line, ellipsis) with hover title
+            // Column 1: email/info (wrap-capable)
             const infoDiv = document.createElement('div');
             infoDiv.className = 'candidate-info';
+            const nameDiv = document.createElement('div');
+            nameDiv.innerHTML = candidate.name ? `<div style="font-weight:600;color:#1f2937">${candidate.name}</div>` : '';
             const emailDiv = document.createElement('div');
             emailDiv.className = 'candidate-email';
-            emailDiv.textContent = candidate.candidate_email;
-            emailDiv.title = candidate.candidate_email;  // show full email on hover
+            emailDiv.textContent = candidate.candidate_email || '';
+            emailDiv.title = candidate.candidate_email || '';
+            infoDiv.appendChild(nameDiv);
             infoDiv.appendChild(emailDiv);
 
-            // Column 2: status tag (fixed column)
+            // Column 2: status tag
             const statusDiv = document.createElement('div');
             statusDiv.style.display = 'flex';
             statusDiv.style.justifyContent = 'center';
@@ -448,29 +470,25 @@ async function fetchSubmissions() {
               statusSpan.textContent = (candidate.status || 'Error');
             } else {
               statusSpan.classList.add('bg-yellow-100'); statusSpan.style.color = '#92400E';
-              statusSpan.textContent = (candidate.status || 'Pending');
+              statusSpan.textContent = (candidate.status || 'Invited');
             }
             statusDiv.appendChild(statusSpan);
 
-            // Column 3: action button (Resend), fixed column
+            // Column 3: resend button
             const btnDiv = document.createElement('div');
             btnDiv.style.display = 'flex';
             btnDiv.style.justifyContent = 'flex-end';
             btnDiv.style.alignItems = 'center';
             btnDiv.style.gap = '8px';
-
             const resendButton = document.createElement('button');
             resendButton.className = 'resend-btn';
             resendButton.textContent = 'Resend';
             resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
-
             btnDiv.appendChild(resendButton);
 
-            // Build row
             li.appendChild(infoDiv);
             li.appendChild(statusDiv);
             li.appendChild(btnDiv);
-
             candidateList.appendChild(li);
           });
         } else {
