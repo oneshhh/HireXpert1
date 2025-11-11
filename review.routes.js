@@ -250,7 +250,6 @@ router.post('/answer/review', async (req, res) => {
 });
 
 // --- API for SAVING an individual review ---
-// ✅ Correct, unified /api/evaluations route
 router.post("/evaluations", async (req, res) => {
   try {
     // Allow both logged-in reviewers and visitors
@@ -258,22 +257,25 @@ router.post("/evaluations", async (req, res) => {
       return res.status(401).json({ message: "You must be logged in." });
     }
 
-    // Determine the acting user id
-    const user_id = req.session.user
-      ? req.session.user.id
-      : `viewer:${req.session.viewer.id}`;
+    // Determine the acting user id (viewer uses dummy UUID)
+    const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
+    const user_id = req.session.user ? req.session.user.id : ANONYMOUS_USER_ID;
 
     // Extract data
     const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
 
-    // Ensure required fields
+    // Validate required fields
     if (!interview_id || !candidate_email) {
       return res.status(400).json({ message: "Missing required fields: interview_id, candidate_email" });
     }
 
-    // Use "To Evaluate" as default if none provided
+    // Defaults
     const effectiveStatus = status || "To Evaluate";
+    const numericRating = rating ? parseInt(rating, 10) : null;
+    const safeNotes = notes || '';
+    const safeSummary = summary || '';
 
+    // Query
     const query = `
       INSERT INTO reviewer_evaluations 
           (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
@@ -293,18 +295,18 @@ router.post("/evaluations", async (req, res) => {
       candidate_email,
       user_id,
       effectiveStatus,
-      rating,
-      notes,
-      summary,
+      numericRating,
+      safeNotes,
+      safeSummary,
     ]);
 
     res.status(200).json({ message: "Evaluation saved successfully." });
+
   } catch (error) {
     console.error("Error saving evaluation:", error);
     res.status(500).json({ message: error.message });
   }
 });
-
 
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
