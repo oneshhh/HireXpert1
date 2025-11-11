@@ -348,7 +348,9 @@
             const allReviews = await res.json();
             
             // Filter out my own review to show only "other" reviews
-            const otherReviews = allReviews.filter(review => review.user_id !== myUserId);
+            const otherReviews = allReviews.filter(review => review.user_id !== myUserId && review.viewer_id !== myUserId
+);
+
 
             if (otherReviews.length > 0) {
                 otherReviewsPlaceholder.classList.add('hidden');
