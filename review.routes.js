@@ -249,7 +249,7 @@ router.post('/answer/review', async (req, res) => {
     }
 });
 
-// --- API to save evaluations (FOR BOTH USERS AND VISITORS) ---
+// --- API for SAVING an individual review (supports both user + viewer) ---
 router.post("/evaluations", async (req, res) => {
   try {
     // Must be logged in (user or viewer)
@@ -273,19 +273,19 @@ router.post("/evaluations", async (req, res) => {
     const safeSummary = summary || "";
 
     if (isViewer) {
-      // --- Viewer insert/update ---
+      // --- Case: viewer evaluation ---
       const query = `
         INSERT INTO reviewer_evaluations 
-            (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
+          (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
         VALUES 
-            ($1, $2, $3, $4, $5, $6, $7, NOW())
-        ON CONFLICT (interview_id, candidate_email, viewer_id)
+          ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT ON CONSTRAINT reviewer_eval_viewer_unique
         DO UPDATE SET 
-            status = EXCLUDED.status,
-            rating = EXCLUDED.rating,
-            notes = EXCLUDED.notes,
-            summary = EXCLUDED.summary,
-            updated_at = NOW();
+          status = EXCLUDED.status,
+          rating = EXCLUDED.rating,
+          notes = EXCLUDED.notes,
+          summary = EXCLUDED.summary,
+          updated_at = NOW();
       `;
       await pool.query(query, [
         interview_id,
@@ -297,19 +297,19 @@ router.post("/evaluations", async (req, res) => {
         safeSummary,
       ]);
     } else {
-      // --- Internal user insert/update ---
+      // --- Case: logged-in user evaluation ---
       const query = `
         INSERT INTO reviewer_evaluations 
-            (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
+          (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
         VALUES 
-            ($1, $2, $3, $4, $5, $6, $7, NOW())
-        ON CONFLICT (interview_id, candidate_email, user_id)
+          ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT ON CONSTRAINT reviewer_eval_user_unique
         DO UPDATE SET 
-            status = EXCLUDED.status,
-            rating = EXCLUDED.rating,
-            notes = EXCLUDED.notes,
-            summary = EXCLUDED.summary,
-            updated_at = NOW();
+          status = EXCLUDED.status,
+          rating = EXCLUDED.rating,
+          notes = EXCLUDED.notes,
+          summary = EXCLUDED.summary,
+          updated_at = NOW();
       `;
       await pool.query(query, [
         interview_id,
@@ -328,6 +328,7 @@ router.post("/evaluations", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 
 
