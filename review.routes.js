@@ -249,7 +249,7 @@ router.post('/answer/review', async (req, res) => {
     }
 });
 
-// --- API for SAVING an individual review (supports both user + viewer) ---
+// --- API to save evaluations (FOR BOTH USERS AND VISITORS) ---
 router.post("/evaluations", async (req, res) => {
   try {
     // Must be logged in (user or viewer)
@@ -263,11 +263,8 @@ router.post("/evaluations", async (req, res) => {
 
     const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
 
-    // Validate input
     if (!interview_id || !candidate_email) {
-      return res.status(400).json({
-        message: "Missing required fields: interview_id, candidate_email",
-      });
+      return res.status(400).json({ message: "Missing required fields: interview_id, candidate_email" });
     }
 
     const effectiveStatus = status || "To Evaluate";
@@ -275,9 +272,8 @@ router.post("/evaluations", async (req, res) => {
     const safeNotes = notes || "";
     const safeSummary = summary || "";
 
-    // Different UPSERTs for user and viewer (because of different unique indexes)
     if (isViewer) {
-      // === Viewer review ===
+      // --- Viewer insert/update ---
       const query = `
         INSERT INTO reviewer_evaluations 
             (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
@@ -301,7 +297,7 @@ router.post("/evaluations", async (req, res) => {
         safeSummary,
       ]);
     } else {
-      // === Logged-in reviewer ===
+      // --- Internal user insert/update ---
       const query = `
         INSERT INTO reviewer_evaluations 
             (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
@@ -332,6 +328,7 @@ router.post("/evaluations", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
