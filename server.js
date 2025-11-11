@@ -30,8 +30,8 @@ app.use(
     secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     httpOnly: true,
-    secure: true,        // MUST be true in production (HTTPS). Leave true on Render.
-    sameSite: 'none',    // allow cross-site XHR cookies when credentials:true
+    secure: process.env.NODE_ENV === 'production',  
+    sameSite: 'lax', 
     // remove resave/saveUninitialized (not applicable to cookie-session)
   })
 );

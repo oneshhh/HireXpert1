@@ -4,21 +4,23 @@ const router = express.Router();
 const pool = require('./db'); // <-- Your pg Pool from db.js
 const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2nd DB
 
-// Allow visitors (req.session.viewer) to perform read-only GETs.
-// Keep POST/PUT/DELETE restricted to internal users (req.session.user).
+// Allow both user and viewer for GETs.
+// For POSTs, allow user, but also allow viewer only for /api/evaluations.
 function allowViewerForGets(req, res, next) {
-  if (req.method === 'GET') {
+  const isEvaluationPost =
+    req.method === "POST" && req.path.includes("/evaluations");
+
+  if (req.method === "GET" || isEvaluationPost) {
     if (req.session && (req.session.user || req.session.viewer)) {
       return next();
     }
     return res.status(401).json({ message: "You must be logged in." });
   }
-  // non-GET (writes) must be internal user
+
+  // Other POST/PUT/DELETE restricted to internal user only
   if (req.session && req.session.user) return next();
   return res.status(401).json({ message: "You must be logged in." });
 }
-
-// Apply this middleware to all routes in this router
 router.use(allowViewerForGets);
 
 
@@ -417,5 +419,26 @@ router.get("/me/assigned-interviews", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+
+router.get("/evaluations", async (req, res) => {
+  try {
+    const { interview_id, candidate_email } = req.query;
+    if (!interview_id || !candidate_email)
+      return res.status(400).json({ message: "interview_id and candidate_email are required" });
+
+    const { rows } = await pool.query(
+      `SELECT e.*, u.first_name, u.last_name
+       FROM reviewer_evaluations e
+       LEFT JOIN users u ON e.user_id::uuid = u.id
+       WHERE e.interview_id = $1 AND e.candidate_email = $2`,
+      [interview_id, candidate_email]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching evaluations:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 module.exports = router;

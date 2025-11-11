@@ -269,7 +269,7 @@
           // Make logout a client-side action for visitors
           logoutLink.onclick = async (e) => {
               e.preventDefault();
-              await fetch('/viewer/logout');
+              await fetch('/viewer/logout', { credentials: 'include' });
               showLogin();
           };
       } else {
@@ -425,7 +425,8 @@
             const response = await fetch('/viewer/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'include' // ✅ required for cookie-session to persist login
             });
             const data = await response.json();
             if (!response.ok) {
@@ -545,7 +546,7 @@
     }
 
     // 2) Check visitor session explicitly
-    const visitorResponse = await fetch('/viewer/me');
+    const visitorResponse = await fetch('/viewer/me', { credentials: 'include' });
     if (visitorResponse.ok) {
       const visitorPayload = await visitorResponse.json();
       // visitorPayload is expected to be { id, email, ... }
