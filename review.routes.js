@@ -249,60 +249,82 @@ router.post('/answer/review', async (req, res) => {
     }
 });
 
-// --- API for SAVING an individual review (supports both user + visitor) ---
+// --- API for SAVING an individual review (supports both user + viewer) ---
 router.post("/evaluations", async (req, res) => {
   try {
-    // Ensure a logged-in reviewer or viewer
+    // Must be logged in (user or viewer)
     if (!req.session.user && !req.session.viewer) {
       return res.status(401).json({ message: "You must be logged in." });
     }
 
-    // Identify reviewer type
     const isViewer = !!req.session.viewer;
     const user_id = isViewer ? null : req.session.user.id;
     const viewer_id = isViewer ? req.session.viewer.id : null;
 
-    // Extract data
     const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
 
-    // Validate required fields
+    // Validate input
     if (!interview_id || !candidate_email) {
       return res.status(400).json({
         message: "Missing required fields: interview_id, candidate_email",
       });
     }
 
-    // Apply defaults
     const effectiveStatus = status || "To Evaluate";
     const numericRating = rating ? parseInt(rating, 10) : null;
     const safeNotes = notes || "";
     const safeSummary = summary || "";
 
-    // Query: if user_id is NULL, use viewer_id for uniqueness
-    const query = `
-      INSERT INTO reviewer_evaluations 
-          (interview_id, candidate_email, user_id, viewer_id, status, rating, notes, summary, updated_at)
-      VALUES 
-          ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-      ON CONFLICT (interview_id, candidate_email, COALESCE(user_id, viewer_id))
-      DO UPDATE SET 
-          status = EXCLUDED.status,
-          rating = EXCLUDED.rating,
-          notes = EXCLUDED.notes,
-          summary = EXCLUDED.summary,
-          updated_at = NOW();
-    `;
-
-    await pool.query(query, [
-      interview_id,
-      candidate_email,
-      user_id,
-      viewer_id,
-      effectiveStatus,
-      numericRating,
-      safeNotes,
-      safeSummary,
-    ]);
+    // Different UPSERTs for user and viewer (because of different unique indexes)
+    if (isViewer) {
+      // === Viewer review ===
+      const query = `
+        INSERT INTO reviewer_evaluations 
+            (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
+        VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (interview_id, candidate_email, viewer_id)
+        DO UPDATE SET 
+            status = EXCLUDED.status,
+            rating = EXCLUDED.rating,
+            notes = EXCLUDED.notes,
+            summary = EXCLUDED.summary,
+            updated_at = NOW();
+      `;
+      await pool.query(query, [
+        interview_id,
+        candidate_email,
+        viewer_id,
+        effectiveStatus,
+        numericRating,
+        safeNotes,
+        safeSummary,
+      ]);
+    } else {
+      // === Logged-in reviewer ===
+      const query = `
+        INSERT INTO reviewer_evaluations 
+            (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
+        VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (interview_id, candidate_email, user_id)
+        DO UPDATE SET 
+            status = EXCLUDED.status,
+            rating = EXCLUDED.rating,
+            notes = EXCLUDED.notes,
+            summary = EXCLUDED.summary,
+            updated_at = NOW();
+      `;
+      await pool.query(query, [
+        interview_id,
+        candidate_email,
+        user_id,
+        effectiveStatus,
+        numericRating,
+        safeNotes,
+        safeSummary,
+      ]);
+    }
 
     res.status(200).json({ message: "Evaluation saved successfully." });
   } catch (error) {
@@ -310,7 +332,6 @@ router.post("/evaluations", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
