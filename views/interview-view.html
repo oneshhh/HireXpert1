@@ -235,6 +235,21 @@
   <script>
     // --- Global variable (Unchanged) ---
     let currentInterviewId = null;
+    // --- Detect if current user is a viewer ---
+let isViewer = false;
+
+async function checkUserType() {
+  try {
+    const resp = await fetch('/api/me', { credentials: 'include' });
+    if (!resp.ok) { isViewer = true; return; } // fallback if no login session
+    const data = await resp.json();
+    // assume API returns { type: 'user' | 'viewer' }
+    if (data.type && data.type !== 'user') isViewer = true;
+  } catch {
+    isViewer = true;
+  }
+}
+
 
     // --- Notification Modal Helpers (Unchanged) ---
     const notificationModal = document.getElementById('notification-modal');
@@ -384,7 +399,17 @@
           if (candidate.reviewer_status) select.value = candidate.reviewer_status;
           select.onchange = function() { updateReviewerStatus(this, candidate.email, currentInterviewId); };
 
-          right.appendChild(select);
+          if (isViewer) {
+            // For viewers — show read-only status tag instead of dropdown
+            const tag = document.createElement('span');
+            tag.className = 'candidate-status bg-gray-100 text-gray-800';
+            tag.textContent = candidate.reviewer_status || 'To Evaluate';
+            right.appendChild(tag);
+          } else {
+            // For users — keep dropdown
+            select.onchange = function() { updateReviewerStatus(this, candidate.email, currentInterviewId); };
+            right.appendChild(select);
+          }
 
           li.appendChild(left);
           li.appendChild(right);
@@ -398,6 +423,7 @@
 
     // --- Fetch Interview Details Function (UI data + pending invites rendering) ---
     async function fetchInterview() {
+      await checkUserType(); // detect if viewer before building UI
       const content = document.getElementById('interview-content');
       const loading = document.getElementById('loading-state');
       const errorDiv = document.getElementById('error-state');
