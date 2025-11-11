@@ -63,44 +63,47 @@
 <div class="flex h-full w-full">
 <!-- Sidebar with dark mode classes -->
 <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
-    <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-        <div class="flex flex-col items-start">
-            <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
-            <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
-        </div>
-        <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
-            <span class="material-symbols-outlined">close</span>
+
+  <!-- Header -->
+  <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
+      <div class="flex flex-col items-start">
+          <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
+          <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+      </div>
+      <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
+          <span class="material-symbols-outlined">close</span>
+      </button>
+  </div>
+
+  <!-- NAVIGATION -->
+  <div class="flex flex-1 flex-col overflow-y-auto justify-between">
+    <nav class="space-y-2 p-4">
+        <a href="/admin_Dashboard.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined">dashboard</span>
+            Dashboard
+        </a>
+        <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined">visibility</span>
+            Visitors
+        </a>
+        <a href="settings.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined">settings</span>
+            Settings
+        </a>
+    </nav>
+
+    <!-- Bottom buttons -->
+    <div class="border-t border-gray-200 p-4 dark:border-gray-700 space-y-2">
+        <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined">dark_mode</span>
+            <span>Toggle Theme</span>
+        </button>
+        <button id="logout-btn" class="flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
+            <span class="material-symbols-outlined">logout</span>
+            Logout
         </button>
     </div>
-    
-    <div class="flex flex-1 flex-col overflow-y-auto">
-        <!-- Nav links with dark mode classes -->
-        <nav class="flex-1 space-y-2 p-4">
-            <a class="flex items-center gap-3 rounded-md bg-[var(--secondary-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)]" href="#">
-                <span class="material-symbols-outlined text-[var(--text-primary)]">dashboard</span>
-                Dashboard
-            </a>
-            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="settings.html">
-                <span class="material-symbols-outlined">settings</span>
-                Settings
-            </a>
-            <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="/add_visitors.html">
-                <span class="material-symbols-outlined">visibility</span>
-                Reviewer Management
-            </a>
-                        <!-- [MOVED] Dark mode toggle button -->
-            <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-                <span class="material-symbols-outlined">dark_mode</span>
-                <span>Toggle Theme</span>
-            </button>
-                        <a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700" href="/logout">
-                <span class="material-symbols-outlined">logout</span>
-                Logout
-            </a>
-        </nav>
-        
-        <!-- [REMOVED] Old div wrapper for the button -->
-    </div>
+  </div>
 </aside>
 
 <!-- Sidebar Overlay for mobile (hidden by default) -->
