@@ -116,28 +116,64 @@ function calculateOverallSubmissionStatus(statuses) {
 
 /**
  * Endpoint 2: POST /api/candidate/status
- * Updates the reviewer status in your MAIN database (DB_A).
+ * Updates the candidate's reviewer status in MAIN database (DB_A).
+ * Works for both internal users and external viewers.
  */
 router.post('/candidate/status', async (req, res) => {
-    // We will use candidate_email to update the status, as token is not in this table
+  try {
+    // ✅ Allow both logged-in users and viewers
+    if (!req.session.user && !req.session.viewer) {
+      return res.status(401).json({ message: 'You must be logged in.' });
+    }
+
     const { candidate_email, status, interview_id } = req.body;
 
+    // ✅ Validate inputs
     if (!candidate_email || !status || !interview_id) {
-        return res.status(400).json({ message: 'Email, status, and interview ID are required.' });
+      return res
+        .status(400)
+        .json({ message: 'Email, status, and interview ID are required.' });
     }
 
-    try {
-        // Update 'candidate_sessions' in your FIRST database (DB_A)
-        await pool.query(
-            `UPDATE candidate_sessions SET status = $1 WHERE candidate_email = $2 AND interview_id = $3`,
-            [status, candidate_email, interview_id]
-        );
-        res.status(200).json({ message: 'Status updated successfully.' });
-    } catch (error) {
-        console.error('Error updating candidate status:', error);
-        res.status(500).json({ message: error.message });
+    // ✅ Identify who is performing the update (for logging/audit)
+    const actorType = req.session.user ? 'user' : 'viewer';
+    const actorInfo = req.session.user || req.session.viewer;
+
+    console.log(
+      `[STATUS UPDATE] ${actorType.toUpperCase()} ${
+        actorInfo.email
+      } (${actorInfo.id}) is updating ${candidate_email} to "${status}" for interview ${interview_id}`
+    );
+
+    // ✅ Update in candidate_sessions
+    const result = await pool.query(
+      `
+      UPDATE candidate_sessions
+      SET status = $1, updated_at = NOW()
+      WHERE candidate_email = $2 AND interview_id = $3
+      RETURNING candidate_email, status, interview_id;
+    `,
+      [status, candidate_email, interview_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: 'Candidate session not found for this interview.',
+      });
     }
+
+    console.log(`[STATUS UPDATE SUCCESS]`, result.rows[0]);
+
+    res.status(200).json({
+      message: 'Status updated successfully.',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error updating candidate status:', error);
+    res.status(500).json({ message: error.message });
+  }
 });
+
 
 
 /**
