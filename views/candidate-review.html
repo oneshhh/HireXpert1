@@ -305,15 +305,16 @@
         } else {
             // No button passed: still attempt to save (headless)
             try {
+                // Build the payload in the shape your backend expects
                 const payload = {
-                    interview_id: interviewId,
-                    candidate_email: candidateEmail,
-                    ratings: {
-                        overall: evaluationData.rating,
-                        notes: evaluationData.notes
-                    },
-                    comments: evaluationData.summary || ''
+                interview_id: interviewId,
+                candidate_email: candidateEmail,
+                status: evaluationData.status || "Evaluated",
+                rating: evaluationData.rating,       // integer 1–5
+                notes: evaluationData.notes || "",   // text or comment
+                summary: evaluationData.summary || "" // summary textarea
                 };
+
                 const response = await fetch('/api/evaluations', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
