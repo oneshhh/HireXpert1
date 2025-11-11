@@ -122,64 +122,47 @@ function calculateOverallSubmissionStatus(statuses) {
  */
 router.post("/candidate/status", async (req, res) => {
   try {
-    // ✅ Accept both users and viewers
-    if (!req.session.user && !req.session.viewer) {
+    // ✅ Normalize: treat both users and viewers the same
+    const sessionUser = req.session.user || req.session.viewer || req.session.visitor;
+
+    if (!sessionUser) {
       return res.status(401).json({ message: "You must be logged in." });
     }
 
     const { candidate_email, status, interview_id } = req.body;
 
-    // ✅ Validate required inputs
     if (!candidate_email || !status || !interview_id) {
-      return res.status(400).json({
-        message: "Email, status, and interview ID are required.",
-      });
+      return res.status(400).json({ message: "Missing required fields." });
     }
 
-    // ✅ Identify who’s performing this change
-    const actor = req.session.user
-      ? { type: "user", email: req.session.user.email, id: req.session.user.id }
-      : { type: "viewer", email: req.session.viewer.email, id: req.session.viewer.id };
+    // ✅ Identify actor for logging
+    const actorType = req.session.user
+      ? "USER"
+      : req.session.viewer
+      ? "VIEWER"
+      : "VISITOR";
 
     console.log(
-      `[Candidate Status Update] ${actor.type.toUpperCase()} ${
-        actor.email
-      } is changing ${candidate_email} → "${status}" for interview ${interview_id}`
+      `[Candidate Status Update] ${actorType} ${
+        sessionUser.email || "unknown"
+      } is changing ${candidate_email} to "${status}" for interview ${interview_id}`
     );
 
-    // ✅ Check if candidate_sessions table has updated_at column
-    const checkColumn = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'candidate_sessions' AND column_name = 'updated_at';
-    `);
+    // ✅ Update the candidate_sessions table (no updated_at)
+    const query = `
+      UPDATE candidate_sessions
+      SET status = $1
+      WHERE candidate_email = $2 AND interview_id = $3
+      RETURNING candidate_email, status, interview_id;
+    `;
 
-    const hasUpdatedAt = checkColumn.rows.length > 0;
-
-    // ✅ Build dynamic SQL depending on schema
-    const updateQuery = hasUpdatedAt
-      ? `UPDATE candidate_sessions
-         SET status = $1, updated_at = NOW()
-         WHERE candidate_email = $2 AND interview_id = $3
-         RETURNING candidate_email, status, interview_id;`
-      : `UPDATE candidate_sessions
-         SET status = $1
-         WHERE candidate_email = $2 AND interview_id = $3
-         RETURNING candidate_email, status, interview_id;`;
-
-    const result = await pool.query(updateQuery, [
-      status,
-      candidate_email,
-      interview_id,
-    ]);
+    const result = await pool.query(query, [status, candidate_email, interview_id]);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({
-        message: "Candidate session not found for this interview.",
-      });
+      return res
+        .status(404)
+        .json({ message: "Candidate session not found for this interview." });
     }
-
-    console.log(`[STATUS UPDATED]`, result.rows[0]);
 
     res.status(200).json({
       message: "Status updated successfully.",
@@ -190,8 +173,6 @@ router.post("/candidate/status", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
 
 /**
  * Endpoint 3: GET /api/candidate/review/:token
