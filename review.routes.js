@@ -268,16 +268,19 @@ router.post("/evaluations", async (req, res) => {
     }
 
     const effectiveStatus = status || "To Evaluate";
-    const numericRating = (rating !== undefined && rating !== null && rating !== '') ? parseInt(rating, 10) : null;
+    const numericRating = (rating !== undefined && rating !== null && rating !== '')
+      ? parseInt(rating, 10)
+      : null;
     const safeNotes = notes || "";
     const safeSummary = summary || "";
 
     if (isViewer) {
-      // Viewer path — use viewer_id columns & conflict on (interview_id, candidate_email, viewer_id)
+      // Viewer route — uses viewer_id
       const query = `
         INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        VALUES
+          ($1, $2, $3, $4, $5, $6, $7, NOW())
         ON CONFLICT (interview_id, candidate_email, viewer_id)
         DO UPDATE SET
           status = EXCLUDED.status,
@@ -296,11 +299,12 @@ router.post("/evaluations", async (req, res) => {
         safeSummary,
       ]);
     } else {
-      // Logged-in user path — use user_id and conflict on (interview_id, candidate_email, user_id)
+      // Logged-in reviewer route — uses user_id
       const query = `
         INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        VALUES
+          ($1, $2, $3, $4, $5, $6, $7, NOW())
         ON CONFLICT (interview_id, candidate_email, user_id)
         DO UPDATE SET
           status = EXCLUDED.status,
@@ -320,15 +324,12 @@ router.post("/evaluations", async (req, res) => {
       ]);
     }
 
-    return res.status(200).json({ message: "Evaluation saved successfully." });
+    res.status(200).json({ message: "Evaluation saved successfully." });
   } catch (error) {
     console.error("Error saving evaluation:", error);
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
-
-
-
 
 
 // --- API for the "My Interviews" Dashboard (FOR VISITORS) ---
