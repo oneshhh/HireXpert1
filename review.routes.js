@@ -252,7 +252,7 @@ router.post('/answer/review', async (req, res) => {
 // --- API for SAVING an individual review (supports both user + viewer) ---
 router.post("/evaluations", async (req, res) => {
   try {
-    // Must be logged in (user or viewer)
+    // Must be logged in as a user OR a viewer
     if (!req.session.user && !req.session.viewer) {
       return res.status(401).json({ message: "You must be logged in." });
     }
@@ -268,19 +268,18 @@ router.post("/evaluations", async (req, res) => {
     }
 
     const effectiveStatus = status || "To Evaluate";
-    const numericRating = rating ? parseInt(rating, 10) : null;
+    const numericRating = (rating !== undefined && rating !== null && rating !== '') ? parseInt(rating, 10) : null;
     const safeNotes = notes || "";
     const safeSummary = summary || "";
 
     if (isViewer) {
-      // --- Case: viewer evaluation ---
+      // Viewer path — use viewer_id columns & conflict on (interview_id, candidate_email, viewer_id)
       const query = `
-        INSERT INTO reviewer_evaluations 
+        INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
-        VALUES 
-          ($1, $2, $3, $4, $5, $6, $7, NOW())
-        ON CONFLICT ON CONSTRAINT reviewer_eval_viewer_unique
-        DO UPDATE SET 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (interview_id, candidate_email, viewer_id)
+        DO UPDATE SET
           status = EXCLUDED.status,
           rating = EXCLUDED.rating,
           notes = EXCLUDED.notes,
@@ -297,14 +296,13 @@ router.post("/evaluations", async (req, res) => {
         safeSummary,
       ]);
     } else {
-      // --- Case: logged-in user evaluation ---
+      // Logged-in user path — use user_id and conflict on (interview_id, candidate_email, user_id)
       const query = `
-        INSERT INTO reviewer_evaluations 
+        INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
-        VALUES 
-          ($1, $2, $3, $4, $5, $6, $7, NOW())
-        ON CONFLICT ON CONSTRAINT reviewer_eval_user_unique
-        DO UPDATE SET 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (interview_id, candidate_email, user_id)
+        DO UPDATE SET
           status = EXCLUDED.status,
           rating = EXCLUDED.rating,
           notes = EXCLUDED.notes,
@@ -322,12 +320,13 @@ router.post("/evaluations", async (req, res) => {
       ]);
     }
 
-    res.status(200).json({ message: "Evaluation saved successfully." });
+    return res.status(200).json({ message: "Evaluation saved successfully." });
   } catch (error) {
     console.error("Error saving evaluation:", error);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 });
+
 
 
 
