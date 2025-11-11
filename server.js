@@ -24,19 +24,53 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(
-  cookieSession({
-    name: 'session', // cookie name
-    secret: process.env.SESSION_SECRET || "a-default-secret-for-development",
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',  
-    sameSite: 'lax', 
-    // remove resave/saveUninitialized (not applicable to cookie-session)
-  })
-);
+app.use(cookieSession({
+  name: 'session',
+  keys: ['secret1', 'secret2'],
+  sameSite: 'lax',     // ✅ allows same-site requests
+  secure: process.env.NODE_ENV === 'production',  // ✅ safe for both local + live
+  maxAge: 24 * 60 * 60 * 1000                    // 1 day
+}));
+
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
+
+
+// --- Viewer Initialization Route ---
+// This sets up a session for viewers using a token from the invite link
+app.get("/api/viewer/init", async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ message: "Missing viewer token" });
+    }
+
+    // ✅ Example: pull viewer info from DB (adjust table/field names)
+    const { rows } = await pool.query(
+      "SELECT id, email, name, interview_id FROM viewers WHERE token = $1",
+      [token]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: "Invalid or expired token" });
+    }
+
+    // ✅ Store minimal viewer info in session
+    req.session.viewer = {
+      id: rows[0].id,
+      email: rows[0].email,
+      name: rows[0].name,
+      interview_id: rows[0].interview_id
+    };
+
+    console.log("Viewer session created:", req.session.viewer);
+
+    res.json({ success: true, message: "Viewer session initialized" });
+  } catch (err) {
+    console.error("Error initializing viewer session:", err);
+    res.status(500).json({ message: "Server error initializing viewer" });
+  }
+});
 
 
 // Helper functions

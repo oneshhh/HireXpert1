@@ -254,6 +254,26 @@
       confirmCallback = null;
   }
 
+  (async function initViewerSession() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) return;
+
+  try {
+    const res = await fetch(`/api/viewer/init?token=${token}`, {
+      credentials: "include"
+    });
+    if (res.ok) {
+      console.log("✅ Viewer session initialized");
+    } else {
+      console.warn("⚠️ Viewer init failed:", await res.text());
+    }
+  } catch (err) {
+    console.error("Error initializing viewer session:", err);
+  }
+})();
+
+
   // --- [NEW] Dashboard Functions ---
   async function showDashboard(user, userType = 'user') {
       // 1. Populate user info in header
