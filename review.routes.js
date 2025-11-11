@@ -173,10 +173,11 @@ router.get('/candidate/review/:token', async (req, res) => {
 
         // 3. Get all Answers from SECOND database (DB_B)
         const { data: answers, error: answersError } = await supabase_second_db
-            .from('answers')
-            .select('*')
-            .eq('candidate_token', token)
-            .order('question_id');
+        .from('answers')
+        .select('*')
+        .eq('candidate_token', token)
+        .eq('interview_id', candidate.interview_id) // ✅ NEW
+        .order('question_id');
 
         if (answersError) throw answersError;
         
