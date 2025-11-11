@@ -248,86 +248,60 @@ router.post('/answer/review', async (req, res) => {
 });
 
 // --- API for SAVING an individual review ---
-// (Path becomes: POST /api/evaluations)
+// ✅ Correct, unified /api/evaluations route
 router.post("/evaluations", async (req, res) => {
-    if (!req.session.user || !req.session.user.id) {
-        return res.status(401).json({ message: "You must be logged in." });
+  try {
+    // Allow both logged-in reviewers and visitors
+    if (!req.session.user && !req.session.viewer) {
+      return res.status(401).json({ message: "You must be logged in." });
     }
-    const user_id = req.session.user.id;
-    
-    // Get all fields from the review page
+
+    // Determine the acting user id
+    const user_id = req.session.user
+      ? req.session.user.id
+      : `viewer:${req.session.viewer.id}`;
+
+    // Extract data
     const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
 
-    // Use "UPSERT" to create or update the review
+    // Ensure required fields
+    if (!interview_id || !candidate_email) {
+      return res.status(400).json({ message: "Missing required fields: interview_id, candidate_email" });
+    }
+
+    // Use "To Evaluate" as default if none provided
+    const effectiveStatus = status || "To Evaluate";
+
     const query = `
-        INSERT INTO reviewer_evaluations 
-            (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
-        VALUES 
-            ($1, $2, $3, $4, $5, $6, $7, NOW())
-        ON CONFLICT (interview_id, candidate_email, user_id) 
-        DO UPDATE SET 
-            status = EXCLUDED.status,
-            rating = EXCLUDED.rating,
-            notes = EXCLUDED.notes,
-            summary = EXCLUDED.summary,
-            updated_at = NOW();
+      INSERT INTO reviewer_evaluations 
+          (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
+      VALUES 
+          ($1, $2, $3, $4, $5, $6, $7, NOW())
+      ON CONFLICT (interview_id, candidate_email, user_id) 
+      DO UPDATE SET 
+          status = EXCLUDED.status,
+          rating = EXCLUDED.rating,
+          notes = EXCLUDED.notes,
+          summary = EXCLUDED.summary,
+          updated_at = NOW();
     `;
-    
-    try {
-        // We use 'pool' because this table is in Database A
-        await pool.query(query, [interview_id, candidate_email, user_id, status, rating, notes, summary]);
-        res.status(200).json({ message: 'Evaluation saved successfully.' });
-    } catch (error) {
-        console.error("Error saving evaluation:", error);
-        res.status(500).json({ message: error.message });
-    }
-});
 
+    await pool.query(query, [
+      interview_id,
+      candidate_email,
+      user_id,
+      effectiveStatus,
+      rating,
+      notes,
+      summary,
+    ]);
 
-// --- API for GETTING all reviews for a candidate ---
-// --- POST /api/evaluations (allow viewer OR user) ---
-// DIAGNOSTIC POST /api/evaluations (replace existing handler with this)
-// diagnostic POST handler for /api/evaluations (paste in review.routes.js)
-router.post('/evaluations', async (req, res) => {
-  try {
-    console.log('--- DIAGNOSTIC POST /api/evaluations ---');
-    console.log('Incoming cookies header:', req.headers.cookie || '<NO COOKIE HEADER>');
-    // If using cookie-session, req.session should be an object (even if empty)
-    console.log('req.session present?', !!req.session);
-    console.log('req.session keys:', req.session ? Object.keys(req.session) : '<no session>');
-    console.log('req.session.user:', req.session && !!req.session.user);
-    console.log('req.session.viewer:', req.session && !!req.session.viewer);
-
-    // then the normal permissive auth check
-    if (!req.session || (!req.session.user && !req.session.viewer)) {
-      console.warn('DIAGNOSTIC: unauthorized - no user/viewer in session');
-      return res.status(401).json({ message: 'You must be logged in.' });
-    }
-
-    // proceed to save (same as before)
-    const { interview_id, candidate_email, ratings, comments } = req.body || {};
-    if (!interview_id || !candidate_email || !ratings) {
-      return res.status(400).json({ message: 'Missing required fields: interview_id, candidate_email, ratings' });
-    }
-    const legacyUserId = req.session.user ? req.session.user.id : `viewer:${req.session.viewer.id}`;
-    const ratingsJson = typeof ratings === 'string' ? ratings : JSON.stringify(ratings);
-    const commentsSafe = comments ? String(comments) : '';
-
-    const insertQ = `
-      INSERT INTO reviewer_evaluations (interview_id, candidate_email, user_id, ratings, comments, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING *;
-    `;
-    const vals = [interview_id, candidate_email, legacyUserId, ratingsJson, commentsSafe];
-    const { rows } = await pool.query(insertQ, vals);
-    console.log('DIAGNOSTIC: saved evaluation id=', rows[0] && rows[0].id);
-    return res.json({ message: 'Evaluation saved', evaluation: rows[0] || null });
-  } catch (err) {
-    console.error('DIAGNOSTIC POST /api/evaluations error:', err);
-    return res.status(500).json({ message: err.message || 'Internal server error' });
+    res.status(200).json({ message: "Evaluation saved successfully." });
+  } catch (error) {
+    console.error("Error saving evaluation:", error);
+    res.status(500).json({ message: error.message });
   }
 });
-
 
 
 
