@@ -116,63 +116,43 @@ function calculateOverallSubmissionStatus(statuses) {
 
 /**
  * Endpoint 2: POST /api/candidate/status
- * Updates the candidate's reviewer status in MAIN database (DB_A).
- * Works for both internal users and external viewers.
+ * Updates the reviewer status in your MAIN database (DB_A).
+ * Works for both logged-in users and external reviewers (viewers).
  */
 router.post('/candidate/status', async (req, res) => {
-  try {
-    // ✅ Allow both logged-in users and viewers
-    if (!req.session.user && !req.session.viewer) {
-      return res.status(401).json({ message: 'You must be logged in.' });
+    try {
+        // Allow both logged-in users and viewers
+        if (!req.session.user && !req.session.viewer) {
+            return res.status(401).json({ message: "You must be logged in." });
+        }
+
+        const { candidate_email, status, interview_id } = req.body;
+
+        if (!candidate_email || !status || !interview_id) {
+            return res.status(400).json({ message: "Email, status, and interview ID are required." });
+        }
+
+        // Log who’s making the change (for debugging)
+        const actor = req.session.user
+            ? `User ${req.session.user.email}`
+            : `Viewer ${req.session.viewer.email}`;
+        console.log(`[Status Update] ${actor} → ${status} for ${candidate_email}`);
+
+        // Update status in candidate_sessions
+        await pool.query(
+            `UPDATE candidate_sessions
+             SET status = $1, updated_at = NOW()
+             WHERE candidate_email = $2 AND interview_id = $3`,
+            [status, candidate_email, interview_id]
+        );
+
+        res.status(200).json({ message: "Status updated successfully." });
+    } catch (error) {
+        console.error("Error updating candidate status:", error);
+        res.status(500).json({ message: error.message });
     }
-
-    const { candidate_email, status, interview_id } = req.body;
-
-    // ✅ Validate inputs
-    if (!candidate_email || !status || !interview_id) {
-      return res
-        .status(400)
-        .json({ message: 'Email, status, and interview ID are required.' });
-    }
-
-    // ✅ Identify who is performing the update (for logging/audit)
-    const actorType = req.session.user ? 'user' : 'viewer';
-    const actorInfo = req.session.user || req.session.viewer;
-
-    console.log(
-      `[STATUS UPDATE] ${actorType.toUpperCase()} ${
-        actorInfo.email
-      } (${actorInfo.id}) is updating ${candidate_email} to "${status}" for interview ${interview_id}`
-    );
-
-    // ✅ Update in candidate_sessions
-    const result = await pool.query(
-      `
-      UPDATE candidate_sessions
-      SET status = $1, updated_at = NOW()
-      WHERE candidate_email = $2 AND interview_id = $3
-      RETURNING candidate_email, status, interview_id;
-    `,
-      [status, candidate_email, interview_id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        message: 'Candidate session not found for this interview.',
-      });
-    }
-
-    console.log(`[STATUS UPDATE SUCCESS]`, result.rows[0]);
-
-    res.status(200).json({
-      message: 'Status updated successfully.',
-      data: result.rows[0],
-    });
-  } catch (error) {
-    console.error('Error updating candidate status:', error);
-    res.status(500).json({ message: error.message });
-  }
 });
+
 
 
 
@@ -484,14 +464,11 @@ router.get("/evaluations", async (req, res) => {
       return res.status(400).json({ message: "interview_id and candidate_email are required" });
     }
 
-    // Join users and visitors so we can return a name for either kind of reviewer.
-    // We do not cast here — user_id and viewer_id are already uuid columns in your DB.
     const query = `
       SELECT e.*,
-             u.first_name  AS user_first_name,
-             u.last_name   AS user_last_name,
-             v.first_name  AS visitor_first_name,
-             v.last_name   AS visitor_last_name
+             COALESCE(u.first_name, v.first_name) AS first_name,
+             COALESCE(u.last_name, v.last_name)   AS last_name,
+             COALESCE(u.email, v.email)           AS reviewer_email
       FROM reviewer_evaluations e
       LEFT JOIN users u     ON e.user_id   = u.id
       LEFT JOIN visitors v  ON e.viewer_id = v.id
@@ -501,23 +478,11 @@ router.get("/evaluations", async (req, res) => {
     `;
 
     const { rows } = await pool.query(query, [interview_id, candidate_email]);
-
-    // Normalize names for frontend: prefer user's name, otherwise visitor's name.
-    const normalized = rows.map(r => ({
-      ...r,
-      first_name: r.user_first_name || r.visitor_first_name || null,
-      last_name:  r.user_last_name || r.visitor_last_name || null,
-      // remove helper fields to keep payload small
-      user_first_name: undefined,
-      user_last_name: undefined,
-      visitor_first_name: undefined,
-      visitor_last_name: undefined
-    }));
-
-    res.json(normalized);
+    res.json(rows);
   } catch (err) {
     console.error("Error fetching evaluations:", err);
     res.status(500).json({ message: err.message });
   }
 });
+
 module.exports = router;
