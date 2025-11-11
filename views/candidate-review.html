@@ -265,12 +265,10 @@
                 const payload = {
                     interview_id: interviewId,
                     candidate_email: candidateEmail,
-                    // Simple ratings object using overall rating + summary
-                    ratings: {
-                        overall: evaluationData.rating,
-                        notes: evaluationData.notes
-                    },
-                    comments: evaluationData.summary || ''
+                    status: evaluationData.status || "Evaluated",
+                    rating: evaluationData.rating,       // integer 1–5
+                    notes: evaluationData.notes || "",   // text or comment
+                    summary: evaluationData.summary || "" // textarea summary
                 };
 
                 const response = await fetch('/api/evaluations', {
