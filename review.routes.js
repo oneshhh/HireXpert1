@@ -289,14 +289,14 @@ router.post('/answer/review', async (req, res) => {
 // --- API for SAVING an individual review (supports both user + viewer) ---
 router.post("/evaluations", async (req, res) => {
   try {
-    // Must be logged in as a user OR a viewer
+    // require viewer OR user in session
     if (!req.session.user && !req.session.viewer) {
       return res.status(401).json({ message: "You must be logged in." });
     }
 
     const isViewer = !!req.session.viewer;
-    const user_id = isViewer ? null : req.session.user.id;
-    const viewer_id = isViewer ? req.session.viewer.id : null;
+    const user_id = req.session.user ? req.session.user.id : null;
+    const viewer_id = req.session.viewer ? req.session.viewer.id : null;
 
     const { interview_id, candidate_email, status, rating, notes, summary } = req.body;
 
@@ -304,66 +304,60 @@ router.post("/evaluations", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields: interview_id, candidate_email" });
     }
 
+    // Normalize inputs
     const effectiveStatus = status || "To Evaluate";
-    const numericRating = (rating !== undefined && rating !== null && rating !== '')
-      ? parseInt(rating, 10)
-      : null;
+    const numericRating = (rating !== undefined && rating !== null && rating !== "") ? parseInt(rating, 10) : null;
     const safeNotes = notes || "";
     const safeSummary = summary || "";
 
+    // Use the correct ON CONFLICT target depending on viewer vs user (you have those unique constraints)
     if (isViewer) {
-      // Viewer route — uses viewer_id
-      const query = `
+      const q = `
         INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, viewer_id, status, rating, notes, summary, updated_at)
-        VALUES
-          ($1, $2, $3, $4, $5, $6, $7, NOW())
+        VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
         ON CONFLICT (interview_id, candidate_email, viewer_id)
         DO UPDATE SET
           status = EXCLUDED.status,
           rating = EXCLUDED.rating,
           notes = EXCLUDED.notes,
           summary = EXCLUDED.summary,
-          updated_at = NOW();
+          updated_at = NOW()
+        RETURNING *;
       `;
-      await pool.query(query, [
-        interview_id,
-        candidate_email,
-        viewer_id,
-        effectiveStatus,
-        numericRating,
-        safeNotes,
-        safeSummary,
+      const { rows } = await pool.query(q, [
+        interview_id, candidate_email, viewer_id, effectiveStatus, numericRating, safeNotes, safeSummary
       ]);
+      return res.json({ message: "Evaluation saved (viewer).", evaluation: rows[0] });
     } else {
-      // Logged-in reviewer route — uses user_id
-      const query = `
+      const q = `
         INSERT INTO reviewer_evaluations
           (interview_id, candidate_email, user_id, status, rating, notes, summary, updated_at)
-        VALUES
-          ($1, $2, $3, $4, $5, $6, $7, NOW())
+        VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
         ON CONFLICT (interview_id, candidate_email, user_id)
         DO UPDATE SET
           status = EXCLUDED.status,
           rating = EXCLUDED.rating,
           notes = EXCLUDED.notes,
           summary = EXCLUDED.summary,
-          updated_at = NOW();
+          updated_at = NOW()
+        RETURNING *;
       `;
-      await pool.query(query, [
-        interview_id,
-        candidate_email,
-        user_id,
-        effectiveStatus,
-        numericRating,
-        safeNotes,
-        safeSummary,
+      const { rows } = await pool.query(q, [
+        interview_id, candidate_email, user_id, effectiveStatus, numericRating, safeNotes, safeSummary
       ]);
+      return res.json({ message: "Evaluation saved (user).", evaluation: rows[0] });
     }
-
-    res.status(200).json({ message: "Evaluation saved successfully." });
   } catch (error) {
     console.error("Error saving evaluation:", error);
+    // if it's a FK constraint failure, give a clearer message
+    if (error.code === "23503") {
+      return res.status(400).json({ message: "Foreign key constraint failed: check interview/user/viewer exists" });
+    }
+    // if ON CONFLICT target mismatch (42P10) — that indicates unique index missing — give hint
+    if (error.code === "42P10") {
+      return res.status(500).json({ message: "ON CONFLICT target error (42P10). Please ensure unique indexes on reviewer_evaluations exist for (interview_id,candidate_email,user_id) and (interview_id,candidate_email,viewer_id)." });
+    }
     res.status(500).json({ message: error.message });
   }
 });
@@ -482,24 +476,48 @@ router.get("/me/assigned-interviews", async (req, res) => {
     }
 });
 
+// GET /api/evaluations?interview_id=...&candidate_email=...
 router.get("/evaluations", async (req, res) => {
   try {
     const { interview_id, candidate_email } = req.query;
-    if (!interview_id || !candidate_email)
+    if (!interview_id || !candidate_email) {
       return res.status(400).json({ message: "interview_id and candidate_email are required" });
+    }
 
-    const { rows } = await pool.query(
-      `SELECT e.*, u.first_name, u.last_name
-       FROM reviewer_evaluations e
-       LEFT JOIN users u ON e.user_id::uuid = u.id
-       WHERE e.interview_id = $1 AND e.candidate_email = $2`,
-      [interview_id, candidate_email]
-    );
-    res.json(rows);
+    // Join users and visitors so we can return a name for either kind of reviewer.
+    // We do not cast here — user_id and viewer_id are already uuid columns in your DB.
+    const query = `
+      SELECT e.*,
+             u.first_name  AS user_first_name,
+             u.last_name   AS user_last_name,
+             v.first_name  AS visitor_first_name,
+             v.last_name   AS visitor_last_name
+      FROM reviewer_evaluations e
+      LEFT JOIN users u     ON e.user_id   = u.id
+      LEFT JOIN visitors v  ON e.viewer_id = v.id
+      WHERE e.interview_id = $1
+        AND e.candidate_email = $2
+      ORDER BY e.updated_at DESC;
+    `;
+
+    const { rows } = await pool.query(query, [interview_id, candidate_email]);
+
+    // Normalize names for frontend: prefer user's name, otherwise visitor's name.
+    const normalized = rows.map(r => ({
+      ...r,
+      first_name: r.user_first_name || r.visitor_first_name || null,
+      last_name:  r.user_last_name || r.visitor_last_name || null,
+      // remove helper fields to keep payload small
+      user_first_name: undefined,
+      user_last_name: undefined,
+      visitor_first_name: undefined,
+      visitor_last_name: undefined
+    }));
+
+    res.json(normalized);
   } catch (err) {
     console.error("Error fetching evaluations:", err);
     res.status(500).json({ message: err.message });
   }
 });
-
 module.exports = router;
