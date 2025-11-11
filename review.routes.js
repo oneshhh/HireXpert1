@@ -115,44 +115,81 @@ function calculateOverallSubmissionStatus(statuses) {
 }/**
 
 /**
- * Endpoint 2: POST /api/candidate/status
- * Updates the reviewer status in your MAIN database (DB_A).
- * Works for both logged-in users and external reviewers (viewers).
+ * Endpoint 2:
+ * POST /api/candidate/status
+ * Updates candidate status in MAIN database (DB_A)
+ * Works for both logged-in USERS and REVIEWERS (viewers)
  */
-router.post('/candidate/status', async (req, res) => {
-    try {
-        // Allow both logged-in users and viewers
-        if (!req.session.user && !req.session.viewer) {
-            return res.status(401).json({ message: "You must be logged in." });
-        }
-
-        const { candidate_email, status, interview_id } = req.body;
-
-        if (!candidate_email || !status || !interview_id) {
-            return res.status(400).json({ message: "Email, status, and interview ID are required." });
-        }
-
-        // Log who’s making the change (for debugging)
-        const actor = req.session.user
-            ? `User ${req.session.user.email}`
-            : `Viewer ${req.session.viewer.email}`;
-        console.log(`[Status Update] ${actor} → ${status} for ${candidate_email}`);
-
-        // Update status in candidate_sessions
-        await pool.query(
-            `UPDATE candidate_sessions
-             SET status = $1, updated_at = NOW()
-             WHERE candidate_email = $2 AND interview_id = $3`,
-            [status, candidate_email, interview_id]
-        );
-
-        res.status(200).json({ message: "Status updated successfully." });
-    } catch (error) {
-        console.error("Error updating candidate status:", error);
-        res.status(500).json({ message: error.message });
+router.post("/candidate/status", async (req, res) => {
+  try {
+    // ✅ Accept both users and viewers
+    if (!req.session.user && !req.session.viewer) {
+      return res.status(401).json({ message: "You must be logged in." });
     }
-});
 
+    const { candidate_email, status, interview_id } = req.body;
+
+    // ✅ Validate required inputs
+    if (!candidate_email || !status || !interview_id) {
+      return res.status(400).json({
+        message: "Email, status, and interview ID are required.",
+      });
+    }
+
+    // ✅ Identify who’s performing this change
+    const actor = req.session.user
+      ? { type: "user", email: req.session.user.email, id: req.session.user.id }
+      : { type: "viewer", email: req.session.viewer.email, id: req.session.viewer.id };
+
+    console.log(
+      `[Candidate Status Update] ${actor.type.toUpperCase()} ${
+        actor.email
+      } is changing ${candidate_email} → "${status}" for interview ${interview_id}`
+    );
+
+    // ✅ Check if candidate_sessions table has updated_at column
+    const checkColumn = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'candidate_sessions' AND column_name = 'updated_at';
+    `);
+
+    const hasUpdatedAt = checkColumn.rows.length > 0;
+
+    // ✅ Build dynamic SQL depending on schema
+    const updateQuery = hasUpdatedAt
+      ? `UPDATE candidate_sessions
+         SET status = $1, updated_at = NOW()
+         WHERE candidate_email = $2 AND interview_id = $3
+         RETURNING candidate_email, status, interview_id;`
+      : `UPDATE candidate_sessions
+         SET status = $1
+         WHERE candidate_email = $2 AND interview_id = $3
+         RETURNING candidate_email, status, interview_id;`;
+
+    const result = await pool.query(updateQuery, [
+      status,
+      candidate_email,
+      interview_id,
+    ]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "Candidate session not found for this interview.",
+      });
+    }
+
+    console.log(`[STATUS UPDATED]`, result.rows[0]);
+
+    res.status(200).json({
+      message: "Status updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error updating candidate status:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 
 
