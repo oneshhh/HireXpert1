@@ -2,131 +2,121 @@
 <!-- [NEW] This class is blank and will be set by the cookie script -->
 <html lang="en" class="">
 <head>
-    <meta charset="utf-8"/>
-    <title>Visitor Management - Admin Panel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-      }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style type="text/tailwindcss">
-      :root {
-        --primary-color: #1173d4;
-        --secondary-color: #f0f2f4;
-        --text-primary: #111418;
-        --text-secondary: #617589;
-      }
-      /* Dark mode variables */
-      .dark {
-        --secondary-color: #1f2937; /* gray-800 */
-        --text-primary: #f9fafb; /* gray-50 */
-        --text-secondary: #9ca3af; /* gray-400 */
-      }
-      /* [NEW] Hide scrollbar for checklist */
-      .department-checklist {
-        max-height: 150px;
-        overflow-y: auto;
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-      }
-      .department-checklist::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, and Opera */
-      }
-    </style>
-    
-    <!-- [NEW] Theme Sync Script -->
-    <!-- This runs immediately to prevent a "flash" of the wrong theme -->
-    <script>
-        (function() {
-            function getCookie(name) {
-                const nameEQ = name + "=";
-                const ca = document.cookie.split(';');
-                for(let i=0; i < ca.length; i++) {
-                    let c = ca[i];
-                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-                }
-                return null;
-            }
-            const savedTheme = getCookie('theme');
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-</head>
-<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
-<div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden dark:bg-gray-900">
+  <meta charset="utf-8"/>
+  <title>Visitor Management - Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style type="text/tailwindcss">
+    :root {
+      --primary-color: #1173d4;
+      --secondary-color: #f0f2f4;
+      --text-primary: #111418;
+      --text-secondary: #617589;
+    }
+    .dark {
+      --secondary-color: #1f2937;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+    }
+    .department-checklist {
+      max-height: 150px;
+      overflow-y: auto;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .department-checklist::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
 
-<!-- [NEW] Mobile-only header (copied from admin panel) -->
-<header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
+  <!-- Theme Sync Script -->
+  <script>
+    (function() {
+      function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      }
+      const savedTheme = getCookie('theme');
+      if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
+</head>
+
+<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="flex h-screen w-full bg-white overflow-x-hidden dark:bg-gray-900">
+
+  <!-- Mobile Header -->
+  <header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
     <div class="flex items-center gap-2">
-        <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
+      <span class="text-2xl font-bold text-[var(--primary-color)]">HireExpert</span>
     </div>
     <button id="mobile-menu-toggle" type="button" class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Open sidebar">
-        <span class="material-symbols-outlined">menu</span>
+      <span class="material-symbols-outlined">menu</span>
     </button>
-</header>
+  </header>
 
-<div class="flex h-full w-full">
-<!-- [NEW] Sidebar (copied from admin panel for consistency) -->
-<aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
-
-  <!-- Header -->
-  <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
+  <!-- Sidebar -->
+  <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
+    <!-- Sidebar Header -->
+    <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
       <div class="flex flex-col items-start">
-          <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
-          <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+        <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
+        <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
       </div>
       <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
-          <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined">close</span>
       </button>
-  </div>
+    </div>
 
-  <!-- NAVIGATION -->
-  <div class="flex flex-1 flex-col justify-between h-full">
-    <nav class="space-y-2 p-4">
+    <!-- Sidebar Navigation -->
+    <div class="flex flex-1 flex-col justify-between h-full">
+      <nav class="space-y-2 p-4">
         <a href="/admin_Dashboard.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">dashboard</span>
-            Dashboard
+          <span class="material-symbols-outlined">dashboard</span>
+          Dashboard
         </a>
-        <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">visibility</span>
-            Visitors
+        <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium bg-gray-100 text-[var(--primary-color)] dark:bg-gray-700 dark:text-white">
+          <span class="material-symbols-outlined">visibility</span>
+          Visitors
         </a>
         <a href="settings.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">settings</span>
-            Settings
+          <span class="material-symbols-outlined">settings</span>
+          Settings
         </a>
-    </nav>
+      </nav>
 
-    <!-- Bottom buttons -->
-    <div class="border-t border-gray-200 p-4 dark:border-gray-700 space-y-2">
+      <!-- Sidebar Bottom Buttons -->
+      <div class="border-t border-gray-200 p-4 dark:border-gray-700 space-y-2">
         <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">dark_mode</span>
-            <span>Toggle Theme</span>
+          <span class="material-symbols-outlined">dark_mode</span>
+          <span>Toggle Theme</span>
         </button>
-        <button id="logout-btn" class="flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
-            <span class="material-symbols-outlined">logout</span>
-            Logout
-        </button>
+        <a href="/logout" class="flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
+          <span class="material-symbols-outlined">logout</span>
+          Logout
+        </a>
+      </div>
     </div>
-  </div>
-</aside>
+  </aside>
 
-<!-- [NEW] Sidebar Overlay for mobile (hidden by default) -->
-<div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
+  <!-- Sidebar Overlay for mobile -->
+  <div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
-<!-- Main content -->
-<main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-64">
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">Viewer Management</h1>
     <p class="mt-1 text-base text-[var(--text-secondary)]">Add or remove users who can access the interview viewer page.</p>
     
