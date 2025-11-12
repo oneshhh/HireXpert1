@@ -271,16 +271,23 @@ if (editBtn && evalForm) {
       deleteBtn.disabled = true; // disable delete while editing
     } else {
       // --- Save updated data ---
-      const interview_id = new URLSearchParams(window.location.search).get('interview_id');
-      const candidate_email = new URLSearchParams(window.location.search).get('candidate_email');
+    const interview_id = currentInterviewId || new URLSearchParams(window.location.search).get('interview_id');
+    const candidate_email = currentCandidateEmail;
 
-      const payload = {
-        interview_id,
-        candidate_email,
-        summary: summaryField.value,
-        rating: ratingSelect.value,
-        status: statusSelect.value
-      };
+    if (!candidate_email) {
+    console.error('Missing candidate_email — could not send evaluation update');
+    showNotification('Error', 'Candidate email not found. Please reload the page.', true);
+    return;
+    }
+
+    const payload = {
+    interview_id,
+    candidate_email,
+    summary: summaryField.value,
+    rating: ratingSelect.value,
+    status: statusSelect.value
+    };
+
 
       try {
         const res = await fetch('/api/evaluations', {
