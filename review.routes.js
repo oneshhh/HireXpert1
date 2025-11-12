@@ -394,19 +394,6 @@ router.put('/evaluations', async (req, res) => {
     } else {
       return res.status(401).json({ message: 'You must be logged in to edit an evaluation.' });
     }
-        // --- SAFETY CHECK: Ensure viewer only edits their own evaluation ---
-    if (req.session?.viewer) {
-    const viewerId = req.session.viewer.id;
-    const existingEval = await pool.query(
-        'SELECT * FROM reviewer_evaluations WHERE interview_id = $1 AND candidate_email = $2',
-        [req.body.interview_id, req.body.candidate_email]
-    );
-
-    // If record exists but viewer_id doesn’t match, block the action
-    if (existingEval.rows.length && existingEval.rows[0].viewer_id !== viewerId) {
-        return res.status(403).json({ message: 'Not authorized to modify this evaluation.' });
-    }
-    }
 
     // Check if evaluation exists
     const checkQuery = `
@@ -484,20 +471,6 @@ router.delete('/evaluations', async (req, res) => {
     } else {
       return res.status(401).json({ message: 'You must be logged in to delete an evaluation.' });
     }
-
-    // --- SAFETY CHECK: Ensure viewer only edits their own evaluation ---
-if (req.session?.viewer) {
-  const viewerId = req.session.viewer.id;
-  const existingEval = await pool.query(
-    'SELECT * FROM reviewer_evaluations WHERE interview_id = $1 AND candidate_email = $2',
-    [req.body.interview_id, req.body.candidate_email]
-  );
-
-  // If record exists but viewer_id doesn’t match, block the action
-  if (existingEval.rows.length && existingEval.rows[0].viewer_id !== viewerId) {
-    return res.status(403).json({ message: 'Not authorized to modify this evaluation.' });
-  }
-}
 
     // Delete the matching record
     const deleteQuery = `
