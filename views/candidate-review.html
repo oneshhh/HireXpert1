@@ -29,14 +29,14 @@
       @media(min-width:768px) { .transcript-col { grid-column: span 3; } }
 
       /* smaller video */
-      .answer-video { 
-        width:100%; 
-        height:320px;  /* was 220px */
-        object-fit:cover; 
-        border-radius:8px; 
-        background:#000; 
+      .answer-video {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        max-height: 480px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #000;
         }
-
 
       /* transcript area: large, scrollable */
       .transcript-box { background:#f9fafb; border-radius:8px; padding:12px; font-size:0.95rem; color:#374151; line-height:1.45; max-height:360px; overflow:auto; white-space:pre-wrap; }
@@ -71,6 +71,9 @@
         opacity: 1 !important;
         pointer-events: auto !important;
         }
+
+        
+
       /* "My Evaluation" badge styling */
       .my-eval-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#e0f2fe; color:#075985; font-weight:700; font-size:0.8rem; }
 
@@ -246,15 +249,66 @@
         showModal();
     }
 
-    // --- Buttons references (for freezing/unfreezing) ---
-    const saveBtn = document.getElementById('save-eval-btn');
-    const editBtn = document.getElementById('edit-eval-btn');
-    const deleteBtn = document.getElementById('delete-eval-btn');
+    // === EDIT / SAVE TOGGLE HANDLER ===
+const editBtn = document.getElementById('edit-eval-btn');
+const deleteBtn = document.getElementById('delete-eval-btn');
+const evalForm = document.getElementById('overall-eval'); // parent card with .frozen
+const summaryField = document.getElementById('summary');
+const ratingSelect = document.getElementById('overall-rating');
+const statusSelect = document.getElementById('final-status');
 
-    // wire up save / edit / delete
-    saveBtn?.addEventListener('click', () => saveFinalEvaluation(saveBtn));
-    editBtn?.addEventListener('click', () => toggleEdit(true));
-    deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
+// Make sure these elements exist before attaching
+if (editBtn && evalForm) {
+  editBtn.addEventListener('click', async () => {
+    const isFrozen = evalForm.classList.contains('frozen');
+
+    if (isFrozen) {
+      // --- Switch to edit mode ---
+      evalForm.classList.remove('frozen');
+      editBtn.textContent = 'Save Changes';
+      editBtn.classList.add('bg-blue-600', 'text-white');
+      deleteBtn.disabled = true; // disable delete while editing
+    } else {
+      // --- Save updated data ---
+      const interview_id = new URLSearchParams(window.location.search).get('interview_id');
+      const candidate_email = new URLSearchParams(window.location.search).get('candidate_email');
+
+      const payload = {
+        interview_id,
+        candidate_email,
+        summary: summaryField.value,
+        rating: ratingSelect.value,
+        status: statusSelect.value
+      };
+
+      try {
+        const res = await fetch('/api/evaluations', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Failed to update evaluation.');
+
+        // Re-freeze form and restore buttons
+        evalForm.classList.add('frozen');
+        editBtn.textContent = 'Edit';
+        editBtn.classList.remove('bg-blue-600', 'text-white');
+        deleteBtn.disabled = false;
+
+        showNotification('Saved!', 'Your evaluation has been updated successfully.');
+      } catch (err) {
+        console.error('Error updating evaluation:', err);
+        showNotification('Error', err.message, { isError: true });
+      }
+    }
+  });
+}
+
+saveBtn?.addEventListener('click', () => saveFinalEvaluation(saveBtn));
+deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
 
     // --- Helpers to enable/disable the overall eval form ---
     function setFormFrozen(frozen) {
@@ -362,7 +416,6 @@
             // update local state
             myEvaluation = payload;
             // after save: freeze form and show edit/delete
-            toggleEdit(false); // stop editing
             setFormFrozen(true);
 
             // refresh other reviews to reflect change
