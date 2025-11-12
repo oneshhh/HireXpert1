@@ -48,8 +48,7 @@
 </head>
 <!-- Added dark mode class to body -->
 <body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
-<div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden dark:bg-gray-900">
-
+<div class="flex h-screen w-full bg-white overflow-x-hidden dark:bg-gray-900">
 <!-- Mobile-only header with dark mode classes -->
 <header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
     <div class="flex items-center gap-2">
@@ -60,7 +59,6 @@
     </button>
 </header>
 
-<div class="flex h-full w-full">
 <!-- Sidebar with dark mode classes -->
 <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
     
@@ -103,14 +101,13 @@
             Logout
         </button>
     </div>
-  </div>
 </aside>
 
 <!-- Sidebar Overlay for mobile (hidden by default) -->
 <div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
 <!-- Main content with dark mode classes -->
-<main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900">
+<main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-64">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
     <div class="mt-8">
