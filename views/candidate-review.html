@@ -2,15 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Review Candidate</title>
+    <title>HireXpert</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <style>
-      :root { --primary-color: #2563eb; }
+      :root { --primary-color: #2563eb; --muted:#6b7280; }
       body { font-family: 'Inter', sans-serif; }
       /* Style for the notification modal */
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
+
+      /* Slight UI polish for evaluation form */
+      .card { background: white; border-radius: 12px; box-shadow: 0 6px 18px rgba(15,23,42,0.06); padding: 18px; }
+      .small-muted { color: var(--muted); font-size: 0.9rem; }
+      .candidate-header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+      .brand { font-weight:700; font-size:1.1rem; color:var(--primary-color); letter-spacing:0.2px; }
+      .candidate-name { font-size:1.6rem; font-weight:700; color:#111827; }
+      .subtle { color: #6b7280; }
+
+      /* answers layout tweaks: use 4-column layout on md */
+      .answer-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+      @media(min-width: 768px) { .answer-grid { grid-template-columns: repeat(4, 1fr); } }
+      .video-col { grid-column: 1 / -1; } /* default full width on mobile */
+      @media(min-width:768px) { .video-col { grid-column: span 1; } }
+      .transcript-col { grid-column: 1 / -1; } 
+      @media(min-width:768px) { .transcript-col { grid-column: span 3; } }
+
+      /* smaller video */
+      .answer-video { width:100%; height:220px; object-fit:cover; border-radius:8px; background:#000; }
+
+      /* transcript area: large, scrollable */
+      .transcript-box { background:#f9fafb; border-radius:8px; padding:12px; font-size:0.95rem; color:#374151; line-height:1.45; max-height:360px; overflow:auto; white-space:pre-wrap; }
+
+      /* remove per-question notes (we simply won't render them) */
+
+      /* overall evaluation improved styling */
+      .overall-grid { display:grid; grid-template-columns: 1fr; gap:12px; }
+      @media(min-width:768px) { .overall-grid { grid-template-columns: 1fr 320px; align-items:start; } }
+      .overall-left { padding-right:12px; }
+      .overall-right { min-width:0; }
+
+      .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; }
+      .btn-primary { background:var(--primary-color); color:white; }
+      .btn-ghost { background:transparent; border:1px solid #e5e7eb; color:#111827; }
+      .btn-danger { background:#ef4444; color:white; }
+
+      /* submitted state overlay */
+      .frozen { opacity:0.6; pointer-events:none; }
+
+      /* "My Evaluation" badge styling */
+      .my-eval-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#e0f2fe; color:#075985; font-weight:700; font-size:0.8rem; }
+
+      /* small tweak for other-reviews cards */
+      .review-card { padding:16px; border-radius:10px; background:white; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -18,120 +62,107 @@
   <!-- Header -->
   <header class="bg-white shadow-sm">
     <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 id="page-title" class="text-xl font-bold text-gray-800">Review Candidate</h1>
-        <a id="back-link" href="#" class="text-sm font-medium text-gray-600 hover:text-blue-600">&larr; Back to Interview</a>
+        <div class="candidate-header" style="width:100%">
+            <div style="display:flex;flex-direction:column">
+                <div class="brand">HireXpert</div>
+                <!-- candidate-name will be filled on load -->
+                <div id="candidate-name" class="candidate-name mt-1">Candidate</div>
+                <div id="candidate-email" class="subtle small-muted mt-1"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <a id="back-link" href="#" class="text-sm font-medium text-gray-600 hover:text-blue-600">&larr; Back to Interview</a>
+                <div id="global-status" class="text-sm font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-800 mt-1">To Evaluate</div>
+            </div>
+        </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="container mx-auto mt-8 px-6 pb-12">
+  <main class="container mx-auto mt-6 px-6 pb-12">
     
     <!-- Loading State -->
-    <div id="loading-state" class="text-center p-10">
+    <div id="loading-state" class="text-center p-6">
         <p class="text-gray-500">Loading candidate details...</p>
         <div class="mt-4 w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
     </div>
     
     <!-- Error State -->
-    <div id="error-state" class="hidden text-center p-10 bg-red-50 rounded-lg">
+    <div id="error-state" class="hidden text-center p-6 bg-red-50 rounded-lg">
         <p class="text-red-600 font-medium">Could not load candidate details.</p>
         <p id="error-message" class="text-red-500 text-sm mt-2"></p>
     </div>
 
-    <!-- Candidate Info Header -->
-    <div id="candidate-header" class.bind="hidden" class="hidden bg-white shadow-lg rounded-lg p-6 mb-8">
-        <div class="flex justify-between items-start">
-            <div>
-                <h2 id="candidate-name" class="text-3xl font-bold text-gray-800"></h2>
-                <p id="candidate-email" class="text-lg text-gray-500 mt-1"></p>
-            </div>
-            <!-- This shows the GLOBAL status, not your personal one -->
-            <span id="global-status" class="text-sm font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-800"></span>
-        </div>
-        <div id="resume-link-container" class="mt-4"></div>
-    </div>
+    <!-- REVIEW CONTAINER -->
+    <div id="review-container" class="hidden space-y-6">
 
-    <!-- [NEW] Tab Navigation -->
-    <div id="review-container" class="hidden">
-      <div class="mb-6 border-b border-gray-200">
-          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-              <button id="tab-my-review" onclick="switchTab('my-review')"
-                      class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-600 text-blue-600">
-                  My Evaluation
-              </button>
-              <button id="tab-other-reviews" onclick="switchTab('other-reviews')"
-                      class="whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                  Other Reviews
-                  <span id="other-reviews-count" class="ml-2 hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
-              </button>
-          </nav>
-      </div>
+      <!-- Answers list (per question) -->
+      <div id="answers-container" class="space-y-6"></div>
 
-      <!-- [NEW] Panel 1: My Evaluation -->
-      <div id="panel-my-review" class="space-y-8">
-        <!-- Answers Section (for my review) -->
-        <div id="answers-container" class="space-y-8">
-            <!-- JS will populate this section -->
+      <!-- Overall Evaluation Card -->
+      <div id="overall-eval" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-800">Overall Evaluation</h3>
+            <p class="small-muted mt-1">Submit your summary and final status for this candidate.</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="edit-eval-btn" class="btn btn-ghost hidden">Edit</button>
+            <button id="delete-eval-btn" class="btn btn-danger hidden">Delete</button>
+          </div>
         </div>
 
-        <!-- [NEW] Overall Summary Section -->
-        <div class="bg-white shadow-lg rounded-lg p-6">
-            <h3 class="text-2xl font-semibold text-gray-800 mb-6">Overall Evaluation</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Overall Rating -->
-                <div>
-                    <label for="overall-rating" class="block text-sm font-medium text-gray-700">Overall Rating (1-5)</label>
-                    <select id="overall-rating" class="overall-rating-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                        <option value="">No rating</option>
-                        <option value="1">1 - Poor</option>
-                        <option value="2">2 - Fair</option>
-                        <option value="3">3 - Good</option>
-                        <option value="4">4 - Very Good</option>
-                        <option value="5">5 - Excellent</option>
-                    </select>
-                </div>
-                
-                <!-- Final Status -->
-                <div>
-                    <label for="overall-status" class="block text-sm font-medium text-gray-700">My Final Status</label>
-                    <select id="overall-status" class="overall-status-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                        <option value="To Evaluate">To Evaluate</option>
-                        <option value="Evaluated">Evaluated</option>
-                        <option value="Discarded">Discarded</option>
-                    </select>
-                </div>
+        <div class="overall-grid">
+          <div class="overall-left">
+            <div style="margin-bottom:10px">
+                <label class="block text-sm font-medium text-gray-700">Summary</label>
+                <textarea id="overall-summary" rows="6" class="mt-2 block w-full rounded-md border-gray-200 shadow-sm focus:border-blue-400 focus:ring-blue-200 sm:text-sm" placeholder="Summarize the candidate's performance..."></textarea>
             </div>
 
-            <!-- Summary Notes -->
-            <div class="mt-6">
-                <label for="overall-summary" class="block text-sm font-medium text-gray-700">Summary</label>
-                <textarea id="overall-summary" rows="5"
-                          class="overall-summary-textarea mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                          placeholder="Provide an overall summary of the candidate's performance..."></textarea>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+                <label class="block text-sm font-medium text-gray-700">Overall Rating</label>
+                <select id="overall-rating" class="mt-1 block rounded-md border-gray-200 shadow-sm focus:border-blue-400 focus:ring-blue-200 sm:text-sm">
+                    <option value="">No rating</option>
+                    <option value="1">1 - Poor</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="3">3 - Good</option>
+                    <option value="4">4 - Very Good</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
             </div>
+          </div>
 
-            <!-- Save Button -->
-            <div class="mt-6 text-right">
-                <button onclick="saveFinalEvaluation(this)"
-                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    Save Final Evaluation
-                </button>
+          <div class="overall-right">
+            <label class="block text-sm font-medium text-gray-700">My Final Status</label>
+            <select id="overall-status" class="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-blue-400 focus:ring-blue-200 sm:text-sm">
+                <option value="To Evaluate">To Evaluate</option>
+                <option value="Evaluated">Evaluated</option>
+                <option value="Discarded">Discarded</option>
+            </select>
+
+            <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end;">
+                <button id="save-eval-btn" class="btn btn-primary">Save Final Evaluation</button>
             </div>
+          </div>
         </div>
       </div>
 
-      <!-- [NEW] Panel 2: Other Reviews -->
-      <div id="panel-other-reviews" class="hidden space-y-6">
-          <!-- JS will populate this section -->
-          <p id="other-reviews-placeholder" class="text-gray-500 italic">No other reviews have been submitted yet.</p>
+      <!-- Tab Navigation: Other Reviews -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 class="text-lg font-semibold">Other Reviews</h4>
+          <div id="other-reviews-count" class="small-muted">0</div>
+        </div>
+        <div id="panel-other-reviews">
+            <p id="other-reviews-placeholder" class="text-gray-500 italic">No other reviews have been submitted yet.</p>
+        </div>
       </div>
+
     </div>
   </main>
   
   <!-- Notification Modal -->
-  <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300 ease-out opacity-0">
-    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
+  <div id="notification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 transition-opacity duration-300 ease-out opacity-0">
+    <div class="w-full max-w-md transform rounded-lg bg-white p-6 shadow-xl text-center transition-all duration-300 ease-out scale-95 opacity-0"
          role="alertdialog" aria-modal="true" aria-labelledby="notification-modal-title">
         <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
              <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
@@ -141,7 +172,7 @@
             <p id="notification-modal-text" class="text-sm text-gray-500">Your action was completed successfully.</p>
         </div>
         <div id="notification-modal-buttons" class="mt-5 sm:mt-6">
-            <button onclick="hideModal()" type="button" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+            <button onclick="hideModal()" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90">
                 Got it
             </button>
         </div>
@@ -153,13 +184,15 @@
     let currentToken = null;
     let currentInterviewId = null;
     let currentCandidateEmail = null;
-    let myEvaluation = {}; // To store the logged-in user's evaluation
+    let myEvaluation = {}; // store local copy of what user submits
+    let isEditing = false;  // when true, form is editable
+    let myUserIdGlobal = null; // store current user id if available
+    let myReviewData = null; // hold the user's saved review (if any)
 
     // --- Notification Modal Helpers ---
     const notificationModal = document.getElementById('notification-modal');
     const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
-
-    const showModal = () => {
+    function showModal() {
       if (!notificationModal || !notificationDialog) return;
       notificationModal.classList.remove('hidden');
       setTimeout(() => {
@@ -167,29 +200,21 @@
         notificationDialog.classList.remove('scale-95', 'opacity-0');
         notificationDialog.classList.add('scale-100', 'opacity-100');
       }, 10);
-    };
-    const hideModal = () => {
+    }
+    function hideModal() {
       if (!notificationModal || !notificationDialog) return;
       notificationModal.classList.remove('opacity-100');
       notificationDialog.classList.remove('scale-100', 'opacity-100');
       notificationDialog.classList.add('scale-95', 'opacity-0');
-      setTimeout(() => {
-        notificationModal.classList.add('hidden');
-      }, 300);
-    };
-
+      setTimeout(() => notificationModal.classList.add('hidden'), 300);
+    }
     function showNotification(title, text, isError = false) {
         const modalTitle = document.getElementById('notification-modal-title');
         const modalText = document.getElementById('notification-modal-text');
         const modalIcon = document.getElementById('notification-modal-icon');
-        
-        if (!notificationModal || !modalTitle || !modalText || !modalIcon) {
-            alert(`${title}: ${text}`); return;
-        }
-
+        if (!notificationModal || !modalTitle || !modalText || !modalIcon) { alert(`${title}: ${text}`); return; }
         modalTitle.textContent = title;
         modalText.textContent = text;
-
         if (isError) {
             modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
             modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
@@ -199,142 +224,180 @@
         }
         showModal();
     }
-    
-    // --- [NEW] Tab Switching Function ---
-    function switchTab(activeTab) {
-        const myReviewTab = document.getElementById('tab-my-review');
-        const myReviewPanel = document.getElementById('panel-my-review');
-        const otherReviewsTab = document.getElementById('tab-other-reviews');
-        const otherReviewsPanel = document.getElementById('panel-other-reviews');
 
-        if (activeTab === 'my-review') {
-            myReviewTab.classList.add('border-blue-600', 'text-blue-600');
-            myReviewTab.classList.remove('border-transparent', 'text-gray-500');
-            myReviewPanel.classList.remove('hidden');
-            otherReviewsTab.classList.add('border-transparent', 'text-gray-500');
-            otherReviewsTab.classList.remove('border-blue-600', 'text-blue-600');
-            otherReviewsPanel.classList.add('hidden');
-        } else {
-            otherReviewsTab.classList.add('border-blue-600', 'text-blue-600');
-            otherReviewsTab.classList.remove('border-transparent', 'text-gray-500');
-            otherReviewsPanel.classList.remove('hidden');
-            myReviewTab.classList.add('border-transparent', 'text-gray-500');
-            myReviewTab.classList.remove('border-blue-600', 'text-blue-600');
-            myReviewPanel.classList.add('hidden');
-        }
+    // --- Buttons references (for freezing/unfreezing) ---
+    const saveBtn = document.getElementById('save-eval-btn');
+    const editBtn = document.getElementById('edit-eval-btn');
+    const deleteBtn = document.getElementById('delete-eval-btn');
+
+    // wire up save / edit / delete
+    saveBtn?.addEventListener('click', () => saveFinalEvaluation(saveBtn));
+    editBtn?.addEventListener('click', () => toggleEdit(true));
+    deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
+
+    // --- Helpers to enable/disable the overall eval form ---
+    function setFormFrozen(frozen) {
+      const formCard = document.getElementById('overall-eval');
+      if (!formCard) return;
+      if (frozen) {
+        formCard.classList.add('frozen');
+        editBtn.classList.remove('hidden');
+        deleteBtn.classList.remove('hidden');
+        saveBtn.classList.add('hidden');
+      } else {
+        formCard.classList.remove('frozen');
+        editBtn.classList.add('hidden');
+        deleteBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+      }
+    }
+
+    function toggleEdit(enable) {
+      isEditing = !!enable;
+      // enable the inputs
+      const inputs = ['overall-summary','overall-rating','overall-status'];
+      inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = !isEditing;
+      });
+      // UI: when editing show save button; hide edit
+      if (isEditing) {
+        saveBtn.classList.remove('hidden');
+        editBtn.classList.add('hidden');
+      } else {
+        saveBtn.classList.add('hidden');
+        editBtn.classList.remove('hidden');
+      }
+    }
+
+    // --- GET current user info ---
+    async function getMyUserId() {
+        try {
+            const response = await fetch('/api/me', { credentials: 'include' });
+            if (!response.ok) return null;
+            const body = await response.json();
+            if (!body || typeof body !== 'object') return null;
+            // possible shapes
+            if (body.id) return body.id;
+            if (body.type === 'user' && body.id) return body.id;
+            if (body.type === 'viewer' && body.viewer && body.viewer.id) return body.viewer.id;
+            return null;
+        } catch (e) { console.error('getMyUserId error:', e); return null; }
     }
 
     /**
-     * [NEW] Gathers all review data from the page
+     * Gathers evaluation data from the page
+     * (We removed per-question notes from the UI; notes left as empty string)
      */
     function getFullEvaluationData() {
-        const data = {
+        return {
             interview_id: currentInterviewId,
             candidate_email: currentCandidateEmail,
             status: document.getElementById('overall-status').value,
-            rating: parseInt(document.getElementById('overall-rating').value) || null,
-            summary: document.getElementById('overall-summary').value,
-            // We also need to get the per-question notes and ratings
-            // For this, we'll just save the overall summary for now
-            // A more complex system would save per-question data
-            notes: "Per-question notes to be added." 
+            rating: document.getElementById('overall-rating').value ? parseInt(document.getElementById('overall-rating').value,10) : null,
+            summary: document.getElementById('overall-summary').value || '',
+            notes: '' // per-question notes removed from UI
         };
-        return data;
     }
 
     /**
-     * [UPDATED] Saves the *entire* evaluation to the new endpoint
-     * REPLACED: improved version that correctly reads interview & candidate values and posts with cookies
+     * Save or update the evaluation (keeps existing endpoint)
      */
     async function saveFinalEvaluation(button) {
-        // Resolve evaluation data and safe identifiers
         const evaluationData = getFullEvaluationData();
-
-        // Prefer explicit values but fallback to current globals if necessary
         const interviewId = evaluationData.interview_id || currentInterviewId || (new URLSearchParams(window.location.search)).get('interview_id');
         const candidateEmail = evaluationData.candidate_email || currentCandidateEmail || (new URLSearchParams(window.location.search)).get('candidate_email');
 
-        // Disable button & update UI
         if (button) {
             button.disabled = true;
             const originalText = button.textContent;
             button.textContent = 'Saving...';
+        }
 
-            try {
-                // Build the payload. Keep ratings shape compatible with your server.
-                const payload = {
-                    interview_id: interviewId,
-                    candidate_email: candidateEmail,
-                    status: evaluationData.status || "Evaluated",
-                    rating: evaluationData.rating,       // integer 1–5
-                    notes: evaluationData.notes || "",   // text or comment
-                    summary: evaluationData.summary || "" // textarea summary
-                };
-
-                const response = await fetch('/api/evaluations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                });
-
-                let result = null;
-                try { result = await response.json(); } catch(e) { /* ignore */ }
-
-                if (!response.ok) {
-                    const msg = result && result.message ? result.message : `Server returned ${response.status}`;
-                    throw new Error(msg);
-                }
-
-                // success
-                myEvaluation = evaluationData; // store locally
-                showNotification('Success', 'Your evaluation has been saved!');
-                // refresh other reviews panel if present
-                try { await fetchOtherReviews(await getMyUserId()); } catch(e){ console.warn('refresh other reviews failed', e); }
-
-            } catch (error) {
-                console.error('Error saving evaluation:', error);
-                showNotification('Error', error.message || 'Failed to save evaluation.', true);
-            } finally {
-                // restore button
-                button.disabled = false;
-                button.textContent = 'Save Final Evaluation';
-            }
-        } else {
-            // No button passed: still attempt to save (headless)
-            try {
-                // Build the payload in the shape your backend expects
-                const payload = {
+        try {
+            const payload = {
                 interview_id: interviewId,
                 candidate_email: candidateEmail,
                 status: evaluationData.status || "Evaluated",
-                rating: evaluationData.rating,       // integer 1–5
-                notes: evaluationData.notes || "",   // text or comment
-                summary: evaluationData.summary || "" // summary textarea
-                };
+                rating: evaluationData.rating,
+                notes: evaluationData.notes || "",
+                summary: evaluationData.summary || ""
+            };
 
-                const response = await fetch('/api/evaluations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    const err = await response.json().catch(()=>({message:'Server error'}));
-                    throw new Error(err.message || `Server ${response.status}`);
-                }
-                myEvaluation = evaluationData;
-                showNotification('Success', 'Your evaluation has been saved!');
-                try { await fetchOtherReviews(await getMyUserId()); } catch(e){ console.warn('refresh other reviews failed', e); }
-            } catch (error) {
-                console.error('Error saving evaluation:', error);
-                showNotification('Error', error.message || 'Failed to save evaluation.', true);
+            const res = await fetch('/api/evaluations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+
+            const json = await res.json().catch(()=>null);
+            if (!res.ok) {
+                const msg = json && json.message ? json.message : `Server returned ${res.status}`;
+                throw new Error(msg);
+            }
+
+            // update local state
+            myEvaluation = payload;
+            // after save: freeze form and show edit/delete
+            toggleEdit(false); // stop editing
+            setFormFrozen(true);
+
+            // refresh other reviews to reflect change
+            await fetchOtherReviews(myUserIdGlobal);
+            showNotification('Saved', 'Your evaluation was saved.');
+        } catch (error) {
+            console.error('Error saving evaluation:', error);
+            showNotification('Error', error.message || 'Failed to save evaluation.', true);
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Save Final Evaluation';
             }
         }
     }
 
     /**
-     * [NEW] Fetches and renders reviews from other users
+     * DELETE my evaluation (calls DELETE /api/evaluations)
+     * If your backend doesn't implement DELETE, this will return an error — handle on server.
+     */
+    async function deleteMyEvaluation() {
+      if (!confirm('Delete your evaluation? This cannot be undone.')) return;
+      try {
+        const res = await fetch('/api/evaluations', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ interview_id: currentInterviewId, candidate_email: currentCandidateEmail })
+        });
+        const body = await res.json().catch(()=>null);
+        if (!res.ok) {
+          const msg = body && body.message ? body.message : `Server returned ${res.status}`;
+          throw new Error(msg);
+        }
+        // cleared on server, clear local UI
+        myReviewData = null;
+        myEvaluation = {};
+        // enable form
+        toggleEdit(true);
+        setFormFrozen(false);
+        // clear fields
+        document.getElementById('overall-summary').value = '';
+        document.getElementById('overall-rating').value = '';
+        document.getElementById('overall-status').value = 'To Evaluate';
+        // refresh other reviews
+        await fetchOtherReviews(myUserIdGlobal);
+        showNotification('Deleted', 'Your evaluation was deleted.');
+      } catch (err) {
+        console.error('delete error:', err);
+        showNotification('Error', err.message || 'Could not delete evaluation.', true);
+      }
+    }
+
+    /**
+     * Fetch other reviews and set myReviewData if present.
+     * Also renders other reviews (includes my review and tags it).
      */
     async function fetchOtherReviews(myUserId) {
         const otherReviewsPanel = document.getElementById('panel-other-reviews');
@@ -344,67 +407,63 @@
         try {
             const res = await fetch(`/api/evaluations?interview_id=${currentInterviewId}&candidate_email=${currentCandidateEmail}`);
             if (!res.ok) throw new Error('Could not fetch other reviews.');
-            
             const allReviews = await res.json();
-            
-            // Include all reviews, including my own
-        const otherReviews = allReviews;
 
-        // Separate my review for tagging
-        let myReviewId = null;
-        if (myUserId) {
-        const myReview = allReviews.find(r => r.user_id === myUserId || r.viewer_id === myUserId);
-        if (myReview) myReviewId = myReview.id || myReview.reviewer_id || null;
-        }
+            // store global user id
+            myUserIdGlobal = myUserId;
 
-          // Move my evaluation to the top
-        if (myUserId) {
-            otherReviews.sort((a, b) => {
-            const aMine = (a.user_id === myUserId || a.viewer_id === myUserId);
-            const bMine = (b.user_id === myUserId || b.viewer_id === myUserId);
-            return aMine ? -1 : bMine ? 1 : 0;
-            });
-        }
-            if (otherReviews.length > 0) {
+            // find my review if exists
+            myReviewData = null;
+            if (myUserId) {
+              myReviewData = allReviews.find(r => r.user_id === myUserId || r.viewer_id === myUserId) || null;
+            }
+
+            // sort to put my review on top if present
+            const reviews = Array.isArray(allReviews) ? allReviews.slice() : [];
+            if (myUserId) {
+              reviews.sort((a,b)=>{
+                const aMine = (a.user_id===myUserId || a.viewer_id===myUserId);
+                const bMine = (b.user_id===myUserId || b.viewer_id===myUserId);
+                return aMine ? -1 : bMine ? 1 : 0;
+              });
+            }
+
+            if (reviews.length > 0) {
                 otherReviewsPlaceholder.classList.add('hidden');
-                otherReviewsCount.textContent = otherReviews.length;
+                otherReviewsCount.textContent = reviews.length;
                 otherReviewsCount.classList.remove('hidden');
                 otherReviewsPanel.innerHTML = ''; // Clear placeholder
 
-                otherReviews.forEach(review => {
-                const card = document.createElement('div');
-                card.className = 'bg-white shadow-lg rounded-lg p-6';
+                reviews.forEach(review => {
+                    const card = document.createElement('div');
+                    card.className = 'review-card mb-4';
 
-                // 🏷️ Add “My Evaluation” badge if this is my review
-                const isMine = (myUserId && (review.user_id === myUserId || review.viewer_id === myUserId));
-                const badgeHtml = isMine
-                ? `<span class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
-                        My Evaluation
-                    </span>`
-                : '';
+                    const isMine = (myUserId && (review.user_id === myUserId || review.viewer_id === myUserId));
+                    const badgeHtml = isMine
+                      ? `<span class="my-eval-badge">My Evaluation</span>`
+                      : '';
 
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">
-                            ${review.first_name || ''} ${review.last_name || ''} ${badgeHtml}
-                        </h3>
-                        <span class="text-sm text-gray-500">${new Date(review.updated_at).toLocaleDateString()}</span>
-                    </div>
-                    <div class="flex items-center space-x-4 mb-4">
-                        <span class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-1 text-sm font-semibold text-blue-800">
-                            Rating: ${review.rating || 'N/A'} / 5
-                        </span>
-                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-sm font-semibold text-gray-800">
-                            Status: ${review.status}
-                        </span>
-                    </div>
-                    <div>
-                        <h4 class="font-medium text-gray-700 mb-1">Summary</h4>
-                        <pre class="text-sm text-gray-600 whitespace-pre-wrap font-sans bg-gray-50 p-3 rounded-md">${review.summary || 'No summary provided.'}</pre>
-                    </div>
-                `;
-                otherReviewsPanel.appendChild(card);
-            });
+                    const name = `${review.first_name||''} ${review.last_name||''}`.trim() || (review.email || 'Anonymous');
+
+                    card.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                          <div style="display:flex;align-items:center;gap:10px">
+                            <div style="font-weight:700;color:#111827">${name}</div>
+                            ${badgeHtml}
+                          </div>
+                          <div style="color:#6b7280;font-size:0.9rem">${new Date(review.updated_at).toLocaleDateString()}</div>
+                        </div>
+                        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+                            <div style="background:#eff6ff;padding:6px 10px;border-radius:8px;font-weight:700;color:#0f172a">Rating: ${review.rating||'N/A'}/5</div>
+                            <div style="background:#f3f4f6;padding:6px 10px;border-radius:8px;font-weight:600;color:#111827">Status: ${review.status || 'To Evaluate'}</div>
+                        </div>
+                        <div>
+                            <h4 style="font-weight:600;margin-bottom:6px;color:#374151">Summary</h4>
+                            <pre style="background:#fbfdff;padding:12px;border-radius:8px;color:#374151;white-space:pre-wrap">${(review.summary)||'No summary provided.'}</pre>
+                        </div>
+                    `;
+                    otherReviewsPanel.appendChild(card);
+                });
 
             } else {
                 otherReviewsPlaceholder.classList.remove('hidden');
@@ -416,50 +475,24 @@
             otherReviewsPanel.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
     }
-    
-    /**
-     * [NEW] Fetches my user ID to filter reviews
-     */
-async function getMyUserId() {
-    try {
-        const response = await fetch('/api/me'); // Standard auth check
-        if (!response.ok) return null;
-        const body = await response.json();
-
-        // Normal shapes we've seen:
-        // 1) { id, email, ... }  -> internal user
-        // 2) { type: 'user', id, email, ... } -> internal user
-        // 3) { type: 'viewer', viewer: { id, email, name } } -> external viewer
-
-        if (!body || typeof body !== 'object') return null;
-
-        if (body.id) return body.id; // plain user object
-        if (body.type === 'user' && body.id) return body.id;
-        if (body.type === 'viewer' && body.viewer && body.viewer.id) return body.viewer.id;
-
-        // No recognizable id found
-        return null;
-    } catch (e) {
-        console.error('getMyUserId error:', e);
-        return null;
-    }
-}
-
 
     /**
-     * [UPDATED] Fetches all candidate details and answers
+     * Fetch candidate + answers (existing logic), populate UI,
+     * then call fetchOtherReviews() and if the current user has a review,
+     * fill & freeze the overall form.
      */
     async function fetchCandidateReview() {
         const loading = document.getElementById('loading-state');
         const errorDiv = document.getElementById('error-state');
         const errorMessage = document.getElementById('error-message');
-        const header = document.getElementById('candidate-header');
+        const headerName = document.getElementById('candidate-name');
+        const headerEmail = document.getElementById('candidate-email');
+        const header = document.getElementById('review-container');
         const answersContainer = document.getElementById('answers-container');
-        const reviewContainer = document.getElementById('review-container');
 
         const params = new URLSearchParams(window.location.search);
         currentToken = params.get("token");
-        currentInterviewId = params.get("interview_id"); // Get interview_id from URL
+        currentInterviewId = params.get("interview_id");
 
         document.getElementById('back-link').href = `/interview-view.html?id=${currentInterviewId}`;
 
@@ -469,102 +502,91 @@ async function getMyUserId() {
             errorMessage.textContent = 'No candidate token provided in the URL.';
             return;
         }
-        
-        const myUserId = await getMyUserId();
-        // If no internal user id found, assume we might be a viewer.
-        // Don't force a redirect here — viewers should be allowed to view candidate details.
-        if (!myUserId) {
-            console.warn('No internal user id found; continuing as viewer (if session exists).');
-            // myUserId will be null for viewers; downstream code handles that.
-        }
 
+        // get my user id if available
+        const myUserId = await getMyUserId();
 
         try {
-            // This API call (from review.routes.js) gets videos, questions, etc.
             const res = await fetch(`/api/candidate/review/${currentToken}`);
             if (!res.ok) {
-                const errData = await res.json();
+                const errData = await res.json().catch(()=>({message:'Error'}));
                 throw new Error(errData.message || "Could not fetch candidate details.");
             }
-            
             const data = await res.json(); // { candidate: {...}, answers: [...] }
-            
-            // Store global IDs
+
+            // store IDs & populate header
             currentCandidateEmail = data.candidate.email;
-            // Note: currentInterviewId is already set from URL params
+            headerName.textContent = data.candidate.name || 'Candidate';
+            headerEmail.textContent = data.candidate.email || '';
+            // fix global status: prefer reviewer_status returned by your server
+            document.getElementById('global-status').textContent = data.candidate.reviewer_status || data.candidate.status || 'To Evaluate';
 
-            // Populate Header
-            document.getElementById('candidate-name').textContent = data.candidate.name;
-            document.getElementById('candidate-email').textContent = data.candidate.email;
-            document.getElementById('global-status').textContent = data.candidate.status || 'To Evaluate';
-            document.getElementById('page-title').textContent = `Review: ${data.candidate.name}`;
-            
-            if (data.candidate.resume_path) {
-                // TODO: You still need to create a signed URL for the resume
-                document.getElementById('resume-link-container').innerHTML = 
-                    `<a href="#" class="text-sm font-medium text-blue-600 hover:underline">View Resume</a>`;
-            }
-            
-            header.classList.remove('hidden');
-
-            // Populate Answers (for "My Evaluation" tab)
+            // populate answers
             answersContainer.innerHTML = '';
             if (data.answers && data.answers.length > 0) {
-                data.answers.forEach((answer) => {
-                    const questionCard = document.createElement('div');
-                    questionCard.className = 'answer-card bg-white shadow-lg rounded-lg p-6';
-                    
-                    let videoPlayerHTML = '';
+                data.answers.forEach((answer, idx) => {
+                    // question number
+                    const qnum = idx + 1;
+                    // build video HTML smaller
+                    let videoHTML = '';
                     if (answer.video_url) {
-                        videoPlayerHTML = `<video controls class="w-full rounded-md bg-black" src="${answer.video_url}"></video>`;
+                        videoHTML = `<video controls class="answer-video" src="${answer.video_url}"></video>`;
                     } else {
-                         videoPlayerHTML = `<div class="w-full aspect-video flex items-center justify-center bg-gray-100 rounded-md">
-                            <p class="text-gray-500">Video (Status: ${answer.status}).</p>
-                            ${answer.status === 'ready' ? '<p class="text-red-500 ml-2">Error loading video.</p>' : ''}
-                        </div>`;
+                        videoHTML = `<div class="answer-video" style="display:flex;align-items:center;justify-content:center;color:#9ca3af">Video not available</div>`;
                     }
+                    // transcript large box
+                    const transcriptHTML = `<div class="transcript-box">${answer.transcript_text || 'Transcript not available.'}</div>`;
 
-                    questionCard.innerHTML = `
-                        <h3 class="text-lg font-semibold text-gray-800">
-                            ${answer.question_text}
-                        </h3>
-                        <p class="text-sm text-gray-500 mb-4">
-                            Time limit: ${answer.time_limit} sec
-                        </p>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="md:col-span-2">
-                                ${videoPlayerHTML}
-                            </div>
-                            <div class="md:col-span-1 space-y-4">
-                                <div>
-                                    <h4 class="font-medium text-gray-700 mb-1">Transcript</h4>
-                                    <pre class="text-sm text-gray-600 whitespace-pre-wrap font-sans bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto">
-${answer.transcript_text || 'Transcript not available.'}
-                                    </pre>
-                                </div>
-                                <!-- Per-question ratings can be added here -->
-                                <div>
-                                    <label for="notes-${answer.id}" class="block text-sm font-medium text-gray-700">My Notes</label>
-                                    <textarea id="notes-${answer.id}" rows="4"
-                                              class="notes-textarea mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                                              placeholder="Your private notes for this question..."></textarea>
-                                </div>
-                            </div>
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'card';
+                    wrapper.innerHTML = `
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
+                        <div><div style="font-weight:700">Q${qnum}.</div><div class="small-muted">${answer.question_text || ''}</div></div>
+                        <div class="small-muted">Time limit: ${answer.time_limit || 0} sec</div>
+                      </div>
+
+                      <div class="answer-grid">
+                        <div class="video-col">
+                          ${videoHTML}
                         </div>
+                        <div class="transcript-col">
+                          <div style="margin-bottom:10px;font-weight:600;color:#111827">Transcript</div>
+                          ${transcriptHTML}
+                        </div>
+                      </div>
                     `;
-                    answersContainer.appendChild(questionCard);
+                    answersContainer.appendChild(wrapper);
                 });
             } else {
                 answersContainer.innerHTML = '<p class="text-gray-600 italic">This candidate has not submitted any answers yet.</p>';
             }
 
-            // --- [NEW] ---
-            // Now that we have the data, fetch the other reviews
+            // now fetch other reviews (and my review)
             await fetchOtherReviews(myUserId);
 
-            // Show content
+            // if current user has a review - populate the overall form and freeze it
+            if (myReviewData) {
+              // fill form fields
+              document.getElementById('overall-summary').value = myReviewData.summary || '';
+              document.getElementById('overall-rating').value = myReviewData.rating ? String(myReviewData.rating) : '';
+              document.getElementById('overall-status').value = myReviewData.status || 'To Evaluate';
+              // freeze form
+              setFormFrozen(true);
+              // ensure edit button visible to allow editing
+              editBtn.classList.remove('hidden');
+              deleteBtn.classList.remove('hidden');
+              saveBtn.classList.add('hidden');
+              // not editing
+              isEditing = false;
+            } else {
+              // no existing review by me -> ensure editable state
+              toggleEdit(true);
+              setFormFrozen(false);
+            }
+
+            // reveal main UI
             loading.style.display = 'none';
-            reviewContainer.classList.remove('hidden'); // Show the main review container
+            document.getElementById('review-container').classList.remove('hidden');
 
         } catch (error) {
             loading.style.display = 'none';
@@ -574,8 +596,9 @@ ${answer.transcript_text || 'Transcript not available.'}
         }
     }
 
-    // --- Run on page load ---
+    // run when page loads
     fetchCandidateReview();
+
   </script>
 </body>
 </html>

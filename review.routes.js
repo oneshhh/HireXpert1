@@ -503,4 +503,56 @@ router.get("/evaluations", async (req, res) => {
   }
 });
 
+
+/**
+ * DELETE /api/evaluations
+ * Deletes an evaluation (review) for the given interview_id and candidate_email
+ * Works for both users and viewers.
+ */
+router.delete('/evaluations', async (req, res) => {
+  const { interview_id, candidate_email } = req.body;
+
+  // Validate
+  if (!interview_id || !candidate_email) {
+    return res.status(400).json({ message: 'Interview ID and candidate email are required.' });
+  }
+
+  try {
+    // Determine current user or viewer identity from session
+    let userId = null;
+    let isViewer = false;
+
+    if (req.session && req.session.user) {
+      userId = req.session.user.id;
+    } else if (req.session && req.session.viewer) {
+      userId = req.session.viewer.id;
+      isViewer = true;
+    } else {
+      return res.status(401).json({ message: 'You must be logged in to delete an evaluation.' });
+    }
+
+    // Delete the matching record
+    const deleteQuery = `
+      DELETE FROM reviewer_evaluations
+      WHERE interview_id = $1
+        AND candidate_email = $2
+        AND (${isViewer ? 'viewer_id' : 'user_id'}) = $3
+      RETURNING *;
+    `;
+
+    const result = await pool.query(deleteQuery, [interview_id, candidate_email, userId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Evaluation not found or you are not authorized to delete it.' });
+    }
+
+    console.log(`Evaluation deleted for ${candidate_email} (interview: ${interview_id}) by ${isViewer ? 'viewer' : 'user'} ${userId}`);
+    return res.status(200).json({ message: 'Evaluation deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting evaluation:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+
 module.exports = router;
