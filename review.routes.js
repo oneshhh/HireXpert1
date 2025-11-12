@@ -6,21 +6,31 @@ const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2n
 
 // Allow both user and viewer for GETs.
 // For POSTs, allow user, but also allow viewer only for /api/evaluations.
+// --- Allow viewers to use evaluation routes safely ---
 function allowViewerForGets(req, res, next) {
-  const isEvaluationPost =
-    req.method === "POST" && req.path.includes("/evaluations");
+  // ✅ Viewers can access these paths fully (GET/POST/PUT/DELETE)
+  const viewerAllowedPaths = ['/evaluations'];
 
-  if (req.method === "GET" || isEvaluationPost) {
-    if (req.session && (req.session.user || req.session.viewer)) {
-      return next();
-    }
-    return res.status(401).json({ message: "You must be logged in." });
+  const isViewerAllowedPath = viewerAllowedPaths.some(p => req.path.startsWith(p));
+
+  // 1. Allow GET for any logged-in session (user or viewer)
+  if (req.method === 'GET') {
+    if (req.session?.user || req.session?.viewer) return next();
+    return res.status(401).json({ message: 'You must be logged in.' });
   }
 
-  // Other POST/PUT/DELETE restricted to internal user only
-  if (req.session && req.session.user) return next();
-  return res.status(401).json({ message: "You must be logged in." });
+  // 2. Allow POST/PUT/DELETE for /evaluations if viewer logged in
+  if (isViewerAllowedPath) {
+    if (req.session?.user || req.session?.viewer) return next();
+    return res.status(401).json({ message: 'You must be logged in.' });
+  }
+
+  // 3. For all other modifying routes, only internal user allowed
+  if (req.session?.user) return next();
+
+  return res.status(401).json({ message: 'You must be logged in.' });
 }
+
 router.use(allowViewerForGets);
 
 
@@ -384,6 +394,19 @@ router.put('/evaluations', async (req, res) => {
     } else {
       return res.status(401).json({ message: 'You must be logged in to edit an evaluation.' });
     }
+        // --- SAFETY CHECK: Ensure viewer only edits their own evaluation ---
+    if (req.session?.viewer) {
+    const viewerId = req.session.viewer.id;
+    const existingEval = await pool.query(
+        'SELECT * FROM reviewer_evaluations WHERE interview_id = $1 AND candidate_email = $2',
+        [req.body.interview_id, req.body.candidate_email]
+    );
+
+    // If record exists but viewer_id doesn’t match, block the action
+    if (existingEval.rows.length && existingEval.rows[0].viewer_id !== viewerId) {
+        return res.status(403).json({ message: 'Not authorized to modify this evaluation.' });
+    }
+    }
 
     // Check if evaluation exists
     const checkQuery = `
@@ -461,6 +484,20 @@ router.delete('/evaluations', async (req, res) => {
     } else {
       return res.status(401).json({ message: 'You must be logged in to delete an evaluation.' });
     }
+
+    // --- SAFETY CHECK: Ensure viewer only edits their own evaluation ---
+if (req.session?.viewer) {
+  const viewerId = req.session.viewer.id;
+  const existingEval = await pool.query(
+    'SELECT * FROM reviewer_evaluations WHERE interview_id = $1 AND candidate_email = $2',
+    [req.body.interview_id, req.body.candidate_email]
+  );
+
+  // If record exists but viewer_id doesn’t match, block the action
+  if (existingEval.rows.length && existingEval.rows[0].viewer_id !== viewerId) {
+    return res.status(403).json({ message: 'Not authorized to modify this evaluation.' });
+  }
+}
 
     // Delete the matching record
     const deleteQuery = `
