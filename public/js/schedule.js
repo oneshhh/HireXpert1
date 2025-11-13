@@ -236,17 +236,24 @@ document.addEventListener("DOMContentLoaded", () => {
     // This 'schedulerIds' now contains VISITOR IDs
     const visitorReviewerIds = Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value);
     
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+
     const data = {
-      title: formData.get("title"),
-      customIdText: formData.get("customIdText"),
-      questions: formData.getAll("questions[]"),
-      timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
-      date: formData.get("date"),
-      time: formData.get("time"),
-      emails: formData.get("emails"),
-      schedulerEmail: formData.get("schedulerEmail"),
-      jobDescription: document.getElementById('job-description').value,
-      schedulerIds: visitorReviewerIds // This key name MUST match the server's req.body
+        title: formData.get("title"),
+        customIdText: formData.get("customIdText"),
+        questions: formData.getAll("questions[]"),
+        timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
+        date: `${yyyy}-${mm}-${dd}`,
+        time: `${hh}:${min}`,
+        emails: formData.get("emails"),
+        schedulerEmail: formData.get("schedulerEmail"),
+        jobDescription: document.getElementById('job-description').value,
+        schedulerIds: visitorReviewerIds
     };
 
     try {
@@ -274,37 +281,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showNotification('Network Error', "Failed to schedule interview. Please try again.", { isError: true });
     }
   });
-
-  // --- Date/Time Restriction Logic (Unchanged) ---
-  const dateInput = document.getElementById('interview-date');
-  const timeInput = document.getElementById('interview-time');
-  // ... (rest of date/time logic is unchanged) ...
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-  const todayString = today.toISOString().split('T')[0];
-  dateInput.min = todayString;
-
-  function handleDateChange() {
-      const selectedDate = dateInput.value;
-      const todayForCheck = new Date();
-      todayForCheck.setMinutes(todayForCheck.getMinutes() - todayForCheck.getTimezoneOffset());
-      const todayStringForCheck = todayForCheck.toISOString().split('T')[0];
-
-      if (selectedDate === todayStringForCheck) {
-          const now = new Date();
-          const hours = String(now.getHours()).padStart(2, '0');
-          const minutes = String(now.getMinutes()).padStart(2, '0');
-          const currentTime = `${hours}:${minutes}`;
-          timeInput.min = currentTime;
-          if (timeInput.value < currentTime) {
-              timeInput.value = currentTime;
-          }
-      } else {
-          timeInput.min = '';
-      }
-  }
-  dateInput.addEventListener('change', handleDateChange);
-  handleDateChange();
   
   // --- Initial UI Management (Unchanged) ---
   manageAddQuestionButton();
