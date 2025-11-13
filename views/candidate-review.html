@@ -20,26 +20,55 @@
       .candidate-name { font-size:1.6rem; font-weight:700; color:#111827; }
       .subtle { color: #6b7280; }
 
-      /* answers layout tweaks: use 4-column layout on md */
-      .answer-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-      @media(min-width: 768px) { .answer-grid { grid-template-columns: repeat(4, 1fr); } }
-      .video-col { grid-column: 1 / -1; } /* default full width on mobile */
-      @media(min-width:768px) { .video-col { grid-column: span 1; } }
-      .transcript-col { grid-column: 1 / -1; } 
-      @media(min-width:768px) { .transcript-col { grid-column: span 3; } }
+    /* Improved video + transcript layout */
+    .answer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    }
 
-      /* smaller video */
-      .answer-video {
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        max-height: 480px;
-        object-fit: contain;
-        border-radius: 8px;
-        background: #000;
-        }
+    @media (min-width: 768px) {
+    .answer-grid {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    }
+
+    .video-col {
+    flex: 0 0 55%; /* video takes ~55% width */
+    }
+
+    .transcript-col {
+    flex: 1;
+    max-height: 500px;
+    overflow-y: auto;
+    }
+
+    /* larger video box (proper 16:9 ratio and playable inline) */
+    .answer-video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 540px;
+    border-radius: 10px;
+    background: #000;
+    object-fit: cover;
+    display: block;
+    }
+
 
       /* transcript area: large, scrollable */
-      .transcript-box { background:#f9fafb; border-radius:8px; padding:12px; font-size:0.95rem; color:#374151; line-height:1.45; max-height:360px; overflow:auto; white-space:pre-wrap; }
+      .transcript-box {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 16px;
+        font-size: 0.95rem;
+        color: #374151;
+        line-height: 1.5;
+        max-height: 460px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        box-shadow: inset 0 0 4px rgba(0,0,0,0.04);
+        }
 
       /* remove per-question notes (we simply won't render them) */
 
