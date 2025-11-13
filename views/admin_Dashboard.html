@@ -654,20 +654,25 @@
                 // Build elapsed days (only for open interviews)
             let elapsedCell = "";
             if (currentInterviewStatus === "open") {
-                const createdAt = new Date(`${interview.date}T${interview.time}`);
+
+                // FIX: extract pure date part
+                const dateOnly = interview.date.split("T")[0];
+
+                // Combine into valid timestamp
+                const createdAt = new Date(`${dateOnly}T${interview.time}`);
+
                 const now = new Date();
                 const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
                 const padded = String(diffDays).padStart(2, "0");
 
                 elapsedCell = `
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
-                        <span class="material-symbols-outlined align-middle text-gray-500 dark:text-gray-300">
-                            schedule
-                        </span>
+                        <span class="material-symbols-outlined align-middle text-gray-500 dark:text-gray-300">schedule</span>
                         <span class="ml-1 font-semibold">${padded}</span>
                     </td>
                 `;
             }
+
 
 
                 tr.innerHTML = `
