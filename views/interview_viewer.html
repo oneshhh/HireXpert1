@@ -361,7 +361,8 @@
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
-        const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html`;
+        const viewerToken = token || ""; // already extracted earlier from URL
+        const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html&viewer_token=${viewerToken}`;
 
 
         const stats = interview.stats || {};
