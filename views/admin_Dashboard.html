@@ -882,7 +882,7 @@
         const logoutBtn = document.getElementById("logout-btn");
         logoutBtn.addEventListener("click", async () => {
             try {
-                const res = await fetch("/logout", { method: "POST" });
+                const res = await fetch("/logout", { method: "GET" });
                 if (!res.ok) throw new Error("Logout failed");
                 window.location.href = "/login.html";
             } catch (err) {

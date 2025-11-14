@@ -239,6 +239,8 @@ app.get("/logout", (req, res) => {
     res.clearCookie('session');
     // Redirect to the login page
     res.redirect('/');
+    window.location.href = "/";
+
 });
 
 app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
