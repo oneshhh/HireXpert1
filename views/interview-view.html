@@ -263,7 +263,15 @@ async function checkUserType() {
         if (!currentInterviewId) { showNotification('Error', 'Interview ID not found.', { isError: true }); return; }
         button.disabled = true; const originalText = button.textContent; button.textContent = 'Sending...';
         try {
-            const response = await fetch('/api/resend-invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ interviewId: currentInterviewId, candidateEmail: candidateEmail }) });
+            const response = await fetch('/api/resend-invite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',   // 🔥 REQUIRED FOR VIEWER LOGIN
+              body: JSON.stringify({
+              interviewId: currentInterviewId,
+              candidateEmail
+          })
+      });
             const result = await response.json(); if (!response.ok) { throw new Error(result.message || 'Failed to resend invite.'); }
             showNotification('Success!', `Invite resent to ${candidateEmail}`, { duration: 2000 }); button.textContent = 'Sent!'; setTimeout(() => { button.textContent = originalText; button.disabled = false; }, 3500);
         } catch (error) { console.error('Error resending invite:', error); showNotification('Error', error.message, { isError: true }); button.textContent = originalText; button.disabled = false; }
