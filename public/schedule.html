@@ -85,8 +85,22 @@
     <button type="button" id="apply-time-to-all" class="text-sm font-medium text-[var(--primary-color)] hover:underline">Apply first time limit to all</button>
 </div>
 </div>
-<div>
-    <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="schedulerIds">Assign Schedulers / Interviewers</label>
+<div class="flex items-center justify-between mb-2">
+        <label class="text-sm font-medium text-[var(--text-primary)]" for="schedulerIds">
+            Assign Schedulers / Interviewers
+        </label>
+
+        <!-- Refresh Button -->
+        <button
+            type="button"
+            id="refresh-schedulers"
+            class="text-[var(--primary-color)] hover:text-blue-700 flex items-center gap-1"
+            title="Refresh Schedulers List"
+        >
+            <span class="material-symbols-outlined text-lg">refresh</span>
+        </button>
+    </div>
+
     <select
         id="schedulerIds"
         name="schedulerIds"
@@ -96,6 +110,7 @@
     >
         <option disabled>Loading users...</option>
     </select>
+
     <p class="mt-1 text-xs text-[var(--text-secondary)]">Select one or more users from your department. Hold Ctrl/Cmd to select multiple.</p>
 </div>
 
