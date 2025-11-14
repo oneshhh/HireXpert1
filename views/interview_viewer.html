@@ -169,6 +169,33 @@
 </div>
 
 <script>
+  // ---- Add this at the top of your script, BEFORE any function that uses `token` ----
+  const _urlParams = new URLSearchParams(window.location.search);
+  // accept both "token" and "viewer_token" query names (some links use one or the other)
+  const token = _urlParams.get('token') || _urlParams.get('viewer_token') || null;
+
+  // helpful debug/logging and graceful UI
+  if (!token) {
+    console.warn('No viewer token found in URL (expected ?token=... or ?viewer_token=...)');
+    // Optionally show friendly UI message instead of failing later:
+    // document.getElementById('loading-state').textContent = 'No visitor token supplied.';
+  }
+
+  // If you previously used a function like initViewerSession that expects viewer_token,
+  // call it with this token (or change that function to use the above `token`).
+  async function initViewerSessionIfNeeded() {
+    if (!token) return;
+    try {
+      await fetch(`/api/viewer/init?token=${encodeURIComponent(token)}`, { credentials: 'include' });
+      console.log('Viewer session initialized using token');
+    } catch (err) {
+      console.error('Viewer init failed:', err);
+    }
+  }
+  // call it once (if your code already had an init, replace that call with this one)
+  initViewerSessionIfNeeded();
+
+
   let selectedInterviewIds = new Set();
   let allInterviews = [];
   let currentUserType = 'none'; // 'user' or 'visitor'
