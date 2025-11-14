@@ -540,10 +540,12 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
             }
 
             if (reviews.length > 0) {
-                otherReviewsPlaceholder.classList.add('hidden');
-                otherReviewsCount.textContent = reviews.length;
-                otherReviewsCount.classList.remove('hidden');
-                otherReviewsPanel.innerHTML = ''; // Clear placeholder
+                if (otherReviewsPlaceholder) otherReviewsPlaceholder.classList.add('hidden');
+                if (otherReviewsCount) {
+                    otherReviewsCount.textContent = reviews.length;
+                    otherReviewsCount.classList.remove('hidden');
+                }
+                if (otherReviewsPanel) otherReviewsPanel.innerHTML = '';
 
                 reviews.forEach(review => {
                     const card = document.createElement('div');
@@ -577,8 +579,9 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
                 });
 
             } else {
-                otherReviewsPlaceholder.classList.remove('hidden');
-                otherReviewsCount.classList.add('hidden');
+                if (otherReviewsPlaceholder) otherReviewsPlaceholder.classList.remove('hidden');
+                if (otherReviewsCount) otherReviewsCount.classList.add('hidden');
+
             }
 
         } catch (error) {
