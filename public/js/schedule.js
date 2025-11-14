@@ -198,7 +198,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   getActiveDepartmentAndLoadReviewers();
-  
+
+  // --- Refresh schedulers button ---
+    const refreshBtn = document.getElementById("refresh-schedulers");
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", async () => {
+            try {
+                refreshBtn.classList.add("animate-spin");
+                refreshBtn.disabled = true;
+
+                // Get department again
+                const res = await fetch("/api/me");
+                const user = await res.json();
+                const dept = user.activeDepartment;
+
+                await loadSchedulers(dept);
+
+            } catch (err) {
+                showNotification("Error", "Failed to refresh schedulers.", { isError: true });
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove("animate-spin");
+            }
+        });
+    }
+
   // --- Event Listener for "Apply Time" Button (Unchanged) ---
   const applyTimeButton = document.getElementById('apply-time-to-all');
   if (applyTimeButton) {
