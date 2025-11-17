@@ -929,19 +929,26 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
     }
 });
 
-// --- NEW ROUTE for Resending Invites ---
+// --- FIXED: Allow BOTH users and viewers to resend invite ---
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;
+
+    // 🔥 Allow: user OR viewer
+    if (!req.session || (!req.session.user && !req.session.viewer)) {
+        return res.status(401).json({ message: "You must be logged in." });
+    }
 
     if (!interviewId || !candidateEmail) {
         return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
     }
 
     try {
-        // 1. Verify the candidate session exists for this interview
+        // 1. Verify candidate session exists
         const sessionResult = await pool.query(
-            `SELECT cs.session_id FROM candidate_sessions cs
-             WHERE cs.interview_id = $1 AND cs.candidate_email = $2`,
+            `SELECT cs.session_id 
+             FROM candidate_sessions cs
+             WHERE cs.interview_id = $1 
+             AND cs.candidate_email = $2`,
             [interviewId, candidateEmail]
         );
 
@@ -949,7 +956,7 @@ app.post("/api/resend-invite", async (req, res) => {
             return res.status(404).json({ message: "Candidate not found for this interview." });
         }
 
-        // 2. Fetch the interview details needed for the email
+        // 2. Fetch interview info
         const interviewResult = await pool.query(
             `SELECT title, date, time FROM interviews WHERE id = $1`,
             [interviewId]
@@ -958,32 +965,33 @@ app.post("/api/resend-invite", async (req, res) => {
         if (interviewResult.rows.length === 0) {
             return res.status(404).json({ message: "Interview details not found." });
         }
+
         const interview = interviewResult.rows[0];
 
-        // 3. Call the existing email function
+        // 3. Send email
         const emailResult = await sendInterviewEmail(
             candidateEmail,
-            interviewId, // Pass the interview ID itself, not the session ID for the generic link
+            interviewId,
             interview.title,
             interview.date,
             interview.time
         );
 
         if (!emailResult.success) {
-            // Log the detailed error on the server but send a generic message to the client
-            console.error(`Failed to resend email to ${candidateEmail} for interview ${interviewId}:`, emailResult.error);
-            return res.status(500).json({ message: "Failed to send email due to a server error." });
+            console.error(`Failed to resend email:`, emailResult.error);
+            return res.status(500).json({ message: "Failed to send email due to server error." });
         }
 
-        // 4. Send success response
-        res.json({ success: true, message: `Invite resent successfully to ${candidateEmail}.` });
+        return res.json({
+            success: true,
+            message: `Invite resent successfully to ${candidateEmail}.`
+        });
 
     } catch (err) {
-        console.error("Error in /api/resend-invite route:", err);
-        res.status(500).json({ message: "An internal server error occurred." });
+        console.error("Error in /api/resend-invite:", err);
+        return res.status(500).json({ message: "Internal server error." });
     }
 });
-
 
 // 1. GET Route to fetch full details for the logged-in user
 app.get("/api/me/details", async (req, res) => {
