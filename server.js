@@ -932,30 +932,23 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;
 
-    // Allow: user OR viewer — EXACT SAME LOGIC as eval PUT/DELETE
-    let actorId = null;
-    let isViewer = false;
-
-    if (req.session && req.session.user) {
-        actorId = req.session.user.id;
-    } else if (req.session && req.session.viewer) {
-        actorId = req.session.viewer.id;
-        isViewer = true;
-    } else {
-        return res.status(401).json({ message: "You must be logged in." });
+    // Allow: user OR viewer
+    if (
+        !req.session ||
+        (!req.session.user && !req.session.viewer)
+    ) {
+        return res.status(401).json({ message: "You must be logged in" });
     }
 
     if (!interviewId || !candidateEmail) {
-        return res.status(400).json({
-            message: "Interview ID and Candidate Email are required."
-        });
+        return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
     }
 
     try {
-        // 1. Ensure the candidate exists for this interview
+        // 1. Verify the candidate session exists for this interview
         const sessionResult = await pool.query(
-            `SELECT session_id FROM candidate_sessions
-             WHERE interview_id = $1 AND candidate_email = $2`,
+            `SELECT cs.session_id FROM candidate_sessions cs
+             WHERE cs.interview_id = $1 AND cs.candidate_email = $2`,
             [interviewId, candidateEmail]
         );
 
@@ -963,19 +956,19 @@ app.post("/api/resend-invite", async (req, res) => {
             return res.status(404).json({ message: "Candidate not found for this interview." });
         }
 
-        // 2. Fetch interview data
+        // 2. Fetch interview info
         const interviewResult = await pool.query(
             `SELECT title, date, time FROM interviews WHERE id = $1`,
             [interviewId]
         );
 
         if (interviewResult.rows.length === 0) {
-            return res.status(404).json({ message: "Interview not found." });
+            return res.status(404).json({ message: "Interview details not found." });
         }
 
         const interview = interviewResult.rows[0];
 
-        // 3. Actually send email
+        // 3. Send email using your existing function
         const emailResult = await sendInterviewEmail(
             candidateEmail,
             interviewId,
@@ -985,8 +978,8 @@ app.post("/api/resend-invite", async (req, res) => {
         );
 
         if (!emailResult.success) {
-            console.error("Email error:", emailResult.error);
-            return res.status(500).json({ message: "Failed to send email." });
+            console.error(`Failed to resend email to ${candidateEmail}:`, emailResult.error);
+            return res.status(500).json({ message: "Failed to send email due to a server error." });
         }
 
         return res.json({
@@ -995,11 +988,10 @@ app.post("/api/resend-invite", async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Resend error:", err);
-        return res.status(500).json({ message: "Internal server error." });
+        console.error("Error in /api/resend-invite route:", err);
+        res.status(500).json({ message: "An internal server error occurred." });
     }
 });
-
 
 
 
@@ -1116,53 +1108,79 @@ app.post("/api/me/update", async (req, res) => {
 });
 
 
+// ========== VIEWER ROUTES ==========
 app.post("/viewer/login", async (req, res) => {
-    const { email, password } = req.body;   
-
+    const { email, password } = req.body;
     try {
+        // Query the 'visitors' table
         const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
         const viewer = result.rows[0];
 
-        if (!viewer) {
-            return res.status(401).json({ message: "Invalid credentials." });
+        if (viewer) {
+            const isMatch = await bcrypt.compare(password, viewer.password_hash);
+            if (isMatch) {
+                // Set a 'viewer' session, not a 'user' session
+                req.session.viewer = {
+                    id: viewer.id,
+                    email: viewer.email,
+                    name: `${viewer.first_name} ${viewer.last_name}`
+                };
+                // cookie-session auto-saves on response
+                return res.json({
+                    success: true,
+                    email: viewer.email
+                });
+            } else {
+                res.status(401).json({ message: "Invalid credentials." });
+            }
+        } else {
+            res.status(401).json({ message: "Invalid credentials." });
         }
-
-        const isMatch = await bcrypt.compare(password, viewer.password_hash);
-        if (!isMatch) {
-            return res.status(401).json({ message: "Invalid credentials." });
-        }
-
-        // 🔥 Generate token if empty
-        let viewerToken = viewer.token;
-        if (!viewerToken) {
-            viewerToken = crypto.randomUUID();
-            await pool.query(
-                "UPDATE visitors SET token = $1 WHERE id = $2",
-                [viewerToken, viewer.id]
-            );
-        }
-
-        // 🔥 Store session
-        req.session.viewer = {
-            id: viewer.id,
-            email: viewer.email,
-            name: `${viewer.first_name} ${viewer.last_name}`,
-            token: viewerToken
-        };
-
-        return res.json({
-        success: true,
-        email: viewer.email,
-        isViewer: true     // 👈 ADD THIS
-});
-
-
-    } catch (err) {
-        console.error("Viewer login error:", err);
+    } catch (error) {
+        console.error("Viewer login error:", error);
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
 
+// ADD THIS NEW ROUTE to server.js
+app.post("/api/reviewer-login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        const user = result.rows[0];
+
+        if (user) {
+            if (!user.is_active) {
+                return res.status(403).json({ message: "Account disabled. Please contact admin." });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password_hash);
+            if (isMatch) {
+                // Create the standard user session
+                req.session.user = {
+                    id: user.id,
+                    email: user.email,
+                    departments: user.department,
+                    activeDepartment: user.department[0] // Just pick the first department
+                };
+                
+                // cookie-session auto-saves on response
+                return res.json({
+                    success: true,
+                    id: user.id,
+                    email: user.email
+                });
+            } else {
+                 res.status(401).json({ message: "Invalid credentials." });
+            }
+        } else {
+             res.status(401).json({ message: "Invalid credentials." });
+        }
+    } catch (error) {
+        console.error("Reviewer login error:", error);
+        res.status(500).json({ message: "An internal server error occurred." });
+    }
+});
 
 // 2. Check Viewer Session Route
 app.get("/viewer/me", (req, res) => {
@@ -1243,4 +1261,3 @@ app.get("/candidate-review.html", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-

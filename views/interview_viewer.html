@@ -169,19 +169,6 @@
 </div>
 
 <script>
-  async function initViewerSessionIfNeeded() {
-    if (!token) return;
-    try {
-      await fetch(`/api/viewer/init?token=${encodeURIComponent(token)}`, { credentials: 'include' });
-      console.log('Viewer session initialized using token');
-    } catch (err) {
-      console.error('Viewer init failed:', err);
-    }
-  }
-  // call it once (if your code already had an init, replace that call with this one)
-  initViewerSessionIfNeeded();
-
-
   let selectedInterviewIds = new Set();
   let allInterviews = [];
   let currentUserType = 'none'; // 'user' or 'visitor'
@@ -264,6 +251,24 @@
       confirmCallback = null;
   }
 
+  (async function initViewerSession() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) return;
+
+  try {
+    const res = await fetch(`/api/viewer/init?token=${token}`, {
+      credentials: "include"
+    });
+    if (res.ok) {
+      console.log("✅ Viewer session initialized");
+    } else {
+      console.warn("⚠️ Viewer init failed:", await res.text());
+    }
+  } catch (err) {
+    console.error("Error initializing viewer session:", err);
+  }
+})();
 
 
   // --- [NEW] Dashboard Functions ---
@@ -426,38 +431,33 @@
 
     // --- [FIXED] Login Form Handler ---
     loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.textContent = '';
-    loginBtn.disabled = true;
-    loginBtn.textContent = 'Logging in...';
-
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const response = await fetch('/viewer/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
+        e.preventDefault();
+        loginError.textContent = '';
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        try {
+            // [FIXED] Call the correct API for VISITORS
+            const response = await fetch('/viewer/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+                credentials: 'include' // ✅ required for cookie-session to persist login
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Login failed');
+            }
+            // On success, show the dashboard for a 'visitor'
+            showDashboard(data, 'visitor');
+        } catch (error) {
+            loginError.textContent = error.message;
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login';
         }
-
-        // 🔥 THIS is the fix
-        window.location.href = "/interview_viewer.html";
-
-    } catch (error) {
-        loginError.textContent = error.message;
-    } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
-    }
-});
-
+    });
 
     // Confirmation Modal Buttons (No changes)
     confirmBtn.addEventListener('click', () => {

@@ -233,6 +233,22 @@
   </div>
 
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const candidateToken =
+        urlParams.get("token") ||
+        urlParams.get("viewer_token") ||
+        urlParams.get("candidate_token") ||
+        null;
+
+    const interviewId =
+        urlParams.get("interview_id") ||
+        urlParams.get("id") ||
+        null;
+    if (!candidateToken || !interviewId) {
+    console.error("Missing token or interview_id in URL");
+    alert("Something is wrong with the interview link.");
+}
+
     // --- Global Variables ---
     let currentToken = null;
     let currentInterviewId = null;
