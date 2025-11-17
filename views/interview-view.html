@@ -238,34 +238,17 @@
     // --- Detect if current user is a viewer ---
 let isViewer = false;
 
-(async () => {
-    await checkUserType();
-})();
-
-
-
 async function checkUserType() {
-    try {
-        const resp = await fetch('/api/me', { credentials: 'include' });
-
-        if (!resp.ok) {
-            isViewer = true; // not logged → treat as viewer fallback
-            return;
-        }
-
-        const data = await resp.json();
-
-        if (data.type === "viewer" || data.isViewer) {
-            isViewer = true;
-            return;
-        }
-
-        isViewer = false; // internal user
-    } catch (err) {
-        isViewer = true; // safe fallback
-    }
+  try {
+    const resp = await fetch('/api/me', { credentials: 'include' });
+    if (!resp.ok) { isViewer = true; return; } // fallback if no login session
+    const data = await resp.json();
+    // assume API returns { type: 'user' | 'viewer' }
+    if (data.type && data.type !== 'user') isViewer = true;
+  } catch {
+    isViewer = true;
+  }
 }
-  
 
 
     // --- Notification Modal Helpers (Unchanged) ---
@@ -280,15 +263,7 @@ async function checkUserType() {
         if (!currentInterviewId) { showNotification('Error', 'Interview ID not found.', { isError: true }); return; }
         button.disabled = true; const originalText = button.textContent; button.textContent = 'Sending...';
         try {
-            const response = await fetch('/api/resend-invite', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',   // 🔥 REQUIRED FOR VIEWER LOGIN
-              body: JSON.stringify({
-              interviewId: currentInterviewId,
-              candidateEmail
-          })
-      });
+            const response = await fetch('/api/resend-invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ interviewId: currentInterviewId, candidateEmail: candidateEmail }) });
             const result = await response.json(); if (!response.ok) { throw new Error(result.message || 'Failed to resend invite.'); }
             showNotification('Success!', `Invite resent to ${candidateEmail}`, { duration: 2000 }); button.textContent = 'Sent!'; setTimeout(() => { button.textContent = originalText; button.disabled = false; }, 3500);
         } catch (error) { console.error('Error resending invite:', error); showNotification('Error', error.message, { isError: true }); button.textContent = originalText; button.disabled = false; }

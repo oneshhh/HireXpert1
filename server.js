@@ -928,17 +928,10 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
         res.status(500).json({ message: "Failed to fetch candidate list." });
     }
 });
-//resend route
+
+// --- NEW ROUTE for Resending Invites ---
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;
-
-    // Allow: user OR viewer
-    if (
-        !req.session ||
-        (!req.session.user && !req.session.viewer)
-    ) {
-        return res.status(401).json({ message: "You must be logged in" });
-    }
 
     if (!interviewId || !candidateEmail) {
         return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
@@ -956,7 +949,7 @@ app.post("/api/resend-invite", async (req, res) => {
             return res.status(404).json({ message: "Candidate not found for this interview." });
         }
 
-        // 2. Fetch interview info
+        // 2. Fetch the interview details needed for the email
         const interviewResult = await pool.query(
             `SELECT title, date, time FROM interviews WHERE id = $1`,
             [interviewId]
@@ -965,34 +958,31 @@ app.post("/api/resend-invite", async (req, res) => {
         if (interviewResult.rows.length === 0) {
             return res.status(404).json({ message: "Interview details not found." });
         }
-
         const interview = interviewResult.rows[0];
 
-        // 3. Send email using your existing function
+        // 3. Call the existing email function
         const emailResult = await sendInterviewEmail(
             candidateEmail,
-            interviewId,
+            interviewId, // Pass the interview ID itself, not the session ID for the generic link
             interview.title,
             interview.date,
             interview.time
         );
 
         if (!emailResult.success) {
-            console.error(`Failed to resend email to ${candidateEmail}:`, emailResult.error);
+            // Log the detailed error on the server but send a generic message to the client
+            console.error(`Failed to resend email to ${candidateEmail} for interview ${interviewId}:`, emailResult.error);
             return res.status(500).json({ message: "Failed to send email due to a server error." });
         }
 
-        return res.json({
-            success: true,
-            message: `Invite resent successfully to ${candidateEmail}.`
-        });
+        // 4. Send success response
+        res.json({ success: true, message: `Invite resent successfully to ${candidateEmail}.` });
 
     } catch (err) {
         console.error("Error in /api/resend-invite route:", err);
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
-
 
 
 // 1. GET Route to fetch full details for the logged-in user
