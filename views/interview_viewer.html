@@ -435,12 +435,11 @@
     const password = document.getElementById('password').value;
 
     try {
-        // [FIXED] Call the correct API for VISITORS
         const response = await fetch('/viewer/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-            credentials: 'include' // ✅ required for cookie-session to persist login
+            credentials: 'include',
+            body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
@@ -448,8 +447,8 @@
             throw new Error(data.message || 'Login failed');
         }
 
-        // Proceed to dashboard
-        showDashboard(data, 'visitor');
+        // 🔥 THIS is the fix
+        window.location.href = "/interview_viewer.html";
 
     } catch (error) {
         loginError.textContent = error.message;
@@ -458,6 +457,7 @@
         loginBtn.textContent = 'Login';
     }
 });
+
 
     // Confirmation Modal Buttons (No changes)
     confirmBtn.addEventListener('click', () => {
