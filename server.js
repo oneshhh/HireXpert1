@@ -1111,31 +1111,42 @@ app.post("/api/me/update", async (req, res) => {
 // ========== VIEWER ROUTES ==========
 app.post("/viewer/login", async (req, res) => {
     const { email, password } = req.body;
+
     try {
-        // Query the 'visitors' table
-        const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
+        const result = await pool.query(
+            "SELECT * FROM visitors WHERE email = $1",
+            [email]
+        );
+
         const viewer = result.rows[0];
 
-        if (viewer) {
-            const isMatch = await bcrypt.compare(password, viewer.password_hash);
-            if (isMatch) {
-                // Set a 'viewer' session, not a 'user' session
-                req.session.viewer = {
-                    id: viewer.id,
-                    email: viewer.email,
-                    name: `${viewer.first_name} ${viewer.last_name}`
-                };
-                // cookie-session auto-saves on response
-                return res.json({
-                    success: true,
-                    email: viewer.email
-                });
-            } else {
-                res.status(401).json({ message: "Invalid credentials." });
-            }
-        } else {
-            res.status(401).json({ message: "Invalid credentials." });
+        if (!viewer) {
+            return res.status(401).json({ message: "Invalid credentials." });
         }
+
+        const isMatch = await bcrypt.compare(password, viewer.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials." });
+        }
+
+        // Create viewer session
+        req.session.viewer = {
+            id: viewer.id,
+            email: viewer.email,
+            name: `${viewer.first_name} ${viewer.last_name}`
+        };
+
+        // ⭐ RETURN TOKEN HERE (critical!)
+        return res.json({
+            success: true,
+            viewer_token: viewer.token,  // <-- Your missing field
+            viewer: {
+                id: viewer.id,
+                email: viewer.email,
+                name: `${viewer.first_name} ${viewer.last_name}`
+            }
+        });
+
     } catch (error) {
         console.error("Viewer login error:", error);
         res.status(500).json({ message: "An internal server error occurred." });
