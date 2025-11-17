@@ -254,8 +254,11 @@ async function initViewerSession() {
   }
 }
 
-await initViewerSession();
-await checkUserType();
+(async () => {
+    await initViewerSession();
+    await checkUserType();
+})();
+
 
 
 async function checkUserType() {
