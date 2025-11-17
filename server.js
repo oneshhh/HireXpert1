@@ -1108,16 +1108,11 @@ app.post("/api/me/update", async (req, res) => {
 });
 
 
-// ========== VIEWER ROUTES ==========
 app.post("/viewer/login", async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const result = await pool.query(
-            "SELECT * FROM visitors WHERE email = $1",
-            [email]
-        );
-
+        const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
         const viewer = result.rows[0];
 
         if (!viewer) {
@@ -1129,26 +1124,31 @@ app.post("/viewer/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials." });
         }
 
-        // Create viewer session
+        // 🔥 Generate token if empty
+        let viewerToken = viewer.token;
+        if (!viewerToken) {
+            viewerToken = crypto.randomUUID();
+            await pool.query(
+                "UPDATE visitors SET token = $1 WHERE id = $2",
+                [viewerToken, viewer.id]
+            );
+        }
+
+        // 🔥 Store session
         req.session.viewer = {
             id: viewer.id,
             email: viewer.email,
-            name: `${viewer.first_name} ${viewer.last_name}`
+            name: `${viewer.first_name} ${viewer.last_name}`,
+            token: viewerToken
         };
 
-        // ⭐ RETURN TOKEN HERE (critical!)
         return res.json({
             success: true,
-            viewer_token: viewer.token,  // <-- Your missing field
-            viewer: {
-                id: viewer.id,
-                email: viewer.email,
-                name: `${viewer.first_name} ${viewer.last_name}`
-            }
+            viewer_token: viewerToken
         });
 
-    } catch (error) {
-        console.error("Viewer login error:", error);
+    } catch (err) {
+        console.error("Viewer login error:", err);
         res.status(500).json({ message: "An internal server error occurred." });
     }
 });
