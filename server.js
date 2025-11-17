@@ -1109,7 +1109,7 @@ app.post("/api/me/update", async (req, res) => {
 
 
 app.post("/viewer/login", async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body;   
 
     try {
         const result = await pool.query("SELECT * FROM visitors WHERE email = $1", [email]);
@@ -1153,45 +1153,6 @@ app.post("/viewer/login", async (req, res) => {
     }
 });
 
-// ADD THIS NEW ROUTE to server.js
-app.post("/api/reviewer-login", async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-        const user = result.rows[0];
-
-        if (user) {
-            if (!user.is_active) {
-                return res.status(403).json({ message: "Account disabled. Please contact admin." });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password_hash);
-            if (isMatch) {
-                // Create the standard user session
-                req.session.user = {
-                    id: user.id,
-                    email: user.email,
-                    departments: user.department,
-                    activeDepartment: user.department[0] // Just pick the first department
-                };
-                
-                // cookie-session auto-saves on response
-                return res.json({
-                    success: true,
-                    id: user.id,
-                    email: user.email
-                });
-            } else {
-                 res.status(401).json({ message: "Invalid credentials." });
-            }
-        } else {
-             res.status(401).json({ message: "Invalid credentials." });
-        }
-    } catch (error) {
-        console.error("Reviewer login error:", error);
-        res.status(500).json({ message: "An internal server error occurred." });
-    }
-});
 
 // 2. Check Viewer Session Route
 app.get("/viewer/me", (req, res) => {

@@ -238,24 +238,7 @@
     // --- Detect if current user is a viewer ---
 let isViewer = false;
 
-async function initViewerSession() {
-  const url = new URL(window.location.href);
-  const viewerToken = url.searchParams.get("viewer_token");
-
-  if (viewerToken) {
-    try {
-      await fetch(`/api/viewer/init?token=${viewerToken}`, {
-        credentials: "include"
-      });
-      console.log("Viewer session initialized");
-    } catch (err) {
-      console.error("Viewer init failed:", err);
-    }
-  }
-}
-
 (async () => {
-    await initViewerSession();
     await checkUserType();
 })();
 

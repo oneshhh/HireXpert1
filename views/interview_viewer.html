@@ -169,11 +169,6 @@
 </div>
 
 <script>
-  // ---- Add this at the top of your script, BEFORE any function that uses `token` ----
-  const _urlParams = new URLSearchParams(window.location.search);
-  // accept both "token" and "viewer_token" query names (some links use one or the other)
-  const token = _urlParams.get('token') || _urlParams.get('viewer_token') || null;
-
   // helpful debug/logging and graceful UI
   if (!token) {
     console.warn('No viewer token found in URL (expected ?token=... or ?viewer_token=...)');
@@ -282,12 +277,6 @@
 
   // --- [NEW] Dashboard Functions ---
   async function showDashboard(user, userType = 'user') {
-    // ⭐ Ensure viewer token is added to URL so page remembers login
-    if (window.viewerToken) {
-        const newUrl = `/interview_viewer.html?viewer_token=${encodeURIComponent(window.viewerToken)}`;
-        window.history.replaceState({}, '', newUrl);
-    }
-
       // 1. Populate user info in header
       if (user) {
           document.getElementById('user-email-display').textContent = user.email;
@@ -376,8 +365,7 @@
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
-        const viewerToken = window.viewerToken || token || "";
-        const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html&viewer_token=${viewerToken}`;
+        const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html`;
 
 
         const stats = interview.stats || {};
@@ -468,9 +456,6 @@
         if (!response.ok) {
             throw new Error(data.message || 'Login failed');
         }
-
-        // ⭐ IMPORTANT FIX — store token returned from backend login
-        window.viewerToken = data.viewer_token || null;
 
         // Proceed to dashboard
         showDashboard(data, 'visitor');
