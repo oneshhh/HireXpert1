@@ -282,6 +282,12 @@
 
   // --- [NEW] Dashboard Functions ---
   async function showDashboard(user, userType = 'user') {
+    // ⭐ Ensure viewer token is added to URL so page remembers login
+    if (window.viewerToken) {
+        const newUrl = `/interview_viewer.html?viewer_token=${encodeURIComponent(window.viewerToken)}`;
+        window.history.replaceState({}, '', newUrl);
+    }
+
       // 1. Populate user info in header
       if (user) {
           document.getElementById('user-email-display').textContent = user.email;
@@ -370,7 +376,7 @@
     filteredInterviews.forEach((interview, index) => {
         const tr = document.createElement("tr");
         const isSelected = selectedInterviewIds.has(interview.id);
-        const viewerToken = token || ""; // already extracted earlier from URL
+        const viewerToken = window.viewerToken || token || "";
         const viewLink = `/interview-view.html?id=${interview.id}&from=interview-viewer.html&viewer_token=${viewerToken}`;
 
 
@@ -441,33 +447,41 @@
 
     // --- [FIXED] Login Form Handler ---
     loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginError.textContent = '';
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Logging in...';
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        try {
-            // [FIXED] Call the correct API for VISITORS
-            const response = await fetch('/viewer/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-                credentials: 'include' // ✅ required for cookie-session to persist login
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-            // On success, show the dashboard for a 'visitor'
-            showDashboard(data, 'visitor');
-        } catch (error) {
-            loginError.textContent = error.message;
-        } finally {
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Login';
+    e.preventDefault();
+    loginError.textContent = '';
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        // [FIXED] Call the correct API for VISITORS
+        const response = await fetch('/viewer/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include' // ✅ required for cookie-session to persist login
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Login failed');
         }
-    });
+
+        // ⭐ IMPORTANT FIX — store token returned from backend login
+        window.viewerToken = data.viewer_token || null;
+
+        // Proceed to dashboard
+        showDashboard(data, 'visitor');
+
+    } catch (error) {
+        loginError.textContent = error.message;
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+    }
+});
 
     // Confirmation Modal Buttons (No changes)
     confirmBtn.addEventListener('click', () => {
