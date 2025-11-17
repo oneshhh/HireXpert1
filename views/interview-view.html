@@ -505,17 +505,24 @@ async function checkUserType() {
             }
             statusDiv.appendChild(statusSpan);
 
-            // Column 3: resend button
             const btnDiv = document.createElement('div');
             btnDiv.style.display = 'flex';
             btnDiv.style.justifyContent = 'flex-end';
             btnDiv.style.alignItems = 'center';
             btnDiv.style.gap = '8px';
-            const resendButton = document.createElement('button');
-            resendButton.className = 'resend-btn';
-            resendButton.textContent = 'Resend';
-            resendButton.onclick = () => resendInvite(resendButton, candidate.candidate_email);
-            btnDiv.appendChild(resendButton);
+
+            // SHOW RESEND ONLY FOR USERS (not viewers)
+            if (!isViewer) {
+                const resendButton = document.createElement('button');
+                resendButton.className = 'resend-btn';
+                resendButton.textContent = 'Resend';
+                resendButton.onclick = () =>
+                    resendInvite(resendButton, candidate.candidate_email);
+                btnDiv.appendChild(resendButton);
+            } else {
+                // VIEWERS get nothing (empty right column)
+                btnDiv.textContent = ''; 
+            }
 
             li.appendChild(infoDiv);
             li.appendChild(statusDiv);
