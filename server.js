@@ -1143,9 +1143,11 @@ app.post("/viewer/login", async (req, res) => {
         };
 
         return res.json({
-            success: true,
-            viewer_token: viewerToken
-        });
+        success: true,
+        email: viewer.email,
+        isViewer: true     // 👈 ADD THIS
+});
+
 
     } catch (err) {
         console.error("Viewer login error:", err);

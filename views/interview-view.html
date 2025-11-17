@@ -245,16 +245,27 @@ let isViewer = false;
 
 
 async function checkUserType() {
-  try {
-    const resp = await fetch('/api/me', { credentials: 'include' });
-    if (!resp.ok) { isViewer = true; return; } // fallback if no login session
-    const data = await resp.json();
-    // assume API returns { type: 'user' | 'viewer' }
-    if (data.type && data.type !== 'user') isViewer = true;
-  } catch {
-    isViewer = true;
-  }
+    try {
+        const resp = await fetch('/api/me', { credentials: 'include' });
+
+        if (!resp.ok) {
+            isViewer = true; // not logged → treat as viewer fallback
+            return;
+        }
+
+        const data = await resp.json();
+
+        if (data.type === "viewer" || data.isViewer) {
+            isViewer = true;
+            return;
+        }
+
+        isViewer = false; // internal user
+    } catch (err) {
+        isViewer = true; // safe fallback
+    }
 }
+  
 
 
     // --- Notification Modal Helpers (Unchanged) ---
