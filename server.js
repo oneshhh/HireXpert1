@@ -932,23 +932,30 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;
 
-    // Allow: user OR viewer
-    if (
-        !req.session ||
-        (!req.session.user && !req.session.viewer)
-    ) {
-        return res.status(401).json({ message: "You must be logged in" });
+    // Allow: user OR viewer — EXACT SAME LOGIC as eval PUT/DELETE
+    let actorId = null;
+    let isViewer = false;
+
+    if (req.session && req.session.user) {
+        actorId = req.session.user.id;
+    } else if (req.session && req.session.viewer) {
+        actorId = req.session.viewer.id;
+        isViewer = true;
+    } else {
+        return res.status(401).json({ message: "You must be logged in." });
     }
 
     if (!interviewId || !candidateEmail) {
-        return res.status(400).json({ message: "Interview ID and Candidate Email are required." });
+        return res.status(400).json({
+            message: "Interview ID and Candidate Email are required."
+        });
     }
 
     try {
-        // 1. Verify the candidate session exists for this interview
+        // 1. Ensure the candidate exists for this interview
         const sessionResult = await pool.query(
-            `SELECT cs.session_id FROM candidate_sessions cs
-             WHERE cs.interview_id = $1 AND cs.candidate_email = $2`,
+            `SELECT session_id FROM candidate_sessions
+             WHERE interview_id = $1 AND candidate_email = $2`,
             [interviewId, candidateEmail]
         );
 
@@ -956,19 +963,19 @@ app.post("/api/resend-invite", async (req, res) => {
             return res.status(404).json({ message: "Candidate not found for this interview." });
         }
 
-        // 2. Fetch interview info
+        // 2. Fetch interview data
         const interviewResult = await pool.query(
             `SELECT title, date, time FROM interviews WHERE id = $1`,
             [interviewId]
         );
 
         if (interviewResult.rows.length === 0) {
-            return res.status(404).json({ message: "Interview details not found." });
+            return res.status(404).json({ message: "Interview not found." });
         }
 
         const interview = interviewResult.rows[0];
 
-        // 3. Send email using your existing function
+        // 3. Actually send email
         const emailResult = await sendInterviewEmail(
             candidateEmail,
             interviewId,
@@ -978,8 +985,8 @@ app.post("/api/resend-invite", async (req, res) => {
         );
 
         if (!emailResult.success) {
-            console.error(`Failed to resend email to ${candidateEmail}:`, emailResult.error);
-            return res.status(500).json({ message: "Failed to send email due to a server error." });
+            console.error("Email error:", emailResult.error);
+            return res.status(500).json({ message: "Failed to send email." });
         }
 
         return res.json({
@@ -988,10 +995,11 @@ app.post("/api/resend-invite", async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Error in /api/resend-invite route:", err);
-        res.status(500).json({ message: "An internal server error occurred." });
+        console.error("Resend error:", err);
+        return res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 
 
