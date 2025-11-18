@@ -113,23 +113,34 @@
 <body class="bg-gray-100">
 
   <!-- Header -->
-  <header class="bg-white shadow-sm">
-    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-        <div class="candidate-header" style="width:100%">
-            <div style="display:flex;flex-direction:column">
-            <div style="display:flex;flex-direction:column">
-                <div class="brand">HireXpert</div>
-                <div id="candidate-name" class="candidate-name mt-1">Candidate</div>
-                <div id="candidate-email" class="subtle small-muted mt-1"></div>
-                <div id="candidate-code" class="text-sm text-gray-500 mt-1"></div>  <!-- REQUIRED -->
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-                <a id="back-link" href="#" class="text-sm font-medium text-gray-600 hover:text-blue-600">&larr; Back to Interview</a>
-                <div id="global-status" class="text-sm font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-800 mt-1">To Evaluate</div>
+    <header class="bg-white shadow-sm">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex justify-between items-start w-full">
+
+        <!-- LEFT SIDE: Branding + Candidate Info -->
+        <div class="flex flex-col">
+            <div class="brand">HireXpert</div>
+            <div id="candidate-name" class="candidate-name mt-1">Candidate</div>
+            <div id="candidate-email" class="subtle small-muted mt-1"></div>
+            <div id="candidate-code" class="text-sm text-gray-500 mt-1"></div>
+        </div>
+
+        <!-- RIGHT SIDE: Back button + Status -->
+        <div class="flex flex-col items-end gap-2">
+            <a id="back-link"
+            href="#"
+            class="text-sm font-medium text-gray-600 hover:text-blue-600">
+            &larr; Back to Interview
+            </a>
+
+            <div id="global-status"
+                class="text-sm font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-800">
+            To Evaluate
             </div>
         </div>
+        </div>
     </div>
-  </header>
+    </header>
 
   <!-- Main Content -->
   <main class="container mx-auto mt-6 px-6 pb-12">
