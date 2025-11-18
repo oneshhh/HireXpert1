@@ -46,22 +46,35 @@ function requireApiKey(req, res, next) {
 // --- Public External API (Protected by API Key Only) ---
 app.get("/api/external/interviews", requireApiKey, async (req, res) => {
   try {
-    const result = await pool.query(`
+    const interviewId = req.query.id;
+
+    let query = `
       SELECT 
-        id, 
-        custom_interview_id, 
-        title, 
-        date, 
-        time, 
-        department, 
-        created_at 
-      FROM interviews 
-      ORDER BY created_at DESC
-    `);
+        id,
+        custom_interview_id,
+        title,
+        date,
+        time,
+        department,
+        created_at
+      FROM interviews
+    `;
+    
+    const values = [];
+
+    if (interviewId) {
+      query += " WHERE id = $1";
+      values.push(interviewId);
+    }
+
+    query += " ORDER BY created_at DESC";
+
+    const result = await pool.query(query, values);
     res.json(result.rows);
+
   } catch (err) {
-    console.error("Error in external interviews API:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("External API Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
