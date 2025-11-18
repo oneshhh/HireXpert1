@@ -24,8 +24,6 @@ app.use(cors({
   credentials: true
 }));
 
-
-
 app.use(cookieSession({
   name: 'session',
   keys: ['secret1', 'secret2'],
@@ -43,7 +41,7 @@ function requireApiKey(req, res, next) {
   next();
 }
 
-// --- Public External API (Protected by API Key Only) ---
+// --- PUBLIC EXTERNAL INTERVIEW API (API-KEY PROTECTED) ---
 app.get("/api/external/interviews", requireApiKey, async (req, res) => {
   try {
     const interviewId = req.query.id;
@@ -53,10 +51,17 @@ app.get("/api/external/interviews", requireApiKey, async (req, res) => {
         id,
         custom_interview_id,
         title,
+        questions,
+        time_limits,
         date,
         time,
         department,
-        created_at
+        position_status,
+        job_description,
+        created_by_user_id,
+        scheduler_ids,
+        created_at,
+        visitor_reviewer_ids
       FROM interviews
     `;
     
@@ -77,7 +82,6 @@ app.get("/api/external/interviews", requireApiKey, async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 
