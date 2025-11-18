@@ -120,6 +120,7 @@
                 <div class="brand">HireXpert</div>
                 <!-- candidate-name will be filled on load -->
                 <div id="candidate-name" class="candidate-name mt-1">Candidate</div>
+                <div id="candidate-code" class="text-sm text-gray-500"></div>
                 <div id="candidate-email" class="subtle small-muted mt-1"></div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
@@ -233,6 +234,21 @@
   </div>
 
   <script>
+
+    let isViewer = false;
+
+    async function detectViewer() {
+        try {
+            const resp = await fetch("/api/me", { credentials: "include" });
+            if (!resp.ok) return true; // viewer sessions still return ok, but fallback
+            const data = await resp.json();
+            if (data.type === "viewer") return true;
+            return false;
+        } catch {
+            return true;
+        }
+    }
+
     // --- Global Variables ---
     let currentToken = null;
     let currentInterviewId = null;
@@ -603,7 +619,7 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
         const headerEmail = document.getElementById('candidate-email');
         const header = document.getElementById('review-container');
         const answersContainer = document.getElementById('answers-container');
-
+        const codeEl = document.getElementById("candidate-code");
         const params = new URLSearchParams(window.location.search);
         currentToken = params.get("token");
         currentInterviewId = params.get("interview_id");
@@ -628,12 +644,91 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
             }
             const data = await res.json(); // { candidate: {...}, answers: [...] }
 
-            // store IDs & populate header
+            // --------------------- START REPLACE BLOCK ---------------------
+            // (place this inside fetchCandidateReview() after `const data = await res.json();`)
+
+            // store global
             currentCandidateEmail = data.candidate.email;
-            headerName.textContent = data.candidate.name || 'Candidate';
-            headerEmail.textContent = data.candidate.email || '';
-            // fix global status: prefer reviewer_status returned by your server
-            document.getElementById('global-status').textContent = data.candidate.reviewer_status || data.candidate.status || 'To Evaluate';
+
+            // Try to detect if the current visitor is a 'viewer' or internal user.
+            // We call /api/me (it already exists in your app).
+            let me = null;
+            try {
+            const meRes = await fetch('/api/me', { credentials: 'include' });
+            if (meRes.ok) me = await meRes.json();
+            } catch (e) {
+            // ignore - treat as not-logged-in/internal
+            console.warn('Could not fetch /api/me:', e);
+            }
+            const isViewer = !!(me && (me.type === 'viewer' || me.viewer)); // viewer shape: { type:'viewer', viewer:{...} }
+
+            // Candidate header values (default to full values from API)
+            let displayName = data.candidate.name || 'Candidate';
+            let displayEmail = data.candidate.email || '';
+            let candidateCode = data.candidate.candidate_code || null;
+
+            // If candidate_code is not present in the candidate payload, attempt a simple fallback:
+            // fetch candidate_sessions for the interview and find the row matching email (only if we have currentInterviewId)
+            if (!candidateCode && currentInterviewId && displayEmail) {
+            try {
+                const csRes = await fetch(`/api/interview/${encodeURIComponent(currentInterviewId)}/candidates`, { credentials: 'include' });
+                if (csRes.ok) {
+                const csRows = await csRes.json();
+                if (Array.isArray(csRows)) {
+                    const match = csRows.find(r => (r.candidate_email || '').toLowerCase() === displayEmail.toLowerCase());
+                    if (match && match.candidate_code) candidateCode = match.candidate_code;
+                }
+                }
+            } catch (e) {
+                console.warn('Could not fetch candidate_sessions fallback:', e);
+            }
+            }
+
+            // If viewing as external viewer: mask email and shorten name (First + Last initial)
+            if (isViewer) {
+            // Mask email: show only domain part or replace with 'hidden'
+            if (displayEmail) {
+                // keep domain but hide local part e.g. "*****@domain.com"
+                const atIdx = displayEmail.indexOf('@');
+                if (atIdx > 0) displayEmail = '*****' + displayEmail.slice(atIdx);
+                else displayEmail = '*****';
+            }
+
+            // Shorten name: show Firstname and first char of last name (if possible)
+            if (displayName) {
+                const parts = displayName.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                displayName = `${parts[0]} ${parts[1].charAt(0)}.`;
+                } else {
+                // single word name -> keep first name only
+                displayName = parts[0];
+                }
+            }
+            }
+
+            // Populate DOM header elements (assumes these elements exist in your HTML)
+            document.getElementById('candidate-name').textContent = displayName;
+            const emailEl = document.getElementById('candidate-email');
+            if (emailEl) {
+            emailEl.textContent = displayEmail;
+            // If viewer: optionally smaller/muted font
+            if (isViewer) emailEl.classList.add('text-sm', 'text-gray-500');
+            }
+
+            // Show candidate code if we have it and we have a container for it
+            const codeEl = document.getElementById('candidate-code');
+            if (codeEl) {
+            if (candidateCode) {
+                codeEl.textContent = `Candidate ID: ${candidateCode}`;
+                codeEl.classList.remove('hidden');
+            } else {
+                codeEl.classList.add('hidden');
+            }
+            }
+
+            // page title & global status (unchanged)
+            document.getElementById('global-status').textContent = data.candidate.status || 'To Evaluate';
+            document.getElementById('page-title').textContent = `Review: ${data.candidate.name || 'Candidate'}`;
 
             // populate answers
             answersContainer.innerHTML = '';

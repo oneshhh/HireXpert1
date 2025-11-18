@@ -35,6 +35,31 @@ app.use(cookieSession({
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 
+async function generateCandidateCode(client, email, interviewId) {
+    // 1. Extract initials from email OR name (email since name isn't stored)
+    const localPart = email.split('@')[0];
+    const parts = localPart.split(/[._-]/);
+    let initials = parts.map(p => p[0]?.toUpperCase()).join('');
+    if (!initials) initials = localPart.substring(0, 2).toUpperCase();
+
+    // 2. Get Month/Year
+    const now = new Date();
+    const month = now.toLocaleString('en-US', { month: 'short' }).toUpperCase(); // JAN, FEB...
+    const year = now.getFullYear();
+
+    // 3. Get incremental number
+    const countResult = await client.query(
+        `SELECT COUNT(*)::int FROM candidate_sessions WHERE interview_id = $1`,
+        [interviewId]
+    );
+
+    const number = (countResult.rows[0].count + 1).toString().padStart(4, '0');
+
+    // 4. Build final candidate_code
+    return `${month}/${year}/${number}/${initials}`;
+}
+
+
 
 // --- Viewer Initialization Route ---
 // This sets up a session for viewers using a token from the invite link
@@ -870,22 +895,48 @@ app.post("/api/interview/:id/update", async (req, res) => {
         // 4. Handle adding and emailing new candidates
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         if (candidateEmails.length > 0) {
-            // Fetch interview details needed for the email
-            const interviewResult = await client.query('SELECT title, date, time, department FROM interviews WHERE id = $1', [id]);
-            const interview = interviewResult.rows[0];
+        // Fetch interview details
+        const interviewResult = await client.query(
+            'SELECT title, date, time, department FROM interviews WHERE id = $1',
+            [id]
+        );
+        const interview = interviewResult.rows[0];
 
-            for (const email of candidateEmails) {
-                const sessionId = uuidv4();
-                // Add new candidate to the sessions table
-                await client.query(
-                    `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`,
-                    [sessionId, id, email, interview.department]
-                );
-                // Send them an invitation email
-                await sendInterviewEmail(email, id, interview.title, interview.date, interview.time);
+        for (const email of candidateEmails) {
+            const sessionId = uuidv4();
+
+            // --- Generate candidate_code ---
+            const month = String(new Date().getMonth() + 1).padStart(2, "0");
+            const year = String(new Date().getFullYear());
+            const randomDigits = String(Math.floor(1000 + Math.random() * 9000)); // 4 digits
+
+            let initials = "XX";
+            if (email.includes("@")) {
+                const namePart = email.split("@")[0];
+                const parts = namePart.split(/[._]/);
+                if (parts.length >= 2) {
+                    initials = parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+                } else {
+                    initials = namePart[0].toUpperCase() + "X";
+                }
             }
+            const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+            // Insert candidate session with candidate_code
+            await client.query(
+                `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, candidate_code, department)
+                VALUES ($1, $2, $3, $4, $5)`,
+                [sessionId, id, email, candidateCode, interview.department]
+            );
+            // Send invite email
+            await sendInterviewEmail(
+                email,
+                id,
+                interview.title,
+                interview.date,
+                interview.time
+            );
         }
-        
+    }
         // 5. If all steps succeed, commit the transaction
         await client.query('COMMIT');
         res.json({ message: "Interview updated successfully." });
@@ -921,7 +972,12 @@ app.delete("/api/interview/:id/delete", async (req, res) => {
 app.get("/api/interview/:id/candidates", async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query(`SELECT session_id, candidate_email, status FROM candidate_sessions WHERE interview_id = $1 ORDER BY created_at DESC`, [id]);
+        const result = await pool.query(
+        `SELECT session_id, candidate_email, status, candidate_code 
+        FROM candidate_sessions 
+        WHERE interview_id = $1 
+        ORDER BY created_at DESC`, [id]);
+
         res.json(result.rows);
     } catch (err) {
         console.error(`Error fetching candidates for interview ID ${req.params.id}:`, err);

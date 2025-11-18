@@ -275,10 +275,45 @@ document.addEventListener("DOMContentLoaded", () => {
         date: `${yyyy}-${mm}-${dd}`,
         time: `${hh}:${min}`,
         emails: formData.get("emails"),
+        candidateCodes: candidateCodes,   // NEW FIELD
         schedulerEmail: formData.get("schedulerEmail"),
         jobDescription: document.getElementById('job-description').value,
         schedulerIds: visitorReviewerIds
     };
+        // --- Generate unique candidate codes for each email ---
+    function generateCandidateCode(fullName) {
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2);
+        const month = now.toLocaleString('en-US', { month: 'short' });
+
+        // Extract initials
+        let initials = "XX";
+        if (fullName && fullName.includes(" ")) {
+            const [first, last] = fullName.split(" ");
+            initials = first.charAt(0).toUpperCase() + last.charAt(0).toUpperCase();
+        }
+
+        // Random 4-digit unique ID
+        const uniqueNum = Math.floor(1000 + Math.random() * 9000);
+
+        return `${year}/${month}/${uniqueNum}/${initials}`;
+    }
+
+    // Split emails, generate code per candidate
+    const candidateEmailsRaw = formData.get("emails");
+    const candidateEmails = candidateEmailsRaw
+        .split(",")
+        .map(e => e.trim())
+        .filter(e => e.length > 0);
+
+    const candidateCodes = candidateEmails.map(email => {
+        // TEMP: until candidate provides full name somewhere
+        // We generate initials from email prefix
+        const prefix = email.split("@")[0];
+        const pseudoName = prefix + " X";
+        return generateCandidateCode(pseudoName);
+    });
+
 
     try {
       const res = await fetch("/schedule", {
