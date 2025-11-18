@@ -19,11 +19,24 @@ app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(cors({
-  origin: 'https://hirexpert-1ecv.onrender.com', // use your exact origin; or an array of allowed origins
-  credentials: true
-}));
+const allowedOrigins = [
+  "https://hirexpert-1ecv.onrender.com",       // admin dashboard
+  "https://candidateportal1.onrender.com",     // external application
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow server-to-server requests (no origin)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
 app.use(cookieSession({
   name: 'session',
   keys: ['secret1', 'secret2'],
