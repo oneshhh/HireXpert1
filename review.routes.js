@@ -48,7 +48,7 @@ router.get('/interview/:id/submissions', async (req, res) => {
     try {
         // 1. Get candidate sessions from your MAIN database (DB_A)
         const { rows: sessions } = await pool.query(
-            `SELECT candidate_email, status, session_id FROM candidate_sessions WHERE interview_id = $1`,
+            `SELECT candidate_email, candidate_code, status, session_id FROM candidate_sessions WHERE interview_id = $1`,
             [interview_id]
         );
 
@@ -57,17 +57,16 @@ router.get('/interview/:id/submissions', async (req, res) => {
         }
 
         // 2. Get emails to find candidates in the SECOND database (DB_B)
-        const emails = sessions.map(s => s.candidate_email);
+        const tokens = sessions.map(s => s.candidate_code);
 
-        // 3. Get candidate details (name, token) from SECOND database (DB_B)
         const { data: candidates, error: candidatesError } = await supabase_second_db
             .from('candidates')
             .select('name, email, candidate_token')
-            .in('email', emails);
-
+            .in('candidate_token', tokens);
         if (candidatesError) throw candidatesError;
 
-        // 4. Get answer statuses from SECOND database (DB_B)
+
+        // 4. Get answer statuses for these candidate tokens (candidate_code)
         const candidateTokens = candidates.map(c => c.candidate_token);
         if (candidateTokens.length === 0) {
             return res.json([]); // No matching candidates found in 2nd DB
@@ -83,7 +82,7 @@ router.get('/interview/:id/submissions', async (req, res) => {
         // 5. Combine all data in JavaScript
         const submissions = sessions.map(session => {
             // Find the matching candidate from DB_B
-            const candidate = candidates.find(c => c.email === session.candidate_email);
+            const candidate = candidates.find(c => c.candidate_token === session.candidate_code);
             
             if (!candidate) {
                 return null; // Should not happen if data is in sync

@@ -514,11 +514,40 @@ app.post("/schedule", async (req, res) => {
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
         for (const email of candidateEmails) {
             const sessionId = uuidv4();
-            await client.query(`INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, department) VALUES ($1, $2, $3, $4)`, [sessionId, interviewId, email, department]);
+            // Generate candidate code (same logic used in update route)
+            const month = String(new Date().getMonth() + 1).padStart(2, "0");
+            const year = String(new Date().getFullYear());
+            const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
+
+            let initials = "XX";
+            if (email.includes("@")) {
+            const namePart = email.split("@")[0];
+            const parts = namePart.split(/[._]/);
+            if (parts.length >= 2) {
+                initials = parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+            } else {
+                initials = namePart[0].toUpperCase() + "X";
+            }
+            }
+            const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+            await client.query(
+            `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, candidate_code, department)
+            VALUES ($1, $2, $3, $4, $5)`,
+            [sessionId, interviewId, email, candidateCode, department]
+        );
+
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
+            // Insert into DB_B using candidate_code as candidate_token
+            await supabase_second_db
+            .from("candidates")
+            .upsert({
+                email: email,
+                name: null,
+                candidate_token: candidateCode,
+                interview_id: interviewId
+            });
             if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
         }
-        
         const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
         if (!schedulerEmailResult.success) { throw new Error("Failed to send confirmation email to scheduler."); }
         
@@ -927,6 +956,15 @@ app.post("/api/interview/:id/update", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5)`,
                 [sessionId, id, email, candidateCode, interview.department]
             );
+            // Insert into DB_B using candidate_code as candidate_token
+            await supabase_second_db
+            .from("candidates")
+            .upsert({
+                email: email,
+                name: null,
+                candidate_token: candidateCode,
+                interview_id: id
+            });
             // Send invite email
             await sendInterviewEmail(
                 email,
