@@ -728,7 +728,6 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
 
             // page title & global status (unchanged)
             document.getElementById('global-status').textContent = data.candidate.status || 'To Evaluate';
-            document.getElementById('page-title').textContent = `Review: ${data.candidate.name || 'Candidate'}`;
 
             // populate answers
             answersContainer.innerHTML = '';
