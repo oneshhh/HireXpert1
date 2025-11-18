@@ -24,6 +24,8 @@ app.use(cors({
   credentials: true
 }));
 
+
+
 app.use(cookieSession({
   name: 'session',
   keys: ['secret1', 'secret2'],
@@ -31,6 +33,37 @@ app.use(cookieSession({
   secure: process.env.NODE_ENV === 'production',  // ✅ safe for both local + live
   maxAge: 24 * 60 * 60 * 1000                    // 1 day
 }));
+
+// --- External API Key Middleware ---
+function requireApiKey(req, res, next) {
+  const sentKey = req.headers["x-api-key"];
+  if (!sentKey || sentKey !== process.env.HX_API_KEY) {
+    return res.status(403).json({ error: "Forbidden: Invalid API Key" });
+  }
+  next();
+}
+
+// --- Public External API (Protected by API Key Only) ---
+app.get("/api/external/interviews", requireApiKey, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id, 
+        custom_interview_id, 
+        title, 
+        date, 
+        time, 
+        department, 
+        created_at 
+      FROM interviews 
+      ORDER BY created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error in external interviews API:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
