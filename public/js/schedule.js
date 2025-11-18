@@ -252,94 +252,95 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Main Form Submission Logic (Unchanged by name, but data is now visitors) ---
-  const form = document.getElementById("scheduleForm");
-  form.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const formData = new FormData(form);
-    
-    // This 'schedulerIds' now contains VISITOR IDs
-    const visitorReviewerIds = Array.from(document.getElementById('schedulerIds').selectedOptions).map(opt => opt.value);
-    
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
+    const form = document.getElementById("scheduleForm");
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const formData = new FormData(form);
 
-    const data = {
-        title: formData.get("title"),
-        customIdText: formData.get("customIdText"),
-        questions: formData.getAll("questions[]"),
-        timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
-        date: `${yyyy}-${mm}-${dd}`,
-        time: `${hh}:${min}`,
-        emails: formData.get("emails"),
-        candidateCodes: candidateCodes,   // NEW FIELD
-        schedulerEmail: formData.get("schedulerEmail"),
-        jobDescription: document.getElementById('job-description').value,
-        schedulerIds: visitorReviewerIds
-    };
-        // --- Generate unique candidate codes for each email ---
-    function generateCandidateCode(fullName) {
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = now.toLocaleString('en-US', { month: 'short' });
+        // This 'schedulerIds' now contains VISITOR IDs
+        const visitorReviewerIds = Array.from(
+            document.getElementById('schedulerIds').selectedOptions
+        ).map(opt => opt.value);
 
-        // Extract initials
-        let initials = "XX";
-        if (fullName && fullName.includes(" ")) {
-            const [first, last] = fullName.split(" ");
-            initials = first.charAt(0).toUpperCase() + last.charAt(0).toUpperCase();
+        // ---------------------------
+        // FIX: generate candidateCodes BEFORE using them
+        // ---------------------------
+
+        function generateCandidateCode(fullName) {
+            const now = new Date();
+            const year = now.getFullYear().toString().slice(-2);
+            const month = now.toLocaleString('en-US', { month: 'short' });
+
+            let initials = "XX";
+            if (fullName && fullName.includes(" ")) {
+                const [first, last] = fullName.split(" ");
+                initials = first.charAt(0).toUpperCase() + last.charAt(0).toUpperCase();
+            }
+
+            const uniqueNum = Math.floor(1000 + Math.random() * 9000);
+            return `${year}/${month}/${uniqueNum}/${initials}`;
         }
 
-        // Random 4-digit unique ID
-        const uniqueNum = Math.floor(1000 + Math.random() * 9000);
+        const candidateEmailsRaw = formData.get("emails");
+        const candidateEmails = candidateEmailsRaw
+            .split(",")
+            .map(e => e.trim())
+            .filter(e => e.length > 0);
 
-        return `${year}/${month}/${uniqueNum}/${initials}`;
-    }
+        const candidateCodes = candidateEmails.map(email => {
+            const prefix = email.split("@")[0];
+            const pseudoName = prefix + " X";
+            return generateCandidateCode(pseudoName);
+        });
 
-    // Split emails, generate code per candidate
-    const candidateEmailsRaw = formData.get("emails");
-    const candidateEmails = candidateEmailsRaw
-        .split(",")
-        .map(e => e.trim())
-        .filter(e => e.length > 0);
+        // ---------------------------
+        // Now build your data object
+        // ---------------------------
 
-    const candidateCodes = candidateEmails.map(email => {
-        // TEMP: until candidate provides full name somewhere
-        // We generate initials from email prefix
-        const prefix = email.split("@")[0];
-        const pseudoName = prefix + " X";
-        return generateCandidateCode(pseudoName);
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+
+        const data = {
+            title: formData.get("title"),
+            customIdText: formData.get("customIdText"),
+            questions: formData.getAll("questions[]"),
+            timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
+            date: `${yyyy}-${mm}-${dd}`,
+            time: `${hh}:${min}`,
+            emails: formData.get("emails"),
+            candidateCodes: candidateCodes,  // now safe
+            schedulerEmail: formData.get("schedulerEmail"),
+            jobDescription: document.getElementById('job-description').value,
+            schedulerIds: visitorReviewerIds
+        };
+
+        try {
+            const res = await fetch("/schedule", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+                showNotification(
+                    'Interview Scheduled!',
+                    result.message,
+                    { isError: false, onClose: () => { window.location.href = redirectUrl; } }
+                );
+            } else {
+                showNotification('Error', result.message || "Something went wrong", { isError: true });
+            }
+        } catch (err) {
+            console.error("❌ Critical Error: Failed to schedule interview:", err);
+            showNotification('Network Error', "Failed to schedule interview. Please try again.", { isError: true });
+        }
     });
 
-
-    try {
-      const res = await fetch("/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      // ... (rest of form submission logic is unchanged) ...
-      const result = await res.json();
-      if (res.ok) {
-        showNotification(
-            'Interview Scheduled!', 
-            result.message, 
-            {
-                isError: false, 
-                onClose: () => { window.location.href = redirectUrl; }
-            }
-        );
-      } else {
-        showNotification('Error', result.message || "Something went wrong", { isError: true });
-      }
-    } catch (err) {
-      console.error("❌ Critical Error: Failed to schedule interview:", err);
-      showNotification('Network Error', "Failed to schedule interview. Please try again.", { isError: true });
-    }
-  });
   
   // --- Initial UI Management (Unchanged) ---
   manageAddQuestionButton();
