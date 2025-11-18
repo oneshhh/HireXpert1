@@ -20,9 +20,48 @@ app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 const allowedOrigins = [
-  "https://hirexpert-1ecv.onrender.com",       // admin dashboard
-  "https://candidateportal1.onrender.com",     // external application
+  "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
+  "https://candidateportal1.onrender.com",     // external application   abhishek 
 ];
+
+app.get(
+  "/api/external/interviews/:id",
+  cors({
+    origin: "https://candidateportal1.onrender.com"
+  }),
+  requireApiKey,
+  async (req, res) => {
+    try {
+      const interviewId = req.params.id;
+
+      const result = await pool.query(`
+        SELECT 
+          id,
+          custom_interview_id,
+          title,
+          questions,
+          time_limits,
+          date,
+          time,
+          department,
+          position_status,
+          job_description,
+          created_by_user_id,
+          scheduler_ids,
+          created_at,
+          visitor_reviewer_ids
+        FROM interviews
+        WHERE id = $1
+      `, [interviewId]);
+
+      res.json(result.rows);
+
+    } catch (err) {
+      console.error("External API Error:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
 
 app.use(cors({
   origin: function (origin, callback) {
