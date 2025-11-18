@@ -42,46 +42,53 @@ function requireApiKey(req, res, next) {
 }
 
 // --- PUBLIC EXTERNAL INTERVIEW API (API-KEY PROTECTED) ---
-app.get("/api/external/interviews", requireApiKey, async (req, res) => {
-  try {
-    const interviewId = req.query.id;
+app.get(
+  "/api/external/interviews",
+  cors({
+    origin: "https://candidateportal1.onrender.com", // allow your external portal
+  }),
+  requireApiKey,
+  async (req, res) => {
+    try {
+      const interviewId = req.query.id;
 
-    let query = `
-      SELECT 
-        id,
-        custom_interview_id,
-        title,
-        questions,
-        time_limits,
-        date,
-        time,
-        department,
-        position_status,
-        job_description,
-        created_by_user_id,
-        scheduler_ids,
-        created_at,
-        visitor_reviewer_ids
-      FROM interviews
-    `;
-    
-    const values = [];
+      let query = `
+        SELECT 
+          id,
+          custom_interview_id,
+          title,
+          questions,
+          time_limits,
+          date,
+          time,
+          department,
+          position_status,
+          job_description,
+          created_by_user_id,
+          scheduler_ids,
+          created_at,
+          visitor_reviewer_ids
+        FROM interviews
+      `;
+      
+      const values = [];
 
-    if (interviewId) {
-      query += " WHERE id = $1";
-      values.push(interviewId);
+      if (interviewId) {
+        query += " WHERE id = $1";
+        values.push(interviewId);
+      }
+
+      query += " ORDER BY created_at DESC";
+
+      const result = await pool.query(query, values);
+      res.json(result.rows);
+
+    } catch (err) {
+      console.error("External API Error:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-    query += " ORDER BY created_at DESC";
-
-    const result = await pool.query(query, values);
-    res.json(result.rows);
-
-  } catch (err) {
-    console.error("External API Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
   }
-});
+);
 
 app.use('/api', reviewRoutes); // Mount all routes from review.routes.js
 
