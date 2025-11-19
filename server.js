@@ -13,8 +13,7 @@ const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
-const { supabase_second_db } = require('./supabaseClient');
-
+const { supabase_second_db_service } = require('./supabaseClient');
 
 // Middleware
 app.use(express.json());
@@ -649,7 +648,7 @@ app.post("/schedule", async (req, res) => {
 
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
             // Insert into DB_B using candidate_code as candidate_token
-            await supabase_second_db
+            await supabase_second_db_service
             .from("candidates")
             .upsert({
                 email: email,
@@ -1068,7 +1067,7 @@ app.post("/api/interview/:id/update", async (req, res) => {
                 [sessionId, id, email, candidateCode, interview.department]
             );
             // Insert into DB_B using candidate_code as candidate_token
-            await supabase_second_db
+            await supabase_second_db_service
             .from("candidates")
             .upsert({
                 email: email,
