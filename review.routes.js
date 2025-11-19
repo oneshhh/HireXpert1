@@ -38,70 +38,73 @@ router.use(allowViewerForGets);
  * Endpoint 1: GET /api/interview/:id/submissions
  * This is the complex query that uses both databases.
  */
-// --- GET /api/interview/:id/submissions (DB-A driven, DB-B read-only)
-router.get('/interview/:id/submissions', async (req, res) => {
-  const { id: interview_id } = req.params;
-  if (!interview_id) return res.status(400).json({ message: 'Interview ID is required.' });
+router.get("/interview/:id/submissions", async (req, res) => {
+  const interview_id = req.params.id;
 
   try {
-    // 1) Get sessions from DB_A
+    // DB_A sessions
     const { rows: sessions } = await pool.query(
       `SELECT candidate_email, candidate_code, status, session_id
        FROM candidate_sessions
        WHERE interview_id = $1
        ORDER BY created_at DESC`,
-      [interview_id]
+       [interview_id]
     );
 
-    if (!sessions || sessions.length === 0) return res.json([]);
+    if (sessions.length === 0) return res.json([]);
 
     const emails = sessions.map(s => s.candidate_email);
 
-    // 2) Get candidate metadata from DB_B (name + token)
+    // DB_B candidate names for this interview
     const { data: candidatesMeta } = await supabase_second_db
-      .from('candidates')
-      .select('email, name, interview_id')
-      .in('email', emails);
+      .from("candidates")
+      .select("email, interview_id, name")
+      .eq("interview_id", interview_id)
+      .in("email", emails);
 
-    // 3) Get answers from DB_B
+    // DB_B answers for this interview
     const { data: answers } = await supabase_second_db
-      .from('answers')
-      .select('email, interview_id, status')
-      .eq('interview_id', interview_id);
+      .from("answers")
+      .select("email, interview_id, status")
+      .eq("interview_id", interview_id)
+      .in("email", emails);
 
-    // 4) Combine
+    function combine(statuses) {
+      if (statuses.includes("Completed")) return "Completed";
+      if (statuses.includes("Started")) return "Started";
+      if (statuses.includes("Opened")) return "Opened";
+      return "Invited";
+    }
+
     const submissions = sessions.map(session => {
       const meta = (candidatesMeta || []).find(
         c => c.email === session.candidate_email && c.interview_id === interview_id
       );
 
-      const candidateAnswers = (answers || []).filter(
+      const answerRows = (answers || []).filter(
         a => a.email === session.candidate_email && a.interview_id === interview_id
       );
 
-      const answerStatuses = candidateAnswers.map(a => a.status);
-      const submission_status = answerStatuses.includes('Completed')
-        ? 'Completed'
-        : answerStatuses.includes('Started')
-        ? 'Started'
-        : 'Opened';
+      const submission_status = combine(answerRows.map(a => a.status));
 
       return {
         name: meta?.name || null,
         email: session.candidate_email,
-        candidate_token: session.candidate_code,
-        session_id: session.session_id,
+        candidate_token: session.candidate_code,   // your own token for review page
         reviewer_status: session.status,
-        submission_status
+        submission_status,
+        session_id: session.session_id
       };
     });
 
     res.json(submissions);
-  } catch (error) {
-    console.error('Error fetching submissions:', error);
-    res.status(500).json({ message: error.message });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch submissions" });
   }
 });
+
 
 
 
