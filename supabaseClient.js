@@ -2,40 +2,50 @@
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
-// --- DB_B (Supabase Second Database) URLs & Keys ---
+// --------------------------------------
+// DB_B (Supabase Second Database)
+// --------------------------------------
+
+// URL (same for both anon + service)
 const secondSupabaseUrl = process.env.SECOND_SUPABASE_URL;
 
-// Public anonymous key (read-only)
-const secondSupabaseAnonKey = process.env.SECOND_SUPABASE_ANON_KEY;
+// ANON KEY (read-only) — your existing key
+const secondSupabaseAnonKey = process.env.SECOND_SUPABASE_KEY;
 
-// Service role key (FULL access: insert, update, delete — bypasses RLS)
+// SERVICE ROLE KEY (full write access — must bypass RLS)
 const secondSupabaseServiceKey = process.env.SECOND_SUPABASE_SERVICE_ROLE_KEY;
 
-// Warn if anything is missing
+// --------------------------------------
+// WARNINGS IF KEYS ARE MISSING
+// --------------------------------------
 if (!secondSupabaseUrl) {
-  console.warn("WARNING: SECOND_SUPABASE_URL is NOT SET.");
+  console.warn("WARNING: SECOND_SUPABASE_URL is not set.");
 }
 if (!secondSupabaseAnonKey) {
-  console.warn("WARNING: SECOND_SUPABASE_ANON_KEY is NOT SET.");
+  console.warn("WARNING: SECOND_SUPABASE_KEY (anon key) is not set.");
 }
 if (!secondSupabaseServiceKey) {
-  console.warn("WARNING: SECOND_SUPABASE_SERVICE_ROLE_KEY is NOT SET — writes to DB_B will FAIL.");
+  console.warn("WARNING: SECOND_SUPABASE_SERVICE_ROLE_KEY is not set. Writes will FAIL.");
 }
 
-// --- Create BOTH clients ---
-// Read-only client (safe for public endpoints)
-const supabase_second_db_anon = createClient(
+// --------------------------------------
+// CREATE BOTH CLIENTS
+// --------------------------------------
+
+// 1) ANON client (READ-ONLY) — KEEP THIS NAME AS REQUESTED
+const supabase_second_db = createClient(
   secondSupabaseUrl,
   secondSupabaseAnonKey
 );
 
-// Full-access client (used ONLY by the backend for writing)
+// 2) SERVICE ROLE client (FULL ACCESS FOR WRITES)
 const supabase_second_db_service = createClient(
   secondSupabaseUrl,
   secondSupabaseServiceKey
 );
 
+// --------------------------------------
 module.exports = {
-  supabase_second_db_anon,
-  supabase_second_db_service
+  supabase_second_db,          // READ client (anonymously)
+  supabase_second_db_service   // WRITE client (service role)
 };
