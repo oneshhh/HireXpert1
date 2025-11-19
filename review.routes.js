@@ -44,7 +44,7 @@ router.get('/interview/:id/submissions', async (req, res) => {
   if (!interview_id) return res.status(400).json({ message: 'Interview ID is required.' });
 
   try {
-    // 1) sessions from DB_A (guaranteed source of truth for candidate_code & email)
+    // 1) Get sessions from DB_A
     const { rows: sessions } = await pool.query(
       `SELECT candidate_email, candidate_code, status, session_id
        FROM candidate_sessions
@@ -55,77 +55,54 @@ router.get('/interview/:id/submissions', async (req, res) => {
 
     if (!sessions || sessions.length === 0) return res.json([]);
 
-    // 2) tokens we need to check in DB_B (answers / candidates)
-    const tokens = sessions.map(s => s.candidate_code).filter(Boolean);
-    if (tokens.length === 0) {
-      // no candidate codes (shouldn't happen) — return sessions with "Invited"
-      const fallback = sessions.map(s => ({
-        name: null,
-        email: s.candidate_email,
-        candidate_token: s.candidate_code || null,
-        session_id: s.session_id,
-        reviewer_status: s.status,
-        submission_status: 'Invited'
-      }));
-      return res.json(fallback);
-    }
+    const emails = sessions.map(s => s.candidate_email);
 
-    // 3) fetch answers from DB_B keyed by candidate_token (may not exist for not-yet-submitted candidates)
-    const { data: answers, error: answersError } = await supabase_second_db
-      .from('answers')
-      .select('candidate_token, status')
-      .in('candidate_token', tokens);
-
-    if (answersError) throw answersError;
-
-    // 4) optionally fetch candidate metadata (name/email) if DB_B already has it
-    const { data: candidatesMeta, error: candidatesError } = await supabase_second_db
+    // 2) Get candidate metadata from DB_B (name + token)
+    const { data: candidatesMeta } = await supabase_second_db
       .from('candidates')
-      .select('name, email, candidate_token')
-      .in('candidate_token', tokens);
+      .select('email, name, interview_id')
+      .in('email', emails);
 
-    if (candidatesError) {
-      // don't fail whole request for missing metadata; just log and continue
-      console.error("Warning: failed to load candidates metadata from DB_B:", candidatesError);
-    }
+    // 3) Get answers from DB_B
+    const { data: answers } = await supabase_second_db
+      .from('answers')
+      .select('email, interview_id, status')
+      .eq('interview_id', interview_id);
 
-    // helper to compute overall submission status from multiple answer statuses
-    function calculateOverallSubmissionStatus(statuses = []) {
-      // basic priority: completed > started > opened > error > none
-      if (!Array.isArray(statuses) || statuses.length === 0) return 'Opened';
-      const lower = statuses.map(s => String(s || '').toLowerCase());
-      if (lower.includes('completed')) return 'Completed';
-      if (lower.includes('started')) return 'Started';
-      if (lower.includes('error')) return 'Error';
-      return 'Opened';
-    }
-
-    // 5) Combine from sessions (DB_A) + answers + candidatesMeta (DB_B)
+    // 4) Combine
     const submissions = sessions.map(session => {
-      const code = session.candidate_code;
-      // candidate meta (may be undefined if row not created yet in DB_B)
-      const meta = (candidatesMeta || []).find(c => c.candidate_token === code);
-      // answers for that token (may be empty)
-      const candidateAnswers = (answers || []).filter(a => a.candidate_token === code);
+      const meta = (candidatesMeta || []).find(
+        c => c.email === session.candidate_email && c.interview_id === interview_id
+      );
+
+      const candidateAnswers = (answers || []).filter(
+        a => a.email === session.candidate_email && a.interview_id === interview_id
+      );
+
       const answerStatuses = candidateAnswers.map(a => a.status);
-      const overallStatus = calculateOverallSubmissionStatus(answerStatuses);
+      const submission_status = answerStatuses.includes('Completed')
+        ? 'Completed'
+        : answerStatuses.includes('Started')
+        ? 'Started'
+        : 'Opened';
 
       return {
-        name: meta ? meta.name : null,
+        name: meta?.name || null,
         email: session.candidate_email,
-        candidate_token: code,      // use candidate_code from DB_A as the token
+        candidate_token: session.candidate_code,
         session_id: session.session_id,
-        reviewer_status: session.status, // status from DB_A (Invited / To Evaluate / etc.)
-        submission_status: overallStatus
+        reviewer_status: session.status,
+        submission_status
       };
     });
 
     res.json(submissions);
   } catch (error) {
     console.error('Error fetching submissions:', error);
-    res.status(500).json({ message: error.message || 'Failed to fetch submissions' });
+    res.status(500).json({ message: error.message });
   }
 });
+
 
 
 // Helper function (no changes)
