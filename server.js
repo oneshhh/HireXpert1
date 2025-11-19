@@ -13,6 +13,8 @@ const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
+const { supabase_second_db } = require('./supabaseClient');
+
 
 // Middleware
 app.use(express.json());
