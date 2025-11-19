@@ -38,61 +38,79 @@ router.use(allowViewerForGets);
  * Endpoint 1: GET /api/interview/:id/submissions
  * This is the complex query that uses both databases.
  */
+// GET /api/interview/:id/submissions
 router.get("/interview/:id/submissions", async (req, res) => {
   const interview_id = req.params.id;
 
   try {
-    // DB_A sessions
+    // 1) Fetch candidates invited for THIS interview (DB_A)
     const { rows: sessions } = await pool.query(
       `SELECT candidate_email, candidate_code, status, session_id
        FROM candidate_sessions
        WHERE interview_id = $1
        ORDER BY created_at DESC`,
-       [interview_id]
+      [interview_id]
     );
 
-    if (sessions.length === 0) return res.json([]);
+    if (!sessions || sessions.length === 0) {
+      return res.json([]);
+    }
 
     const emails = sessions.map(s => s.candidate_email);
 
-    // DB_B candidate names for this interview
-    const { data: candidatesMeta } = await supabase_second_db
-      .from("candidates")
-      .select("email, interview_id, name")
-      .eq("interview_id", interview_id)
-      .in("email", emails);
-
-    // DB_B answers for this interview
+    // 2) Fetch DB_B answers ONLY for this interview + these emails
     const { data: answers } = await supabase_second_db
       .from("answers")
       .select("email, interview_id, status")
       .eq("interview_id", interview_id)
       .in("email", emails);
 
-    function combine(statuses) {
-      if (statuses.includes("Completed")) return "Completed";
-      if (statuses.includes("Started")) return "Started";
-      if (statuses.includes("Opened")) return "Opened";
+    // 3) Fetch DB_B candidate details ONLY for this interview + these emails
+    const { data: candidatesMeta } = await supabase_second_db
+      .from("candidates")
+      .select("email, interview_id, name")
+      .eq("interview_id", interview_id)
+      .in("email", emails);
+
+    // 4) Helper to combine answer statuses
+    function combineStatuses(rows) {
+      const statuses = rows.map(r => (r.status || "").toLowerCase());
+
+      if (statuses.includes("ready") || statuses.includes("completed"))
+        return "Completed";
+
+      if (statuses.includes("processing") || statuses.includes("started"))
+        return "Started";
+
+      if (statuses.includes("opened") || statuses.includes("queued"))
+        return "Opened";
+
       return "Invited";
     }
 
+    // 5) Build final submission list
     const submissions = sessions.map(session => {
+      const email = session.candidate_email;
+
+      // Find DB_B candidate name ONLY from same interview
       const meta = (candidatesMeta || []).find(
-        c => c.email === session.candidate_email && c.interview_id === interview_id
+        c => c.email === email && c.interview_id === interview_id
       );
 
+      // Find DB_B answer rows ONLY from same interview
       const answerRows = (answers || []).filter(
-        a => a.email === session.candidate_email && a.interview_id === interview_id
+        a => a.email === email && a.interview_id === interview_id
       );
 
-      const submission_status = combine(answerRows.map(a => a.status));
+      // Determine submission status
+      const submission_status = combineStatuses(answerRows);
 
       return {
-        name: meta?.name || null,
-        email: session.candidate_email,
-        candidate_token: session.candidate_code,   // your own token for review page
-        reviewer_status: session.status,
-        submission_status,
+        name: meta?.name || null,             // only available AFTER submission
+        email: email,
+        candidate_token: session.candidate_code, // used by your review UI
+        reviewer_status: session.status,      // DB_A reviewer status
+        submission_status,                    // derived from DB_B
         session_id: session.session_id
       };
     });
@@ -100,12 +118,10 @@ router.get("/interview/:id/submissions", async (req, res) => {
     res.json(submissions);
 
   } catch (err) {
-    console.error(err);
+    console.error("Error generating submissions:", err);
     res.status(500).json({ message: "Failed to fetch submissions" });
   }
 });
-
-
 
 
 // Helper function (no changes)
