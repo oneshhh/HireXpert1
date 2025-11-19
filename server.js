@@ -654,7 +654,7 @@ app.post("/schedule", async (req, res) => {
             .upsert({
                 email: email,
                 name: null,
-                candidate_token: candidateCode,
+                candidate_code: candidateCode,
                 interview_id: interviewId
             });
             if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
@@ -1073,7 +1073,7 @@ app.post("/api/interview/:id/update", async (req, res) => {
             .upsert({
                 email: email,
                 name: null,
-                candidate_token: candidateCode,
+                candidate_code: candidateCode,
                 interview_id: id
             });
             // Send invite email

@@ -61,7 +61,7 @@ router.get('/interview/:id/submissions', async (req, res) => {
 
         const { data: candidates, error: candidatesError } = await supabase_second_db
             .from('candidates')
-            .select('name, email, candidate_token')
+            .select('name, email, candidate_token, candidate_code')
             .in('candidate_token', tokens);
         if (candidatesError) throw candidatesError;
 
@@ -82,8 +82,7 @@ router.get('/interview/:id/submissions', async (req, res) => {
         // 5. Combine all data in JavaScript
         const submissions = sessions.map(session => {
             // Find the matching candidate from DB_B
-            const candidate = candidates.find(c => c.candidate_token === session.candidate_code);
-            
+            const candidate = candidates.find(c => c.candidate_code === session.candidate_code);
             if (!candidate) {
                 return null; // Should not happen if data is in sync
             }
