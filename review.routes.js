@@ -42,12 +42,13 @@ router.get("/interview/:id/submissions", async (req, res) => {
   const interview_id = req.params.id;
 
   try {
-    // 1) Fetch candidates invited for THIS interview (DB_A)
+    console.log("🔥 USING NEW SUBMISSIONS ROUTE 🔥");
+
+    // 1) Fetch DB_A candidate sessions
     const { rows: sessions } = await pool.query(
       `SELECT candidate_email, candidate_code, status, session_id
        FROM candidate_sessions
-       WHERE interview_id = $1
-       ORDER BY created_at DESC`,
+       WHERE interview_id = $1`,
       [interview_id]
     );
 
@@ -57,83 +58,82 @@ router.get("/interview/:id/submissions", async (req, res) => {
 
     const emails = sessions.map(s => s.candidate_email);
 
-    // 2) Get DB_B candidate rows: this gives us candidate_token + name
-    const { data: candidatesMeta, error: candidatesErr } = await supabase_second_db
+    // 2) Fetch DB_B candidates for THIS interview (gives us candidate_token + name)
+    const { data: candidatesMeta, error: metaErr } = await supabase_second_db
       .from("candidates")
       .select("email, interview_id, name, candidate_token")
       .eq("interview_id", interview_id)
       .in("email", emails);
 
-    if (candidatesErr) throw candidatesErr;
+    if (metaErr) throw metaErr;
 
-    // Extract tokens to fetch answers
+    console.log("Candidates Meta:", candidatesMeta);
+
+    // Extract tokens
     const tokens = (candidatesMeta || [])
       .map(c => c.candidate_token)
       .filter(Boolean);
 
-    let answers = [];
+    console.log("Tokens:", tokens);
 
-    // 3) Fetch answers using candidate_token (NOT email)
+    // 3) Fetch DB_B answers by candidate_token
+    let answers = [];
     if (tokens.length > 0) {
-      const { data: answersData, error: answersErr } = await supabase_second_db
+      const { data: answerRows, error: ansErr } = await supabase_second_db
         .from("answers")
         .select("candidate_token, interview_id, status")
         .eq("interview_id", interview_id)
         .in("candidate_token", tokens);
 
-      if (answersErr) throw answersErr;
-      answers = answersData || [];
+      if (ansErr) throw ansErr;
+      answers = answerRows || [];
     }
 
-    // Helper: combine submission statuses
+    console.log("DB_B answers:", answers);
+
+    // 4) Status combining logic
     function combineStatuses(rows) {
-      const statuses = rows.map(r => (r.status || "").toLowerCase());
+      const st = rows.map(r => (r.status || "").toLowerCase());
 
-      if (statuses.includes("ready") || statuses.includes("completed"))
-        return "Completed";
-
-      if (statuses.includes("processing") || statuses.includes("started"))
-        return "Started";
-
-      if (statuses.includes("opened") || statuses.includes("queued"))
-        return "Opened";
+      if (st.includes("ready") || st.includes("completed")) return "Completed";
+      if (st.includes("processing") || st.includes("started")) return "Started";
+      if (st.includes("opened") || st.includes("queued")) return "Opened";
 
       return "Invited";
     }
 
-    // 4) Build final submission list
+    // 5) Build final response
     const submissions = sessions.map(session => {
       const email = session.candidate_email;
 
-      // Find DB_B candidate for this email + interview
       const meta = (candidatesMeta || []).find(
         c => c.email === email && c.interview_id === interview_id
       );
 
-      // If DB_B candidate exists, match answers by token
-      const answerRows = meta
+      const answerMatches = meta
         ? answers.filter(a => a.candidate_token === meta.candidate_token)
         : [];
 
-      const submission_status = combineStatuses(answerRows);
+      const submission_status = combineStatuses(answerMatches);
 
       return {
         name: meta?.name || null,
-        email,
-        candidate_token: session.candidate_code, // internal reviewer link
+        email: email,
+        candidate_token: meta?.candidate_token || null,
         reviewer_status: session.status,
         submission_status,
         session_id: session.session_id
       };
     });
 
-    res.json(submissions);
+    return res.json(submissions);
 
   } catch (err) {
-    console.error("Error generating submissions:", err);
-    res.status(500).json({ message: "Failed to fetch submissions" });
+    console.error("🔥 SUBMISSION ROUTE ERROR:", err);
+    return res.status(500).json({ message: "Failed to load submissions" });
   }
 });
+
 
 
 // Helper function (no changes)
