@@ -645,17 +645,7 @@ app.post("/schedule", async (req, res) => {
             VALUES ($1, $2, $3, $4, $5)`,
             [sessionId, interviewId, email, candidateCode, department]
         );
-
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-            // Insert into DB_B using candidate_code as candidate_token
-            await supabase_second_db_service
-            .from("candidates")
-            .upsert({
-                email: email,
-                name: null,
-                candidate_code: candidateCode,
-                interview_id: interviewId
-            });
             if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
         }
         const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
@@ -1066,15 +1056,6 @@ app.post("/api/interview/:id/update", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5)`,
                 [sessionId, id, email, candidateCode, interview.department]
             );
-            // Insert into DB_B using candidate_code as candidate_token
-            await supabase_second_db_service
-            .from("candidates")
-            .upsert({
-                email: email,
-                name: null,
-                candidate_code: candidateCode,
-                interview_id: id
-            });
             // Send invite email
             await sendInterviewEmail(
                 email,

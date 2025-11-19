@@ -38,79 +38,95 @@ router.use(allowViewerForGets);
  * Endpoint 1: GET /api/interview/:id/submissions
  * This is the complex query that uses both databases.
  */
+// --- GET /api/interview/:id/submissions (DB-A driven, DB-B read-only)
 router.get('/interview/:id/submissions', async (req, res) => {
-    const { id: interview_id } = req.params;
+  const { id: interview_id } = req.params;
+  if (!interview_id) return res.status(400).json({ message: 'Interview ID is required.' });
 
-    if (!interview_id) {
-        return res.status(400).json({ message: 'Interview ID is required.' });
+  try {
+    // 1) sessions from DB_A (guaranteed source of truth for candidate_code & email)
+    const { rows: sessions } = await pool.query(
+      `SELECT candidate_email, candidate_code, status, session_id
+       FROM candidate_sessions
+       WHERE interview_id = $1
+       ORDER BY created_at DESC`,
+      [interview_id]
+    );
+
+    if (!sessions || sessions.length === 0) return res.json([]);
+
+    // 2) tokens we need to check in DB_B (answers / candidates)
+    const tokens = sessions.map(s => s.candidate_code).filter(Boolean);
+    if (tokens.length === 0) {
+      // no candidate codes (shouldn't happen) — return sessions with "Invited"
+      const fallback = sessions.map(s => ({
+        name: null,
+        email: s.candidate_email,
+        candidate_token: s.candidate_code || null,
+        session_id: s.session_id,
+        reviewer_status: s.status,
+        submission_status: 'Invited'
+      }));
+      return res.json(fallback);
     }
 
-    try {
-        // 1. Get candidate sessions from your MAIN database (DB_A)
-        const { rows: sessions } = await pool.query(
-            `SELECT candidate_email, candidate_code, status, session_id FROM candidate_sessions WHERE interview_id = $1`,
-            [interview_id]
-        );
+    // 3) fetch answers from DB_B keyed by candidate_token (may not exist for not-yet-submitted candidates)
+    const { data: answers, error: answersError } = await supabase_second_db
+      .from('answers')
+      .select('candidate_token, status')
+      .in('candidate_token', tokens);
 
-        if (!sessions || sessions.length === 0) {
-            return res.json([]);
-        }
+    if (answersError) throw answersError;
 
-        // 2. Get emails to find candidates in the SECOND database (DB_B)
-        const tokens = sessions.map(s => s.candidate_code);
+    // 4) optionally fetch candidate metadata (name/email) if DB_B already has it
+    const { data: candidatesMeta, error: candidatesError } = await supabase_second_db
+      .from('candidates')
+      .select('name, email, candidate_token')
+      .in('candidate_token', tokens);
 
-        const { data: candidates, error: candidatesError } = await supabase_second_db
-            .from('candidates')
-            .select('name, email, candidate_token, candidate_code')
-            .in('candidate_token', tokens);
-        if (candidatesError) throw candidatesError;
-
-
-        // 4. Get answer statuses for these candidate tokens (candidate_code)
-        const candidateTokens = candidates.map(c => c.candidate_token);
-        if (candidateTokens.length === 0) {
-            return res.json([]); // No matching candidates found in 2nd DB
-        }
-
-        const { data: answers, error: answersError } = await supabase_second_db
-            .from('answers')
-            .select('candidate_token, status')
-            .in('candidate_token', candidateTokens);
-
-        if (answersError) throw answersError;
-
-        // 5. Combine all data in JavaScript
-        const submissions = sessions.map(session => {
-            // Find the matching candidate from DB_B
-            const candidate = candidates.find(c => c.candidate_code === session.candidate_code);
-            if (!candidate) {
-                return null; // Should not happen if data is in sync
-            }
-
-            // Find all answers for this candidate
-            const candidateAnswers = answers.filter(a => a.candidate_token === candidate.candidate_token);
-            const answerStatuses = candidateAnswers.map(a => a.status);
-            const overallStatus = calculateOverallSubmissionStatus(answerStatuses);
-
-            return {
-                name: candidate.name,
-                email: session.candidate_email,
-                // We pass the candidate_token from DB_B, as it's needed for reviews
-                candidate_token: candidate.candidate_token, 
-                // We pass the session_id from DB_A, in case we need to update status
-                session_id: session.session_id, 
-                reviewer_status: session.status, // 'To Evaluate', etc. from DB_A
-                submission_status: overallStatus // 'Completed', 'Started', etc. from DB_B
-            };
-        }).filter(Boolean); // Filter out any nulls
-
-        res.json(submissions);
-
-    } catch (error) {
-        console.error('Error fetching submissions:', error);
-        res.status(500).json({ message: error.message });
+    if (candidatesError) {
+      // don't fail whole request for missing metadata; just log and continue
+      console.error("Warning: failed to load candidates metadata from DB_B:", candidatesError);
     }
+
+    // helper to compute overall submission status from multiple answer statuses
+    function calculateOverallSubmissionStatus(statuses = []) {
+      // basic priority: completed > started > opened > error > none
+      if (!Array.isArray(statuses) || statuses.length === 0) return 'Opened';
+      const lower = statuses.map(s => String(s || '').toLowerCase());
+      if (lower.includes('completed')) return 'Completed';
+      if (lower.includes('started')) return 'Started';
+      if (lower.includes('error')) return 'Error';
+      return 'Opened';
+    }
+
+    // 5) Combine from sessions (DB_A) + answers + candidatesMeta (DB_B)
+    const submissions = sessions.map(session => {
+      const code = session.candidate_code;
+      // candidate meta (may be undefined if row not created yet in DB_B)
+      const meta = (candidatesMeta || []).find(c => c.candidate_token === code);
+      // answers for that token (may be empty)
+      const candidateAnswers = (answers || []).filter(a => a.candidate_token === code);
+      const answerStatuses = candidateAnswers.map(a => a.status);
+      const overallStatus = calculateOverallSubmissionStatus(answerStatuses);
+
+      return {
+        name: meta ? meta.name : null,
+        email: session.candidate_email,
+        candidate_token: code,      // use candidate_code from DB_A as the token
+        session_id: session.session_id,
+        reviewer_status: session.status, // status from DB_A (Invited / To Evaluate / etc.)
+        submission_status: overallStatus
+      };
+    });
+
+    res.json(submissions);
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch submissions' });
+  }
 });
+
 
 // Helper function (no changes)
 function calculateOverallSubmissionStatus(statuses) {
