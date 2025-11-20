@@ -673,24 +673,30 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
         const { job_description, transcripts } = req.body;
 
-        if (!job_description || !transcripts) {
-            return res.status(400).json({ message: "Missing job description or transcripts." });
+        if (!job_description || !transcripts || !Array.isArray(transcripts)) {
+            return res.status(400).json({ message: "Missing or invalid job description or transcripts." });
         }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
+        // Sanitize transcripts (avoid undefined / null)
+        const transcriptBlock = transcripts
+            .map((t, idx) => {
+                const q = t?.question || `Question ${idx + 1}`;
+                const a = t?.transcript || "(no transcript provided)";
+                return `Q${idx + 1}: ${q}\nA${idx + 1}: ${a}`;
+            })
+            .join("\n\n");
+
         const prompt = `
-You are an expert technical interviewer. Evaluate a candidate's interview performance based on:
+You are an expert technical interviewer.  
+Respond ONLY with VALID JSON. No explanations. No extra text.  
+If you are unsure, still output valid JSON with your best guess.
 
-- The Job Description (JD)
-- The transcript of their spoken answers
-
-DO NOT mention missing resume because it is optional.
-
-Provide a JSON ONLY response with the following fields:
+Required JSON structure:
 
 {
-  "rating": number (0–10),
+  "rating": number,
   "summary": string,
   "jd_match": string,
   "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
@@ -698,32 +704,55 @@ Provide a JSON ONLY response with the following fields:
   "weaknesses": string[]
 }
 
-### JOB DESCRIPTION:
+JOB DESCRIPTION:
 ${job_description}
 
-### CANDIDATE TRANSCRIPTS:
-${transcripts.map((t, idx) => `Q${idx + 1}: ${t.question}\nA${idx + 1}: ${t.transcript}`).join("\n\n")}
+CANDIDATE TRANSCRIPTS:
+${transcriptBlock}
         `;
 
-        const result = await model.generateContent(prompt);
-        const outputText = result.response.text();
+        // ---- NEW GEMINI CALL ----
+        const result = await model.generateText({ prompt });
 
-        // Parse JSON safely
-        let evaluation;
-        try {
-            evaluation = JSON.parse(outputText);
-        } catch (e) {
-            console.error("Gemini JSON parse error:", e);
-            return res.status(500).json({ message: "AI returned invalid JSON." });
+        const output = result?.text || result?.output_text || result || "";
+
+        console.log("\n--- GEMINI RAW OUTPUT ---\n", output, "\n-------------------------");
+
+        // Clean non-JSON wrapper
+        let jsonText = output.trim();
+
+        // Remove Markdown fencing if present
+        if (jsonText.startsWith("```")) {
+            jsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
         }
 
-        res.json({ evaluation });
+        // Extract JSON substring if Gemini added extra words
+        const firstBrace = jsonText.indexOf("{");
+        const lastBrace = jsonText.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonText = jsonText.slice(firstBrace, lastBrace + 1);
+        }
+
+        // Parse the final JSON
+        let evaluation;
+        try {
+            evaluation = JSON.parse(jsonText);
+        } catch (err) {
+            console.error("❌ JSON Parse Error:", err);
+            return res.status(500).json({
+                message: "AI returned invalid JSON.",
+                raw_output: output
+            });
+        }
+
+        return res.json({ evaluation });
 
     } catch (err) {
-        console.error("AI Evaluation Error:", err);
+        console.error("AI Evaluation Fatal Error:", err);
         return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
+
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
