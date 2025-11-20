@@ -667,34 +667,27 @@ app.post("/schedule", async (req, res) => {
 });
 
 // ========================
-// AI Candidate Evaluation
+// AI Candidate Evaluation (Debug Version)
 // ========================
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
         const { job_description, transcripts } = req.body;
 
-        if (!job_description || !transcripts || !Array.isArray(transcripts)) {
-            return res.status(400).json({ message: "Missing or invalid job description or transcripts." });
+        if (!job_description || !transcripts) {
+            return res.status(400).json({ message: "Missing job description or transcripts." });
         }
+
+        console.log("🟦 AI ROUTE - JD:", job_description);
+        console.log("🟦 AI ROUTE - TRANSCRIPTS:", transcripts);
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-        // Sanitize transcripts (avoid undefined / null)
-        const transcriptBlock = transcripts
-            .map((t, idx) => {
-                const q = t?.question || `Question ${idx + 1}`;
-                const a = t?.transcript || "(no transcript provided)";
-                return `Q${idx + 1}: ${q}\nA${idx + 1}: ${a}`;
-            })
-            .join("\n\n");
-
         const prompt = `
-You are an expert technical interviewer.  
-Respond ONLY with VALID JSON. No explanations. No extra text.  
-If you are unsure, still output valid JSON with your best guess.
+You are an expert technical interviewer. Evaluate a candidate objectively.
 
-Required JSON structure:
+Return ONLY a valid JSON object. No commentary, no notes, no markdown.
 
+Required JSON format:
 {
   "rating": number,
   "summary": string,
@@ -707,51 +700,39 @@ Required JSON structure:
 JOB DESCRIPTION:
 ${job_description}
 
-CANDIDATE TRANSCRIPTS:
-${transcriptBlock}
+TRANSCRIPTS:
+${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
         `;
 
-        // ---- NEW GEMINI CALL ----
-        const result = await model.generateText({ prompt });
+        const result = await model.generateContent(prompt);
+        const rawText = result.response.text();
 
-        const output = result?.text || result?.output_text || result || "";
+        console.log("🟧 RAW GEMINI OUTPUT:", rawText);
 
-        console.log("\n--- GEMINI RAW OUTPUT ---\n", output, "\n-------------------------");
-
-        // Clean non-JSON wrapper
-        let jsonText = output.trim();
-
-        // Remove Markdown fencing if present
-        if (jsonText.startsWith("```")) {
-            jsonText = jsonText.replace(/```json/gi, "").replace(/```/g, "").trim();
-        }
-
-        // Extract JSON substring if Gemini added extra words
-        const firstBrace = jsonText.indexOf("{");
-        const lastBrace = jsonText.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonText = jsonText.slice(firstBrace, lastBrace + 1);
-        }
-
-        // Parse the final JSON
         let evaluation;
         try {
-            evaluation = JSON.parse(jsonText);
+            evaluation = JSON.parse(rawText);
         } catch (err) {
-            console.error("❌ JSON Parse Error:", err);
+            console.error("🟥 JSON PARSE ERROR:", err);
             return res.status(500).json({
-                message: "AI returned invalid JSON.",
-                raw_output: output
+                message: "Gemini returned invalid JSON.",
+                raw_output: rawText
             });
         }
 
-        return res.json({ evaluation });
+        res.json({ evaluation });
 
     } catch (err) {
-        console.error("AI Evaluation Fatal Error:", err);
-        return res.status(500).json({ message: "AI evaluation failed." });
+        console.error("🟥 FATAL AI ROUTE ERROR:", err);
+
+        return res.status(500).json({
+            message: "AI evaluation failed.",
+            error: err.message,
+            stack: err.stack
+        });
     }
 });
+
 
 
 app.get("/api/interviews/counts", async (req, res) => {
