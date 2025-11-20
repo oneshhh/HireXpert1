@@ -666,6 +666,64 @@ app.post("/schedule", async (req, res) => {
     }
 });
 
+// ========================
+// AI Candidate Evaluation
+// ========================
+app.post("/api/ai/evaluate-candidate", async (req, res) => {
+    try {
+        const { job_description, transcripts } = req.body;
+
+        if (!job_description || !transcripts) {
+            return res.status(400).json({ message: "Missing job description or transcripts." });
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+        const prompt = `
+You are an expert technical interviewer. Evaluate a candidate's interview performance based on:
+
+- The Job Description (JD)
+- The transcript of their spoken answers
+
+DO NOT mention missing resume because it is optional.
+
+Provide a JSON ONLY response with the following fields:
+
+{
+  "rating": number (0–10),
+  "summary": string,
+  "jd_match": string,
+  "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
+  "strengths": string[],
+  "weaknesses": string[]
+}
+
+### JOB DESCRIPTION:
+${job_description}
+
+### CANDIDATE TRANSCRIPTS:
+${transcripts.map((t, idx) => `Q${idx + 1}: ${t.question}\nA${idx + 1}: ${t.transcript}`).join("\n\n")}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const outputText = result.response.text();
+
+        // Parse JSON safely
+        let evaluation;
+        try {
+            evaluation = JSON.parse(outputText);
+        } catch (e) {
+            console.error("Gemini JSON parse error:", e);
+            return res.status(500).json({ message: "AI returned invalid JSON." });
+        }
+
+        res.json({ evaluation });
+
+    } catch (err) {
+        console.error("AI Evaluation Error:", err);
+        return res.status(500).json({ message: "AI evaluation failed." });
+    }
+});
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {

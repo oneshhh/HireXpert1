@@ -139,6 +139,25 @@
             </div>
         </div>
         </div>
+        <button id="generate-ai-eval" style="
+            background: #2563eb;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        ">
+            Generate AI Evaluation
+        </button>
+
+        <div id="ai-evaluation-box" style="
+            display:none;
+            background:#f9fafb;
+            padding:20px;
+            border-radius:10px;
+            margin-top:20px;
+            border:1px solid #e5e7eb;">
+        </div>
+      
     </div>
     </header>
 
@@ -269,6 +288,48 @@
     let myUserIdGlobal = null; // store current user id if available
     let myReviewData = null; // hold the user's saved review (if any)
 
+    document.getElementById("generate-ai-eval").addEventListener("click", async () => {
+    try {
+        const evalBox = document.getElementById("ai-evaluation-box");
+        evalBox.style.display = "block";
+        evalBox.innerHTML = "Generating AI evaluation… please wait.";
+
+        // Collect JD
+        const jobDescription = window.currentInterviewJobDescription || "";
+
+        // Collect transcripts per question
+        const transcripts = window.allTranscripts || [];
+
+        const res = await fetch("/api/ai/evaluate-candidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                job_description: jobDescription,
+                transcripts: transcripts
+            })
+        });
+
+        const data = await res.json();
+        if (!data.evaluation) {
+            evalBox.innerHTML = "Failed to generate AI evaluation.";
+            return;
+        }
+
+        const ev = data.evaluation;
+
+        evalBox.innerHTML = `
+            <h2 style="font-size:20px; font-weight:600;">AI Evaluation Result</h2>
+            <p><strong>Rating:</strong> ${ev.rating}/10</p>
+            <p><strong>Summary:</strong> ${ev.summary}</p>
+            <p><strong>JD Match:</strong> ${ev.jd_match}</p>
+            <p><strong>Suitability:</strong> ${ev.suitability}</p>
+            <p><strong>Strengths:</strong><br> ${ev.strengths.map(s => "• " + s).join("<br>")}</p>
+            <p><strong>Weaknesses:</strong><br> ${ev.weaknesses.map(w => "• " + w).join("<br>")}</p>`;
+    } catch (err) {
+        console.error("AI Eval Error:", err);
+        document.getElementById("ai-evaluation-box").innerHTML = "AI evaluation failed.";
+    }
+});
     // --- Notification Modal Helpers ---
     const notificationModal = document.getElementById('notification-modal');
     const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
@@ -653,12 +714,35 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
                 const errData = await res.json().catch(()=>({message:'Error'}));
                 throw new Error(errData.message || "Could not fetch candidate details.");
             }
-            const data = await res.json(); // { candidate: {...}, answers: [...] }
+            const data = await res.json();
+            // =========================================================
+            // STORE DATA FOR AI EVALUATION
+            // =========================================================
 
-            // --------------------- START REPLACE BLOCK ---------------------
-            // (place this inside fetchCandidateReview() after `const data = await res.json();`)
+            // 1. Job description: will fetch separately
+            window.currentInterviewJobDescription = "";
 
-            // store global
+            // 2. Collect transcripts for AI
+            window.allTranscripts = Array.isArray(data.answers)
+                ? data.answers.map(a => ({
+                    question: a.question_text || "",
+                    transcript: a.transcript_text || ""
+                }))
+                : [];
+
+            // =========================================================
+            // FETCH JOB DESCRIPTION (needed for AI evaluation)
+            // =========================================================
+            try {
+                const jdRes = await fetch(`/api/interview/${currentInterviewId}`);
+                if (jdRes.ok) {
+                    const jdData = await jdRes.json();
+                    window.currentInterviewJobDescription = jdData.job_description || "";
+                }
+            } catch (e) {
+                console.warn("Could not fetch job description:", e);
+            }
+
             currentCandidateEmail = data.candidate.email;
 
             // Try to detect if the current visitor is a 'viewer' or internal user.
