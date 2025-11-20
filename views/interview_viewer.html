@@ -253,6 +253,11 @@
 
   (async function initViewerSession() {
   const params = new URLSearchParams(window.location.search);
+  window.currentCandidateToken = params.get("token");
+  window.currentInterviewId = params.get("interview_id");
+  currentToken = window.currentCandidateToken;
+  currentInterviewId = window.currentInterviewId;
+
   const token = params.get("token");
   if (!token) return;
 
