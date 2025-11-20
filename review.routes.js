@@ -261,49 +261,50 @@ router.get('/candidate/review/:token', async (req, res) => {
                 const question_text = interview.questions[questionIndex] || 'Question text not found';
                 const time_limit = interview.time_limits[questionIndex] || 0;
 
+                // ---- VIDEO URL ----
                 let videoUrl = null;
                 if (answer.raw_path && answer.status === 'ready') {
                     const { data, error } = await supabase_second_db.storage
-                        .from('raw') // <-- Make sure 'raw' is the bucket name in DB_B
+                        .from('raw')
                         .createSignedUrl(answer.raw_path, 3600);
-                    
+
                     if (error) console.error('Error creating signed URL:', error.message);
                     else videoUrl = data.signedUrl;
                 }
 
-                // --- LOAD TRANSCRIPT TEXT FROM SUPABASE STORAGE ---
-              let transcript_text = null;
+                // ---- TRANSCRIPT TEXT ----
+                let transcript_text = "Transcript not available.";
 
-              if (answer.transcript_path) {
-                  try {
-                      // Create a signed URL for the transcript file
-                      const { data: signed, error: signedError } =
-                          await supabase_second_db.storage
-                              .from('transcripts')   // <-- CHANGE THIS TO YOUR BUCKET NAME
-                              .createSignedUrl(answer.transcript_path, 3600);
+                if (answer.transcript_path) {
+                    try {
+                        const cleanPath = answer.transcript_path.trim();
 
-                      if (signedError) {
-                          console.error("Transcript signed URL error:", signedError.message);
-                      } else if (signed && signed.signedUrl) {
-                          // Fetch transcript file text
-                          const txtResp = await fetch(signed.signedUrl);
-                          transcript_text = await txtResp.text();
-                      }
-                  } catch (err) {
-                      console.error("Transcript fetch failed:", err);
-                  }
-              }
+                        const { data: signed, error: signedError } =
+                            await supabase_second_db.storage
+                                .from('processed')   // correct bucket
+                                .createSignedUrl(cleanPath, 3600);
 
-              // Fall back if still missing
-              if (!transcript_text) {
-                  transcript_text = "Transcript not available.";
-              }
+                        if (signedError) {
+                            console.error("Transcript signed URL error:", signedError.message);
+                        } else if (signed?.signedUrl) {
+                            const txtResp = await fetch(signed.signedUrl);
+                            transcript_text = await txtResp.text();
+                        }
+                    } catch (err) {
+                        console.error("Transcript fetch failed:", err);
+                    }
+                }
 
-
-                return { ...answer, question_text, time_limit, video_url: videoUrl, transcript_text };
-
+                return {
+                    ...answer,
+                    question_text,
+                    time_limit,
+                    video_url: videoUrl,
+                    transcript_text
+                };
             })
         );
+
         
         // Add the reviewer_status to the candidate object
         const fullCandidateData = { ...candidate, reviewer_status: reviewer_status };
