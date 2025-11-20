@@ -235,26 +235,26 @@ router.get('/candidate/review/:token', async (req, res) => {
         if (!interviews || interviews.length === 0) {
             return res.status(404).json({ message: 'Interview data not found.' });
         }
-        const interview = interviews[0]; // Get the first row
+        const interview = interviews[0];
 
         // 3. Get all Answers from SECOND database (DB_B)
         const { data: answers, error: answersError } = await supabase_second_db
-        .from('answers')
-        .select('*')
-        .eq('candidate_token', token)
-        .eq('interview_id', candidate.interview_id) // ✅ NEW
-        .order('question_id');
+            .from('answers')
+            .select('*')
+            .eq('candidate_token', token)
+            .eq('interview_id', candidate.interview_id)
+            .order('question_id');
 
         if (answersError) throw answersError;
-        
-        // 4. Get the Reviewer Status from FIRST database (DB_A)
+
+        // 4. Get Reviewer Status from FIRST database (DB_A)
         const { rows: sessions } = await pool.query(
             `SELECT status FROM candidate_sessions WHERE candidate_email = $1 AND interview_id = $2`,
             [candidate.email, candidate.interview_id]
         );
         const reviewer_status = (sessions && sessions.length > 0) ? sessions[0].status : 'N/A';
-        
-        // 5. Combine and create Signed URLs (uses Client 2's storage)
+
+        // 5. Combine answers with signed URLs + transcript text
         const enrichedAnswers = await Promise.all(
             answers.map(async (answer) => {
                 const questionIndex = parseInt(answer.question_id.replace('q', '')) - 1;
@@ -272,37 +272,29 @@ router.get('/candidate/review/:token', async (req, res) => {
                     else videoUrl = data.signedUrl;
                 }
 
-                  // --- LOAD TRANSCRIPT TEXT FROM SUPABASE STORAGE ---
-                  let transcript_text = null;
+                // ---- TRANSCRIPT TEXT ----
+                let transcript_text = "Transcript not available.";
 
-                  if (answer.transcript_path) {
-                      try {
-                          // Clean CRLF and spaces
-                          const cleanPath = answer.transcript_path.trim();
+                if (answer.transcript_path) {
+                    try {
+                        const cleanPath = answer.transcript_path.trim();
 
-                          // Create signed URL from the correct bucket
-                          const { data: signed, error: signedError } =
-                              await supabase_second_db.storage
-                                  .from('transcripts')       // <-- 🔥 CORRECT BUCKET NAME
-                                  .createSignedUrl(cleanPath, 3600);
+                        // 🔥 CORRECT BUCKET NAME
+                        const { data: signed, error: signedError } =
+                            await supabase_second_db.storage
+                                .from('transcripts')
+                                .createSignedUrl(cleanPath, 3600);
 
-                          if (signedError) {
-                              console.error("Transcript signed URL error:", signedError.message);
-                          } else if (signed?.signedUrl) {
-                              // Fetch transcript text file
-                              const txtResp = await fetch(signed.signedUrl);
-                              transcript_text = await txtResp.text();
-                          }
-                      } catch (err) {
-                          console.error("Transcript fetch failed:", err);
-                      }
-                  }
-
-                  // Fallback
-                  if (!transcript_text) {
-                      transcript_text = "Transcript not available.";
-                  }
-
+                        if (signedError) {
+                            console.error("Transcript signed URL error:", signedError.message);
+                        } else if (signed?.signedUrl) {
+                            const txtResp = await fetch(signed.signedUrl);
+                            transcript_text = await txtResp.text();
+                        }
+                    } catch (err) {
+                        console.error("Transcript fetch failed:", err);
+                    }
+                }
 
                 return {
                     ...answer,
@@ -314,9 +306,7 @@ router.get('/candidate/review/:token', async (req, res) => {
             })
         );
 
-        
-        // Add the reviewer_status to the candidate object
-        const fullCandidateData = { ...candidate, reviewer_status: reviewer_status };
+        const fullCandidateData = { ...candidate, reviewer_status };
 
         res.json({ candidate: fullCandidateData, answers: enrichedAnswers });
 
@@ -325,6 +315,7 @@ router.get('/candidate/review/:token', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 
 /**
