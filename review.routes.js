@@ -220,7 +220,7 @@ router.get('/candidate/review/:token', async (req, res) => {
         // 1. Get Candidate details from SECOND database (DB_B)
         const { data: candidate, error: candidateError } = await supabase_second_db
             .from('candidates')
-            .select('name, email, resume_path, interview_id')
+            .select('name, email, interview_id')
             .eq('candidate_token', token)
             .single();
 
