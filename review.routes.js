@@ -270,8 +270,35 @@ router.get('/candidate/review/:token', async (req, res) => {
                     if (error) console.error('Error creating signed URL:', error.message);
                     else videoUrl = data.signedUrl;
                 }
-                
-                const transcript_text = "Transcript processing is " + answer.status;
+
+                // --- LOAD TRANSCRIPT TEXT FROM SUPABASE STORAGE ---
+              let transcript_text = null;
+
+              if (answer.transcript_path) {
+                  try {
+                      // Create a signed URL for the transcript file
+                      const { data: signed, error: signedError } =
+                          await supabase_second_db.storage
+                              .from('transcripts')   // <-- CHANGE THIS TO YOUR BUCKET NAME
+                              .createSignedUrl(answer.transcript_path, 3600);
+
+                      if (signedError) {
+                          console.error("Transcript signed URL error:", signedError.message);
+                      } else if (signed && signed.signedUrl) {
+                          // Fetch transcript file text
+                          const txtResp = await fetch(signed.signedUrl);
+                          transcript_text = await txtResp.text();
+                      }
+                  } catch (err) {
+                      console.error("Transcript fetch failed:", err);
+                  }
+              }
+
+              // Fall back if still missing
+              if (!transcript_text) {
+                  transcript_text = "Transcript not available.";
+              }
+
 
                 return { ...answer, question_text, time_limit, video_url: videoUrl, transcript_text };
 
