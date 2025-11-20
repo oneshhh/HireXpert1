@@ -272,18 +272,21 @@ router.get('/candidate/review/:token', async (req, res) => {
                     else videoUrl = data.signedUrl;
                 }
 
-                // ---- TRANSCRIPT TEXT ----
+                                // ---- TRANSCRIPT TEXT ----
                 let transcript_text = "Transcript not available.";
 
                 if (answer.transcript_path) {
                     try {
-                        const cleanPath = answer.transcript_path.trim();
+                        // Clean CRLF and extra spaces
+                        let cleanPath = answer.transcript_path.trim();
 
-                        // 🔥 CORRECT BUCKET NAME
+                        // Your real file is inside /processed/ folder inside transcripts bucket
+                        const fullPath = `processed/${cleanPath}`;
+
                         const { data: signed, error: signedError } =
                             await supabase_second_db.storage
-                                .from('transcripts')
-                                .createSignedUrl(cleanPath, 3600);
+                                .from('transcripts')       // correct bucket
+                                .createSignedUrl(fullPath, 3600);
 
                         if (signedError) {
                             console.error("Transcript signed URL error:", signedError.message);
