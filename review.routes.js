@@ -272,28 +272,37 @@ router.get('/candidate/review/:token', async (req, res) => {
                     else videoUrl = data.signedUrl;
                 }
 
-                // ---- TRANSCRIPT TEXT ----
-                let transcript_text = "Transcript not available.";
+                  // --- LOAD TRANSCRIPT TEXT FROM SUPABASE STORAGE ---
+                  let transcript_text = null;
 
-                if (answer.transcript_path) {
-                    try {
-                        const cleanPath = answer.transcript_path.trim();
+                  if (answer.transcript_path) {
+                      try {
+                          // Clean CRLF and spaces
+                          const cleanPath = answer.transcript_path.trim();
 
-                        const { data: signed, error: signedError } =
-                            await supabase_second_db.storage
-                                .from('processed')   // correct bucket
-                                .createSignedUrl(cleanPath, 3600);
+                          // Create signed URL from the correct bucket
+                          const { data: signed, error: signedError } =
+                              await supabase_second_db.storage
+                                  .from('transcripts')       // <-- 🔥 CORRECT BUCKET NAME
+                                  .createSignedUrl(cleanPath, 3600);
 
-                        if (signedError) {
-                            console.error("Transcript signed URL error:", signedError.message);
-                        } else if (signed?.signedUrl) {
-                            const txtResp = await fetch(signed.signedUrl);
-                            transcript_text = await txtResp.text();
-                        }
-                    } catch (err) {
-                        console.error("Transcript fetch failed:", err);
-                    }
-                }
+                          if (signedError) {
+                              console.error("Transcript signed URL error:", signedError.message);
+                          } else if (signed?.signedUrl) {
+                              // Fetch transcript text file
+                              const txtResp = await fetch(signed.signedUrl);
+                              transcript_text = await txtResp.text();
+                          }
+                      } catch (err) {
+                          console.error("Transcript fetch failed:", err);
+                      }
+                  }
+
+                  // Fallback
+                  if (!transcript_text) {
+                      transcript_text = "Transcript not available.";
+                  }
+
 
                 return {
                     ...answer,
