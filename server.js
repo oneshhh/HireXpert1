@@ -679,7 +679,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         console.log("🟦 AI ROUTE - TRANSCRIPTS:", transcripts);
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         const aiResult = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
