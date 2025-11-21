@@ -8,28 +8,13 @@ const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2n
 // For POSTs, allow user, but also allow viewer only for /api/evaluations.
 // --- Allow viewers to use evaluation routes safely ---
 function allowViewerForGets(req, res, next) {
-  // ✅ Viewers can access these paths fully (GET/POST/PUT/DELETE)
-  const viewerAllowedPaths = ['/evaluations'];
-
-  const isViewerAllowedPath = viewerAllowedPaths.some(p => req.path.startsWith(p));
-
-  // 1. Allow GET for any logged-in session (user or viewer)
-  if (req.method === 'GET') {
-    if (req.session?.user || req.session?.viewer) return next();
-    return res.status(401).json({ message: 'You must be logged in.' });
-  }
-
-  // 2. Allow POST/PUT/DELETE for /evaluations if viewer logged in
-  if (isViewerAllowedPath) {
-    if (req.session?.user || req.session?.viewer) return next();
-    return res.status(401).json({ message: 'You must be logged in.' });
-  }
-
-  // 3. For all other modifying routes, only internal user allowed
-  if (req.session?.user) return next();
-
-  return res.status(401).json({ message: 'You must be logged in.' });
+    // Allow ANY logged in user (admin or viewer)
+    if (req.session?.user || req.session?.viewer) {
+        return next();
+    }
+    return res.status(401).json({ message: "You must be logged in." });
 }
+
 
 router.use(allowViewerForGets);
 
