@@ -735,19 +735,25 @@ ${transcripts
             return res.status(500).json({ message: "AI generation failed." });
         }
 
-        const textOutput =
-            data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const raw = result.response.text();
 
+        // Clean code fences like ```json ... ```
+        const cleaned = raw
+            .replace(/```json/gi, "")
+            .replace(/```/g, "")
+            .trim();
+
+        // Parse JSON safely
         let evaluation;
-
         try {
-            evaluation = JSON.parse(textOutput);
-        } catch (err) {
-            console.error("❌ Could not parse Gemini JSON:", textOutput);
+            evaluation = JSON.parse(cleaned);
+        } catch (e) {
+            console.error("❌ Could not parse Gemini JSON:", raw);
+            console.error("Cleaned:", cleaned);
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
-        return res.json({ evaluation });
+        res.json({ evaluation });
 
     } catch (err) {
         console.error("❌ AI Evaluation Error:", err);
