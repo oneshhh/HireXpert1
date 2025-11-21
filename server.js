@@ -14,9 +14,6 @@ const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
-// --- Gemini AI Initialization ---
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -679,17 +676,25 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
+        // LOGGING
         console.log("🟦 AI ROUTE - JD:", job_description);
         console.log("🟦 AI ROUTE - TRANSCRIPTS:", transcripts);
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        if (!GEMINI_API_KEY) {
+            console.error("❌ Missing GEMINI_API_KEY in env.");
+            return res.status(500).json({ message: "Server missing Gemini API key." });
+        }
 
+        // PROMPT
         const prompt = `
-You are an expert technical interviewer. Evaluate a candidate objectively.
+You are an expert technical interviewer. Evaluate the candidate based on:
 
-Return ONLY a valid JSON object. No commentary, no notes, no markdown.
+- Job Description
+- Transcript of their spoken answers
 
-Required JSON format:
+Provide ONLY valid JSON:
+
 {
   "rating": number,
   "summary": string,
@@ -703,39 +708,52 @@ JOB DESCRIPTION:
 ${job_description}
 
 TRANSCRIPTS:
-${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
+${transcripts
+    .map((t, idx) => `Q${idx + 1}: ${t.question}\nA${idx + 1}: ${t.transcript}`)
+    .join("\n\n")}
         `;
 
-        const result = await model.generateContent(prompt);
-        const rawText = result.response.text();
+        // CALL GEMINI THROUGH REST API (NO SDK)
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [{ text: prompt }]
+                        }
+                    ]
+                })
+            }
+        );
 
-        console.log("🟧 RAW GEMINI OUTPUT:", rawText);
-
-        let evaluation;
-        try {
-            evaluation = JSON.parse(rawText);
-        } catch (err) {
-            console.error("🟥 JSON PARSE ERROR:", err);
-            return res.status(500).json({
-                message: "Gemini returned invalid JSON.",
-                raw_output: rawText
-            });
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("❌ Gemini API error:", data);
+            return res.status(500).json({ message: "AI generation failed." });
         }
 
-        res.json({ evaluation });
+        const textOutput =
+            data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+        let evaluation;
+
+        try {
+            evaluation = JSON.parse(textOutput);
+        } catch (err) {
+            console.error("❌ Could not parse Gemini JSON:", textOutput);
+            return res.status(500).json({ message: "AI returned invalid JSON." });
+        }
+
+        return res.json({ evaluation });
 
     } catch (err) {
-        console.error("🟥 FATAL AI ROUTE ERROR:", err);
-
-        return res.status(500).json({
-            message: "AI evaluation failed.",
-            error: err.message,
-            stack: err.stack
-        });
+        console.error("❌ AI Evaluation Error:", err);
+        return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
-
-
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
