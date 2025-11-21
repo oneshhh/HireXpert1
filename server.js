@@ -667,7 +667,6 @@ app.post("/schedule", async (req, res) => {
 
 // ========================
 // AI Candidate Evaluation (Debug Version)
-// ========================
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
         const { job_description, transcripts } = req.body;
@@ -676,27 +675,29 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
-        // LOGGING
         console.log("🟦 AI ROUTE - JD:", job_description);
         console.log("🟦 AI ROUTE - TRANSCRIPTS:", transcripts);
 
-        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-        if (!GEMINI_API_KEY) {
-            console.error("❌ Missing GEMINI_API_KEY in env.");
-            return res.status(500).json({ message: "Server missing Gemini API key." });
-        }
-
-        // PROMPT
-        const prompt = `
+        const aiResult = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                {
+                                    text: `
 You are an expert technical interviewer. Evaluate the candidate based on:
 
-- Job Description
-- Transcript of their spoken answers
+• The Job Description  
+• Their transcripts  
 
-Provide ONLY valid JSON:
+Return ONLY valid JSON:
 
 {
-  "rating": number,
+  "rating": number (0–10),
   "summary": string,
   "jd_match": string,
   "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
@@ -704,62 +705,57 @@ Provide ONLY valid JSON:
   "weaknesses": string[]
 }
 
-JOB DESCRIPTION:
+### JOB DESCRIPTION:
 ${job_description}
 
-TRANSCRIPTS:
+### TRANSCRIPTS:
 ${transcripts
-    .map((t, idx) => `Q${idx + 1}: ${t.question}\nA${idx + 1}: ${t.transcript}`)
+    .map(
+        (t, i) =>
+            `Q${i + 1}: ${t.question}\nA${i + 1}: ${t.transcript}`
+    )
     .join("\n\n")}
-        `;
-
-        // CALL GEMINI THROUGH REST API (NO SDK)
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            parts: [{ text: prompt }]
+`
+                                }
+                            ]
                         }
                     ]
                 })
             }
         );
 
-        const data = await response.json();
-        if (!response.ok) {
-            console.error("❌ Gemini API error:", data);
-            return res.status(500).json({ message: "AI generation failed." });
+        const aiJson = await aiResult.json();
+
+        if (!aiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.error("❌ AI returned unexpected format:", aiJson);
+            return res.status(500).json({ message: "AI returned no text." });
         }
 
-        const raw = result.response.text();
+        let raw = aiJson.candidates[0].content.parts[0].text;
 
-        // Clean code fences like ```json ... ```
+        // 🔧 FIX: Remove ```json ... ``` wrappers
         const cleaned = raw
             .replace(/```json/gi, "")
             .replace(/```/g, "")
             .trim();
 
-        // Parse JSON safely
         let evaluation;
         try {
             evaluation = JSON.parse(cleaned);
-        } catch (e) {
-            console.error("❌ Could not parse Gemini JSON:", raw);
-            console.error("Cleaned:", cleaned);
+        } catch (parseErr) {
+            console.error("❌ JSON Parse Failed!");
+            console.error("RAW:", raw);
+            console.error("CLEANED:", cleaned);
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
         res.json({ evaluation });
-
     } catch (err) {
         console.error("❌ AI Evaluation Error:", err);
         return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
+
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
