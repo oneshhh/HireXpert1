@@ -7,7 +7,7 @@ const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const cors = require("cors");
 const pool = require('./db');
-const fetch = require('node-fetch');
+const fetch = (...args) =>import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const reviewRoutes = require('./review.routes.js');
