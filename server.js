@@ -14,7 +14,9 @@ const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
-
+// --- Gemini AI Initialization ---
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
