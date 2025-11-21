@@ -302,6 +302,7 @@
 
         const res = await fetch("/api/ai/evaluate-candidate", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 job_description: jobDescription,
