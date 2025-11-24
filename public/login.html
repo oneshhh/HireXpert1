@@ -1,113 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - HireXpert</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        :root {
-            --primary-color: #1173d4;
-            --primary-color-hover: #1d4ed8;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen">
-    <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-xl shadow-lg">
-        <div class="text-center">
-            <div class="flex justify-center mx-auto mb-4 w-12 h-12 text-[var(--primary-color)]">
-                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                    <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
-                    <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-900">Sign in to HireXpert</h1>
-            <p class="mt-2 text-sm text-gray-600">Please select your department and enter your credentials.</p>
-        </div>
-        <!-- The form now has an ID for the script to target -->
-        <form id="loginForm" class="space-y-6">
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
-                <div class="mt-1">
-                    <input id="email" name="email" type="email" autocomplete="email" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
-                </div>
-            </div>
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                <div class="mt-1">
-                    <input id="password" name="password" type="password" autocomplete="current-password" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
-                </div>
-            </div>
-            <div>
-                <label for="department" class="block text-sm font-medium text-gray-700">Department</label>
-                <div class="mt-1">
-                    <select id="department" name="department" required
-                        class="w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] sm:text-sm">
-                        <option value="HR">HR</option>
-                        <option value="PMO">PMO</option>
-                        <option value="GTA">GTA</option>
-                        <option value="Admin">Admin</option> 
-                    </select>
-                </div>
-            </div>
-            <div>
-                <button type="submit"
-                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]">
-                    Sign in
-                </button>
-            </div>
-        </form>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - HireXpert</title>
 
-        <!-- START OF NEW SECTION -->
-        <div class="text-center">
-            <p class="text-sm text-gray-600">
-                Are you a reviewer?
-                <a href="/interview_viewer.html" class="font-medium text-[var(--primary-color)] hover:text-[var(--primary-color-hover)]">
-                    Reviewer Login
-                </a>
-            </p>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background: radial-gradient(circle at top left, #e0f2ff 0, #f9fafb 45%, #e5edff 100%);
+      overflow-x: hidden; /* prevent horizontal scrolling */
+      height: 100vh;
+    }
+
+    :root {
+      --primary-color: #1173d4;
+      --primary-color-hover: #1d4ed8;
+    }
+
+    /* More contained curved background to prevent overflow */
+    .curve-bg {
+      background: linear-gradient(135deg, #0c5ec9 0%, #1173d4 50%, #3b82f6 100%);
+      clip-path: ellipse(100% 100% at 0% 50%);
+    }
+
+    @keyframes float-slow {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .float-slow {
+      animation: float-slow 8s ease-in-out infinite;
+    }
+
+    .float-slow-delay {
+      animation: float-slow 10s ease-in-out infinite;
+      animation-delay: 1.5s;
+    }
+
+    /* Parallax support */
+    .parallax {
+      transition: transform 0.25s ease-out;
+      will-change: transform;
+    }
+  </style>
+</head>
+
+<body class="flex items-center justify-center">
+
+  <!-- FULL SCREEN FIX: width and height 100% -->
+  <div class="relative w-full h-screen bg-white/70 backdrop-blur-xl rounded-none shadow-none overflow-hidden">
+
+    <!-- GRID FULL HEIGHT -->
+    <div class="grid grid-cols-1 md:grid-cols-2 h-full">
+
+      <!-- LEFT PANEL -->
+      <div class="relative curve-bg text-white px-8 md:px-12 py-10 flex flex-col justify-center h-full">
+
+        <!-- Floating shapes -->
+        <div class="absolute -top-6 right-10 w-16 h-16 rounded-3xl border border-white/40 float-slow opacity-70"></div>
+        <div class="absolute bottom-10 -left-4 w-10 h-10 rounded-full bg-white/10 float-slow-delay"></div>
+        <div class="absolute top-24 left-10 w-3 h-3 rounded-full bg-cyan-300 float-slow-delay"></div>
+
+        <div class="relative z-10 space-y-2">
+          <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-blue-100">
+            HireXpert <span class="w-1 h-1 rounded-full bg-blue-100"></span>
+          </span>
+          <h1 class="text-3xl md:text-4xl font-bold leading-tight">Welcome to HireXpert</h1>
+          <p class="text-sm md:text-base text-blue-100 max-w-md mt-2">
+            Please select your department and enter your credentials.
+          </p>
         </div>
-        <!-- END OF NEW SECTION -->
+
+        <!-- FORM -->
+        <div class="relative z-10 mt-8 bg-white text-gray-900 rounded-2xl shadow-xl px-6 py-7 max-w-md">
+          <h2 class="text-lg font-semibold mb-4 text-slate-900">Sign in</h2>
+
+          <form id="loginForm" class="space-y-4">
+
+            <div>
+              <label class="block text-xs font-medium mb-1">Email address</label>
+              <input
+                id="email" name="email" type="email" required
+                class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]"
+                placeholder="you@company.com"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium mb-1">Password</label>
+              <input
+                id="password" name="password" type="password" required
+                class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium mb-1">Department</label>
+              <select
+                id="department" name="department" required
+                class="w-full px-3 py-2 text-sm border rounded-lg"
+              >
+                <option value="HR">HR</option>
+                <option value="PMO">PMO</option>
+                <option value="GTA">GTA</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">
+              Sign in
+            </button>
+
+          </form>
+
+          <div class="mt-5 text-center">
+            <p class="text-xs text-slate-500">
+              Are you a reviewer?
+              <a href="/views/interview_viewer.html" class="text-[var(--primary-color)] font-medium">Reviewer Login</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL - Full Height Image -->
+      <div class="relative hidden md:flex items-center justify-center bg-white h-full">
+
+        <!-- Background shapes -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-100 opacity-40"></div>
+        <div class="absolute bottom-0 left-6 w-32 h-32 rounded-3xl bg-indigo-50 opacity-50"></div>
+
+        <!-- Image perfectly centered and fitted -->
+        <div class="relative w-full h-full flex items-center justify-center p-10">
+          <img
+            src="assets/image.png"
+            alt="HireXpert login illustration"
+            class="w-full h-full object-contain"
+          />
+        </div>
+
+      </div>
 
     </div>
+  </div>
 
-    <!-- This script provides the modern fetch-based submission logic -->
-    <script>
-      const loginForm = document.getElementById("loginForm");
-      loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault(); 
-    
-        const formData = new FormData(loginForm);
-        const formProps = Object.fromEntries(formData);
-    
-        try {
-          const response = await fetch("/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formProps),
-          });
-    
-          if (response.ok && response.redirected) {
-            // If the login is successful, the server sends a redirect. Follow it.
-            window.location.href = response.url;
-          } else {
-            // If the login fails, the server sends an error message as plain text.
-            const errorMessage = await response.text();
-            alert(errorMessage); // Using alert for simplicity as it was in the original
-          }
-        } catch (error) {
-          // Handle network errors (e.g., server is down)
-          console.error("Error:", error);
-          alert("A network error occurred. Please try again.");
+  <!-- Backend Logic -->
+  <script>
+    const loginForm = document.getElementById("loginForm");
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formProps = Object.fromEntries(new FormData(loginForm));
+
+      try {
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formProps),
+        });
+
+        if (response.ok && response.redirected) {
+          window.location.href = response.url;
+        } else {
+          alert(await response.text());
         }
-      });
-    </script>
-    
+      } catch (err) {
+        alert("Network error — please try again.");
+      }
+    });
+  </script>
+
 </body>
 </html>
