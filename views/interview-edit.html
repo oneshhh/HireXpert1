@@ -185,7 +185,7 @@
       document.getElementById("created-by-name").textContent = `${interview.first_name || ''} ${interview.last_name || ''}`.trim() || 'N/A';
 
       // 4) Pre-select assigned schedulers (scheduler_ids should now match visitor IDs)
-      const schedulerIds = new Set(interview.scheduler_ids || []);
+      const schedulerIds = new Set(interview.visitor_reviewer_ids || []);
       Array.from(schedulerSelect.options).forEach(option => {
           // option.value is a string; ensure types match
           if (schedulerIds.has(option.value) || schedulerIds.has(option.value.toString())) {
@@ -273,7 +273,7 @@
       title: form.title.value,
       questions,
       timeLimits,
-      schedulerIds: selectedSchedulerIds,
+      visitorReviewerIds: selectedSchedulerIds,
       newEmails: form.newEmails.value,
     };
 

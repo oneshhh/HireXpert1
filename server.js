@@ -1097,7 +1097,13 @@ app.post("/api/interview/:id/update", async (req, res) => {
         await client.query('BEGIN');
 
         // 1. Destructure all expected data from the request body
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+    let { 
+        title, 
+        questions, 
+        timeLimits, 
+        emails, 
+        visitorReviewerIds 
+    } = req.body;
 
         
         // 2. Data validation and cleanup
@@ -1107,9 +1113,12 @@ app.post("/api/interview/:id/update", async (req, res) => {
 
         // 3. Update the main interview details
         await client.query(
-            `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, scheduler_ids=$4 WHERE id=$5`,
-            [title, questions, timeLimits, schedulerIds, id]
+            `UPDATE interviews 
+            SET title=$1, questions=$2, time_limits=$3, visitor_reviewer_ids=$4 
+            WHERE id=$5`,
+            [title, questions, timeLimits, visitorReviewerIds, id]
         );
+
 
         // 4. Handle adding and emailing new candidates
         const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
