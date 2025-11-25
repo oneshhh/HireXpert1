@@ -7,6 +7,7 @@
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <style type="text/tailwindcss">
       :root {
         --primary-50: #eff6ff;
@@ -32,7 +33,20 @@
       /* Notification Modal Styles */
       #notification-modal { transition: opacity 0.3s ease-out; }
       #notification-modal > div { transition: all 0.3s ease-out; }
+      .loading-hidden { display: none !important; }
+      .loading-show { display: flex !important; }
+
 </style>
+
+<script>
+fetch("assets/lottie.json")
+  .then(res => res.json())
+  .then(json => {
+      window.lottieAnimationData = json;
+  })
+  .catch(err => console.error("Lottie load error:", err));
+</script>
+
 </head>
 <body class="bg-gray-50 flex items-center justify-center relative" style='font-family: "Inter", "Noto Sans", sans-serif;'>
 
@@ -96,6 +110,16 @@
           >
             Login
           </button>
+          <div id="loginLoader" class="hidden flex flex-col items-center justify-center mt-4 text-sm text-gray-600">
+  
+          <div id="lottieAnim" class="w-28 h-28"></div>
+
+          <span class="mt-2 font-medium text-gray-700">
+            Logging you in… Hang in there.
+          </span>
+
+        </div>
+
         </form>
       </div>
     </div>
@@ -513,34 +537,71 @@
     const profileDropdown = document.getElementById('profile-menu-dropdown');
 
     // --- [FIXED] Login Form Handler ---
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginError.textContent = '';
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Logging in...';
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        try {
-            // [FIXED] Call the correct API for VISITORS
-            const response = await fetch('/viewer/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-                credentials: 'include' // ✅ required for cookie-session to persist login
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-            // On success, show the dashboard for a 'visitor'
-            showDashboard(data, 'visitor');
-        } catch (error) {
-            loginError.textContent = error.message;
-        } finally {
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Login';
-        }
+// --- ENHANCED REVIEWER LOGIN WITH LOTTIE ---
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Reset UI state
+    loginError.textContent = "";
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Logging in...";
+
+    // Show loading animation
+    loginLoader.classList.remove("hidden");
+
+    // Load Lottie animation
+    let anim = lottie.loadAnimation({
+        container: document.getElementById("lottieAnim"),
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        animationData: window.lottieAnimationData   // Assigned earlier
     });
+
+    // Play loading segment
+    anim.playSegments([0, 97], true);
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        // --- CALL CORRECT ENDPOINT FOR EVALUATOR ---
+        const response = await fetch("/viewer/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+            credentials: "include"
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Login failed");
+
+        // === SUCCESS ===
+        anim.loop = false;
+        anim.playSegments([97, 130], true);  // Green tick
+
+        loginBtn.textContent = "Success!";
+        loginBtn.classList.remove("bg-green-600");
+        loginBtn.classList.add("bg-emerald-600");
+
+        // Delay slightly so the tick animation finishes
+        setTimeout(() => {
+            showDashboard(data, "visitor");
+        }, 900);
+
+    } catch (err) {
+        // === ERROR ===
+        loginError.textContent = err.message;
+
+        // Reset UI
+        anim.destroy();
+        loginLoader.classList.add("hidden");
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
+
+    }
+});
+
 
     // Confirmation Modal Buttons (No changes)
     confirmBtn.addEventListener('click', () => {
