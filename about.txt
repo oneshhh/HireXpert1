@@ -1,0 +1,11 @@
+
+HOW VSITORS WORK
+these two things are the same thing, thats why i wondered why is everything suddenly broken. botht eh viewer and reviewers are one person and they should be able to see the interviews assigned to them in the database interviews. then they can view the interview and see the candidates submission in the interview-view.html and then can click on candidate-view.html just like users. they can also see reviews by other reviewers in the candidate-review.html which finds review by other reviewers using the interview id. the reason that they are differently mentioned is because the people in vistiors table have different access they cannot edit or delete the interview neither can they create a new interview they can review an interview, leave ratings, comments and chnage status. 
+
+
+
+its still not fixing, lets do one thing lets remove the option to change change the evaluation for viewers in the interview-view.html page. it should show the status but they cannot change it once they review a candidate. lets just allow them to change the condition once they review the candidate through candiate-viewer.html thats is then it will only reflect the global status thats all for the candidate. the user can however do this as they did
+
+
+
+these two are the same files and it is named candidate-review.html im sorry for interchanging words but pleae remember this now. it is one single file. also the interview-view.html is being used by viewers, admin and users everyone is able to use it so rememver this too

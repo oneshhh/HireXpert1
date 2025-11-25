@@ -12,7 +12,7 @@
     body {
       font-family: "Inter", sans-serif;
       background: radial-gradient(circle at top left, #e0f2ff 0, #f9fafb 45%, #e5edff 100%);
-      overflow-x: hidden; /* prevent horizontal scrolling */
+      overflow-x: hidden;
       height: 100vh;
     }
 
@@ -21,7 +21,6 @@
       --primary-color-hover: #1d4ed8;
     }
 
-    /* More contained curved background to prevent overflow */
     .curve-bg {
       background: linear-gradient(135deg, #0c5ec9 0%, #1173d4 50%, #3b82f6 100%);
       clip-path: ellipse(100% 100% at 0% 50%);
@@ -42,7 +41,6 @@
       animation-delay: 1.5s;
     }
 
-    /* Parallax support */
     .parallax {
       transition: transform 0.25s ease-out;
       will-change: transform;
@@ -50,12 +48,11 @@
   </style>
 </head>
 
-<body class="flex items-center justify-center">
+<body class="flex items-center justify-center relative">
 
-  <!-- FULL SCREEN FIX: width and height 100% -->
-  <div class="relative w-full h-screen bg-white/70 backdrop-blur-xl rounded-none shadow-none overflow-hidden">
+  <!-- MAIN CONTENT SECTION -->
+  <div class="flex-grow relative w-full h-full bg-white/70 backdrop-blur-xl overflow-hidden">
 
-    <!-- GRID FULL HEIGHT -->
     <div class="grid grid-cols-1 md:grid-cols-2 h-full">
 
       <!-- LEFT PANEL -->
@@ -70,7 +67,9 @@
           <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-blue-100">
             HireXpert <span class="w-1 h-1 rounded-full bg-blue-100"></span>
           </span>
+
           <h1 class="text-3xl md:text-4xl font-bold leading-tight">Welcome to HireXpert</h1>
+
           <p class="text-sm md:text-base text-blue-100 max-w-md mt-2">
             Please select your department and enter your credentials.
           </p>
@@ -84,28 +83,17 @@
 
             <div>
               <label class="block text-xs font-medium mb-1">Email address</label>
-              <input
-                id="email" name="email" type="email" required
-                class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]"
-                placeholder="you@company.com"
-              />
+              <input id="email" name="email" type="email" required class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]" />
             </div>
 
             <div>
               <label class="block text-xs font-medium mb-1">Password</label>
-              <input
-                id="password" name="password" type="password" required
-                class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]"
-                placeholder="••••••••"
-              />
+              <input id="password" name="password" type="password" required class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]" />
             </div>
 
             <div>
               <label class="block text-xs font-medium mb-1">Department</label>
-              <select
-                id="department" name="department" required
-                class="w-full px-3 py-2 text-sm border rounded-lg"
-              >
+              <select id="department" name="department" required class="w-full px-3 py-2 text-sm border rounded-lg">
                 <option value="HR">HR</option>
                 <option value="PMO">PMO</option>
                 <option value="GTA">GTA</option>
@@ -113,11 +101,7 @@
               </select>
             </div>
 
-            <button
-              type="submit"
-              class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">
-              Sign in
-            </button>
+            <button type="submit" class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">Sign in</button>
 
           </form>
 
@@ -130,20 +114,14 @@
         </div>
       </div>
 
-      <!-- RIGHT PANEL - Full Height Image -->
+      <!-- RIGHT PANEL -->
       <div class="relative hidden md:flex items-center justify-center bg-white h-full">
 
-        <!-- Background shapes -->
         <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-100 opacity-40"></div>
         <div class="absolute bottom-0 left-6 w-32 h-32 rounded-3xl bg-indigo-50 opacity-50"></div>
 
-        <!-- Image perfectly centered and fitted -->
         <div class="relative w-full h-full flex items-center justify-center p-10">
-          <img
-            src="assets/image.png"
-            alt="HireXpert login illustration"
-            class="w-full h-full object-contain"
-          />
+          <img src="assets/image.png" alt="HireXpert login illustration" class="w-full h-full object-contain" />
         </div>
 
       </div>
@@ -176,6 +154,10 @@
       }
     });
   </script>
+
+<div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">
+  © GlobalXpert 2025
+</div>
 
 </body>
 </html>
