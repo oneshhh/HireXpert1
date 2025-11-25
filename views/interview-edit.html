@@ -95,7 +95,97 @@
 </main>
 </div>
 
+<!-- Notification Modal -->
+<div id="notification-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="flex min-h-screen items-center justify-center p-4 text-center">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-lg">
+      <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div id="notification-modal-icon" class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100"></div>
+          <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+            <h3 class="text-base font-semibold leading-6 text-gray-900" id="notification-modal-title"></h3>
+            <div class="mt-2">
+              <p class="text-sm text-gray-500" id="notification-modal-text"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="notification-modal-buttons" class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"></div>
+    </div>
+  </div>
+</div>
+
+
 <script>
+/* --- ADD THIS WHOLE FUNCTION AT THE TOP --- */
+function showNotification(title, text, options = {}) {
+    const { isError = false, onConfirm = null, confirmText = 'Confirm', cancelText = 'Cancel', onClose = null } = options;
+    const modal = document.getElementById('notification-modal');
+    const modalTitle = document.getElementById('notification-modal-title');
+    const modalText = document.getElementById('notification-modal-text');
+    const modalIcon = document.getElementById('notification-modal-icon');
+    const btnContainer = document.getElementById('notification-modal-buttons');
+
+    if (!modal) {
+        if (onConfirm) {
+            if (confirm(`${title}\n${text}`)) onConfirm();
+        } else {
+            alert(`${title}: ${text}`);
+        }
+        return;
+    }
+
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+
+    if (isError) {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-red-600">error</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100";
+    } else {
+        modalIcon.innerHTML = `<span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>`;
+        modalIcon.className = "mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100";
+    }
+
+    btnContainer.innerHTML = '';
+
+    if (onConfirm) {
+        btnContainer.className = 'mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = confirmText;
+        confirmBtn.className = 'inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500';
+        confirmBtn.onclick = () => {
+            modal.classList.add('hidden');
+            onConfirm();
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = cancelText;
+        cancelBtn.className = 'inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold ring-1 ring-gray-300 hover:bg-gray-50';
+        cancelBtn.onclick = () => modal.classList.add('hidden');
+
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(confirmBtn);
+    } else {
+        btnContainer.className = 'mt-5 sm:mt-6';
+
+        const okBtn = document.createElement('button');
+        okBtn.textContent = 'Got it';
+        okBtn.className = 'inline-flex w-full justify-center rounded-md bg-[var(--primary-color)] px-3 py-2 text-sm font-semibold text-white hover:bg-opacity-90';
+        okBtn.onclick = () => {
+            modal.classList.add('hidden');
+            if (typeof onClose === 'function') onClose();
+        };
+
+        btnContainer.appendChild(okBtn);
+    }
+
+    modal.classList.remove('hidden');
+}
+
+
   const params = new URLSearchParams(window.location.search);
   const interviewId = params.get("id");
 
@@ -330,33 +420,61 @@
       });
       const result = await res.json();
       if (res.ok) {
-        alert("✅ Interview updated successfully!");
-        window.location.href = document.getElementById('back-to-dashboard-link').href;
+          showNotification(
+        'Interview Updated!',
+         'The interview was updated successfully.',
+      { 
+          isError: false,
+          onClose: () => { window.location.href = document.getElementById('back-to-dashboard-link').href; }
+      }
+  );
+
       } else {
         throw new Error(result.message);
       }
     } catch (err) {
       console.error("Error updating interview:", err);
-      alert("❌ Failed to update interview: " + err.message);
+      showNotification('Update Failed', err.message, { isError: true });
     }
   };
 
-  deleteBtn.onclick = async () => {
-    if (!confirm("Are you sure you want to delete this interview? This will delete all associated candidate data and cannot be undone.")) return;
+deleteBtn.onclick = () => {
+    showNotification(
+        'Delete Interview?',
+        'This will delete all associated candidate data and cannot be undone.',
+        {
+            isError: true,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            onConfirm: async () => { actualDeleteInterview(); }
+        }
+    );
+};
+
+async function actualDeleteInterview() {
     try {
-      const res = await fetch(`/api/interview/${interviewId}/delete`, { method: "DELETE" });
-      const result = await res.json();
-      if (res.ok) {
-        alert("🗑️ Interview deleted.");
-        window.location.href = document.getElementById('back-to-dashboard-link').href;
-      } else {
-        throw new Error(result.message);
-      }
+        const res = await fetch(`/api/interview/${interviewId}/delete`, { method: "DELETE" });
+        const result = await res.json();
+        if (res.ok) {
+            showNotification(
+                'Interview Deleted',
+                'The interview has been removed permanently.',
+                { 
+                    isError: false,
+                    onClose: () => {
+                        window.location.href = document.getElementById('back-to-dashboard-link').href;
+                    }
+                }
+            );
+        } else {
+            throw new Error(result.message);
+        }
     } catch (err) {
-      console.error("Error deleting interview:", err);
-      alert("❌ Failed to delete interview: " + err.message);
+        console.error("Error deleting interview:", err);
+        showNotification('Error', err.message, { isError: true });
     }
-  };
+}
+
   
   // Set the back link dynamically based on the 'from' URL parameter
   const fromDashboard = params.get('from');
