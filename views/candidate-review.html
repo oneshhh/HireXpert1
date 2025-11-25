@@ -151,12 +151,20 @@
 
         <div id="ai-evaluation-box" style="
             display:none;
-            background:#f9fafb;
-            padding:20px;
-            border-radius:10px;
-            margin-top:20px;
-            border:1px solid #e5e7eb;">
-        </div>
+            background: #ffffff;
+            padding: 22px;
+            border-radius: 14px;
+            margin-top: 20px;
+            border: 1px solid #e5e7eb;
+            max-width: 750px;
+            line-height: 1.6;
+            font-size: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            margin-left: auto;
+            margin-right: auto;
+            white-space: pre-wrap;
+        "></div>
+
       
     </div>
     </header>
@@ -264,6 +272,14 @@
   </div>
 
   <script>
+    async function typeText(element, text, speed = 15) {
+        element.innerHTML = ""; 
+        const words = text.split(" ");
+        for (let i = 0; i < words.length; i++) {
+            element.innerHTML += words[i] + " ";
+            await new Promise(res => setTimeout(res, speed));
+        }
+    }
 
     let isViewer = false;
 
@@ -318,14 +334,31 @@
 
         const ev = data.evaluation;
 
-        evalBox.innerHTML = `
-            <h2 style="font-size:20px; font-weight:600;">AI Evaluation Result</h2>
-            <p><strong>Rating:</strong> ${ev.rating}/10</p>
-            <p><strong>Summary:</strong> ${ev.summary}</p>
-            <p><strong>JD Match:</strong> ${ev.jd_match}</p>
-            <p><strong>Suitability:</strong> ${ev.suitability}</p>
-            <p><strong>Strengths:</strong><br> ${ev.strengths.map(s => "• " + s).join("<br>")}</p>
-            <p><strong>Weaknesses:</strong><br> ${ev.weaknesses.map(w => "• " + w).join("<br>")}</p>`;
+        // Build the final plain text output first
+        const finalText = 
+        `AI Evaluation Result
+
+        Rating: ${ev.rating}/10
+
+        Summary:
+        ${ev.summary}
+
+        JD Match:
+        ${ev.jd_match}
+
+        Suitability:
+        ${ev.suitability}
+
+        Strengths:
+        ${ev.strengths.map(s => "• " + s).join("\n")}
+
+        Weaknesses:
+        ${ev.weaknesses.map(w => "• " + w).join("\n")}`;
+
+        // Clear the box and animate
+        evalBox.innerHTML = "";
+        typeText(evalBox, finalText, 12);
+
     } catch (err) {
         console.error("AI Eval Error:", err);
         document.getElementById("ai-evaluation-box").innerHTML = "AI evaluation failed.";

@@ -82,13 +82,9 @@
             if (department) {
                 params.append('department', department);
             }
-            if (candidate_code) {
-                params.append('candidate_code', candidate_code);
-            }
             if (searchTerm) {
                 params.append('search', searchTerm);
             }
-            
             if (params.toString()) {
                 url += `?${params.toString()}`;
             }
