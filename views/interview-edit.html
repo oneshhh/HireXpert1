@@ -97,31 +97,34 @@
 </div>
 
 <!-- Notification Modal -->
-<div id="notification-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-  <div class="flex min-h-screen items-center justify-center p-4 text-center">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+<div id="notification-modal"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
 
-    <div class="relative transform overflow-hidden rounded-lg bg-white text-center shadow-xl transition-all w-full max-w-md">
-      <div class="bg-white px-6 pt-6 pb-4">
-        <div class="flex flex-col items-center text-center space-y-4">
-          <div id="notification-modal-icon"
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-          </div>
+    <div class="w-full max-w-sm transform rounded-lg bg-white p-6 shadow-xl text-center">
 
-          <h3 id="notification-modal-title" class="text-lg font-semibold text-gray-900"></h3>
-          <p id="notification-modal-text" class="mt-1 text-sm text-gray-500"></p>
+        <!-- Icon -->
+        <div id="notification-modal-icon"
+             class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+            <span class="material-symbols-outlined text-3xl text-green-600">check_circle</span>
         </div>
-      </div>
 
-      <!-- ✅ Buttons MUST be inside the modal box -->
-      <div id="notification-modal-buttons"
-           class="bg-gray-50 px-6 py-4 flex justify-center gap-3">
-      </div>
+        <!-- Title -->
+        <h3 id="notification-modal-title"
+            class="mt-4 text-lg font-medium text-gray-900">
+        </h3>
+
+        <!-- Description -->
+        <p id="notification-modal-text"
+           class="mt-2 text-sm text-gray-500">
+        </p>
+
+        <!-- Buttons -->
+        <div id="notification-modal-buttons"
+             class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        </div>
+
     </div>
-
-  </div>
 </div>
-
 
 
 <script>
