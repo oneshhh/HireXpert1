@@ -861,7 +861,7 @@ app.get("/api/candidates/all", async (req, res) => {
         const { search, department, page = 1, limit = 10 } = req.query;
         let queryParams = [];
         let whereClauses = [];
-        let baseQuery = ` SELECT cs.session_id, cs.candidate_email, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id `;
+        let baseQuery = ` SELECT cs.session_id, cs.candidate_email, cs.candidate_code, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id `;
         if (department) { queryParams.push(department); whereClauses.push(`cs.department = $${queryParams.length}`); }
         if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); }
         if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
