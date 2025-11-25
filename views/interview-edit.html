@@ -45,7 +45,17 @@
                   <p id="created-by-name" class="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-md border"></p>
               </div>
               <div>
+              <div class="flex justify-between items-center">
                   <label class="text-sm font-medium text-gray-900" for="schedulerIds">Assign Schedulers / Interviewers</label>
+
+                  <!-- 🔄 Refresh Button -->
+                  <button id="refresh-schedulers" 
+                          type="button" 
+                          class="p-1 rounded-md hover:bg-gray-200"
+                          title="Refresh list">
+                      <span class="material-symbols-outlined text-gray-700">refresh</span>
+                  </button>
+              </div>
                   <select id="schedulerIds" name="schedulerIds" multiple required class="mt-2 w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] h-32"></select>
               </div>
           </div>
@@ -223,6 +233,41 @@
     }
   }
 
+    // --- Refresh schedulers button ---
+  const refreshBtn = document.getElementById("refresh-schedulers");
+  if (refreshBtn) {
+      refreshBtn.addEventListener("click", async () => {
+          try {
+              refreshBtn.classList.add("animate-spin");
+              refreshBtn.disabled = true;
+
+              // Get updated department
+              const res = await fetch("/api/me");
+              const user = await res.json();
+              const dept = user.activeDepartment;
+
+              // Reload visitors list
+              await loadSchedulers(dept);
+
+              // Re-select already assigned reviewers
+              const resInterview = await fetch(`/api/interview/${interviewId}`);
+              const interview = await resInterview.json();
+              const assignedIds = new Set(interview.visitor_reviewer_ids || []);
+
+              Array.from(schedulerSelect.options).forEach(opt => {
+                  opt.selected = assignedIds.has(opt.value);
+              });
+
+          } catch (err) {
+              console.error("Failed to refresh schedulers:", err);
+              alert("Failed to refresh schedulers.");
+          } finally {
+              refreshBtn.disabled = false;
+              refreshBtn.classList.remove("animate-spin");
+          }
+      });
+  }
+
   // Call loadInterview() on page load (it will call the visitors-by-dept route first)
   document.addEventListener('DOMContentLoaded', () => {
     if (interviewId) {
@@ -318,8 +363,6 @@
   if(fromDashboard){
       document.getElementById('back-to-dashboard-link').href = `/${fromDashboard}`;
   }
-
-  loadInterview();
 </script>
 </body>
 </html>
