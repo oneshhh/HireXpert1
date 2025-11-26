@@ -108,6 +108,18 @@
 
       /* small tweak for other-reviews cards */
       .review-card { padding:16px; border-radius:10px; background:white; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
+
+      @keyframes fadeInBox {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -149,25 +161,24 @@
             Generate AI Evaluation
         </button>
 
-        <div id="ai-evaluation-box" style="
-            display:none;
-            background: #ffffff;
-            padding: 22px;
-            border-radius: 14px;
-            margin-top: 20px;
-            border: 1px solid #e5e7eb;
-            max-width: 750px;
-            line-height: 1.6;
-            font-size: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-            margin-left: auto;
-            margin-right: auto;
-            white-space: pre-wrap;
-        "></div>
-
-      
+    <div id="ai-evaluation-box" style="
+        display:none;
+        background: #ffffff;
+        padding: 24px 28px;
+        border-radius: 14px;
+        border-left: 6px solid #2563eb;
+        margin-top: 22px;
+        max-width: 680px;
+        margin-left: 0;               /* Align left */
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        font-size: 15px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        animation: fadeInBox 0.25s ease-out;
+    ">
     </div>
-    </header>
+  </div>
+</header>
 
   <!-- Main Content -->
   <main class="container mx-auto mt-6 px-6 pb-12">
@@ -336,23 +347,25 @@
 
         // Build the final plain text output first
         const finalText = 
-        `AI Evaluation Result
+        `💡 AI Evaluation Result
 
-        Rating: ${ev.rating}/10
+        ────────────────────────
 
-        Summary:
+        ⭐ Rating: ${ev.rating}/10
+
+         Summary:
         ${ev.summary}
 
-        JD Match:
+         JD Match:
         ${ev.jd_match}
 
-        Suitability:
+         Suitability:
         ${ev.suitability}
 
-        Strengths:
+         Strengths:
         ${ev.strengths.map(s => "• " + s).join("\n")}
 
-        Weaknesses:
+         Weaknesses:
         ${ev.weaknesses.map(w => "• " + w).join("\n")}`;
 
         // Clear the box and animate
