@@ -238,8 +238,22 @@
         ">
             Generate AI Evaluation
         </button>
-
-      <div id="ai-evaluation-box" style="
+        <button id="toggle-ai-box" style="
+            display:none;
+            background:white;
+            border-radius:50%;
+            width:40px;
+            height:40px;
+            margin-left:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.15);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+        ">
+            <span class="material-symbols-outlined">visibility_off</span>
+        </button>
+      <div id="ai-evaluation-box" class="ai-visible" style="
           display:none;
           background: #ffffff;
           padding: 24px 28px;
@@ -253,21 +267,6 @@
           line-height: 1.7;
           animation: fadeInBox 0.25s ease-out;
       "></div>
-        <button id="toggle-ai-box" style="
-        display:none;
-        position:absolute;
-        right:20px;
-        top:-20px;
-        background:white;
-        border-radius:50%;
-        width:40px;
-        height:40px;
-        box-shadow:0 2px 6px rgba(0,0,0,0.2);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-    ">
         <span class="material-symbols-outlined">visibility_off</span>
     </button>
 
@@ -418,7 +417,6 @@
         evalBox.innerHTML = "Generating AI evaluation… please wait.";
         toggleBtn.style.display = "flex";
 
-
         // Collect JD
         const jobDescription = window.currentInterviewJobDescription || "";
 
@@ -500,14 +498,23 @@ const toggleBtn = document.getElementById("toggle-ai-box");
 const aiBox = document.getElementById("ai-evaluation-box");
 
 toggleBtn.addEventListener("click", () => {
-    if (aiBox.classList.contains("ai-hidden")) {
-        aiBox.classList.remove("ai-hidden");
-        aiBox.classList.add("ai-visible");
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined">visibility_off</span>';
-    } else {
+    if (aiBox.classList.contains("ai-visible")) {
+
+        // Hide animation
         aiBox.classList.remove("ai-visible");
         aiBox.classList.add("ai-hidden");
-        toggleBtn.innerHTML = '<span class="material-symbols-outlined">visibility</span>';
+
+        toggleBtn.innerHTML = 
+          '<span class="material-symbols-outlined">visibility</span>';
+
+    } else {
+
+        // Show animation
+        aiBox.classList.remove("ai-hidden");
+        aiBox.classList.add("ai-visible");
+
+        toggleBtn.innerHTML = 
+          '<span class="material-symbols-outlined">visibility_off</span>';
     }
 });
 
