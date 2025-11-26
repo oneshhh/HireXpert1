@@ -489,30 +489,24 @@ toggleBtn.addEventListener("click", () => {
   const isVisible = aiBox.classList.contains("ai-visible");
 
   if (isVisible) {
-      // HIDE (smooth fold up)
+      // hide
       aiBox.classList.remove("ai-visible");
       aiBox.classList.add("ai-hidden");
-
-      // Wait for the animation to finish (300ms)
-      aiBox.addEventListener("animationend", function handler() {
-          aiBox.style.display = "none";
-          aiBox.removeEventListener("animationend", handler);
-      });
-
+      // after fold animation finishes, actually remove from flow
+      setTimeout(() => { aiBox.style.display = "none"; }, 300);
       toggleBtn.innerHTML =
         '<span class="material-symbols-outlined">visibility</span>';
-
   } else {
-      // SHOW (smooth fold down)
+      // show
       aiBox.style.display = "block";
-
       aiBox.classList.remove("ai-hidden");
       aiBox.classList.add("ai-visible");
-
       toggleBtn.innerHTML =
         '<span class="material-symbols-outlined">visibility_off</span>';
   }
 });
+
+
 
     // --- Notification Modal Helpers ---
     const notificationModal = document.getElementById('notification-modal');
