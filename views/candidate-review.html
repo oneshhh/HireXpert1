@@ -378,37 +378,32 @@
         <div class="ev-grid">
 
             <div class="ev-pair">
-                <div class="ev-label">Rating</div>
-                <div class="ev-value">${ev.rating}/10</div>
+                <div class="ev-label">JD Match</div>
+                <div class="ev-value">${ev.jd_match}</div>
             </div>
-
             <div class="ev-pair">
                 <div class="ev-label">Summary</div>
                 <div class="ev-value">${ev.summary}</div>
             </div>
-
             <div class="ev-pair">
-                <div class="ev-label">JD Match</div>
-                <div class="ev-value">${ev.jd_match}</div>
+                <div class="ev-label">Weaknesses</div>
+                <div class="ev-value">
+                    ${ev.weaknesses.map(w => "• " + w).join("<br>")}
+                </div>
             </div>
-
-            <div class="ev-pair">
-                <div class="ev-label">Suitability</div>
-                <div class="ev-value">${ev.suitability}</div>
-            </div>
-
             <div class="ev-pair">
                 <div class="ev-label">Strengths</div>
                 <div class="ev-value">
                     ${ev.strengths.map(s => "• " + s).join("<br>")}
                 </div>
             </div>
-
             <div class="ev-pair">
-                <div class="ev-label">Weaknesses</div>
-                <div class="ev-value">
-                    ${ev.weaknesses.map(w => "• " + w).join("<br>")}
-                </div>
+                <div class="ev-label">Suitability</div>
+                <div class="ev-value">${ev.suitability}</div>
+            </div>
+            <div class="ev-pair">
+                <div class="ev-label">Rating</div>
+                <div class="ev-value">${ev.rating}/10</div>
             </div>
 
         </div>
