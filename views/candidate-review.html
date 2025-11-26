@@ -146,7 +146,57 @@
         color: #334155;
         line-height: 1.55;
     }
+  .ev-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+  }
 
+  .ev-block-full {
+      width: 100%;
+  }
+
+  .ev-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+  }
+
+  .ev-block { width: 100%; }
+
+  .ev-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #0f172a;
+  }
+
+  .ev-text {
+      color: #334155;
+      line-height: 1.6;
+      font-size: 0.96rem;
+  }
+
+  @keyframes foldUp {
+    0% { transform: scaleY(1); opacity:1; }
+    100% { transform: scaleY(0); opacity:0; }
+}
+
+@keyframes unfoldDown {
+    0% { transform: scaleY(0); opacity:0; }
+    100% { transform: scaleY(1); opacity:1; }
+}
+
+.ai-hidden {
+    animation: foldUp 0.3s forwards ease-out;
+    transform-origin: top;
+}
+
+.ai-visible {
+    animation: unfoldDown 0.3s forwards ease-out;
+    transform-origin: top;
+}
 
     </style>
 </head>
@@ -189,21 +239,38 @@
             Generate AI Evaluation
         </button>
 
-    <div id="ai-evaluation-box" style="
+      <div id="ai-evaluation-box" style="
+          display:none;
+          background: #ffffff;
+          padding: 24px 28px;
+          border-radius: 14px;
+          border-left: 6px solid #2563eb;
+          margin-top: 22px;
+          width: 100%;
+          max-width: 100%;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+          font-size: 15px;
+          line-height: 1.7;
+          animation: fadeInBox 0.25s ease-out;
+      "></div>
+        <button id="toggle-ai-box" style="
         display:none;
-        background: #ffffff;
-        padding: 24px 28px;
-        border-radius: 14px;
-        border-left: 6px solid #2563eb;
-        margin-top: 22px;
-        max-width: 680px;
-        margin-left: 0;               /* Align left */
-        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-        font-size: 15px;
-        line-height: 1.7;
-        animation: fadeInBox 0.25s ease-out;
+        position:absolute;
+        right:20px;
+        top:-20px;
+        background:white;
+        border-radius:50%;
+        width:40px;
+        height:40px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.2);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
     ">
-    </div>
+        <span class="material-symbols-outlined">visibility_off</span>
+    </button>
+
   </div>
 </header>
 
@@ -349,6 +416,8 @@
         const evalBox = document.getElementById("ai-evaluation-box");
         evalBox.style.display = "block";
         evalBox.innerHTML = "Generating AI evaluation… please wait.";
+        toggleBtn.style.display = "flex";
+
 
         // Collect JD
         const jobDescription = window.currentInterviewJobDescription || "";
@@ -374,41 +443,56 @@
 
         const ev = data.evaluation;
 
-        const finalHTML = `
-        <div class="ev-grid">
+      const finalHTML = `
+      <div class="ev-container">
 
-            <div class="ev-pair">
-                <div class="ev-label">JD Match</div>
-                <div class="ev-value">${ev.jd_match}</div>
-            </div>
-            <div class="ev-pair">
-                <div class="ev-label">Summary</div>
-                <div class="ev-value">${ev.summary}</div>
-            </div>
-            <div class="ev-pair">
-                <div class="ev-label">Weaknesses</div>
-                <div class="ev-value">
-                    ${ev.weaknesses.map(w => "• " + w).join("<br>")}
-                </div>
-            </div>
-            <div class="ev-pair">
-                <div class="ev-label">Strengths</div>
-                <div class="ev-value">
-                    ${ev.strengths.map(s => "• " + s).join("<br>")}
-                </div>
-            </div>
-            <div class="ev-pair">
-                <div class="ev-label">Suitability</div>
-                <div class="ev-value">${ev.suitability}</div>
-            </div>
-            <div class="ev-pair">
-                <div class="ev-label">Rating</div>
-                <div class="ev-value">${ev.rating}/10</div>
-            </div>
+          <!-- FULL WIDTH: SUMMARY -->
+          <div class="ev-block-full">
+              <div class="ev-title">Summary</div>
+              <div class="ev-text">${ev.summary}</div>
+          </div>
 
-        </div>
-        `;
+          <!-- TWO COLUMN: JD MATCH + STRENGTHS -->
+          <div class="ev-grid-2">
+              <div class="ev-block">
+                  <div class="ev-title">JD Match</div>
+                  <div class="ev-text">${ev.jd_match}</div>
+              </div>
 
+              <div class="ev-block">
+                  <div class="ev-title">Strengths</div>
+                  <div class="ev-text">
+                      ${ev.strengths.map(s => "• " + s).join("<br>")}
+                  </div>
+              </div>
+          </div>
+
+          <!-- TWO COLUMN: WEAKNESSES + SUITABILITY -->
+          <div class="ev-grid-2">
+              <div class="ev-block">
+                  <div class="ev-title">Weaknesses</div>
+                  <div class="ev-text">
+                      ${ev.weaknesses.map(w => "• " + w).join("<br>")}
+                  </div>
+              </div>
+
+              <div class="ev-block">
+                  <div class="ev-title">Suitability</div>
+                  <div class="ev-text">${ev.suitability}</div>
+              </div>
+          </div>
+
+          <!-- RIGHT SMALL: RATING -->
+          <div class="ev-grid-2">
+              <div></div>
+              <div class="ev-block">
+                  <div class="ev-title">Rating</div>
+                  <div class="ev-text">${ev.rating}/10</div>
+              </div>
+          </div>
+
+      </div>
+      `;
 
         // Clear the box and animate
         evalBox.innerHTML = "";
@@ -419,6 +503,23 @@
         document.getElementById("ai-evaluation-box").innerHTML = "AI evaluation failed.";
     }
 });
+// --- Toggle AI Box Visibility ---
+const toggleBtn = document.getElementById("toggle-ai-box");
+const aiBox = document.getElementById("ai-evaluation-box");
+
+toggleBtn.addEventListener("click", () => {
+    if (aiBox.classList.contains("ai-hidden")) {
+        aiBox.classList.remove("ai-hidden");
+        aiBox.classList.add("ai-visible");
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined">visibility_off</span>';
+    } else {
+        aiBox.classList.remove("ai-visible");
+        aiBox.classList.add("ai-hidden");
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined">visibility</span>';
+    }
+});
+
+
     // --- Notification Modal Helpers ---
     const notificationModal = document.getElementById('notification-modal');
     const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
