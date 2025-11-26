@@ -124,18 +124,29 @@
       gap: 30px;
       margin-bottom: 16px;
   }
+    .ev-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 50px;
+        row-gap: 25px;
+    }
 
-  .ev-label {
-      width: 140px;
-      font-weight: 600;
-      color: #1e293b;
-  }
+    .ev-pair {
+        display: flex;
+        flex-direction: column;
+    }
 
-  .ev-value {
-      flex: 1;
-      color: #334155;
-      line-height: 1.55;
-}
+    .ev-label {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 6px;
+    }
+
+    .ev-value {
+        color: #334155;
+        line-height: 1.55;
+    }
+
 
     </style>
 </head>
@@ -190,7 +201,6 @@
         box-shadow: 0 6px 20px rgba(0,0,0,0.06);
         font-size: 15px;
         line-height: 1.7;
-        white-space: pre-wrap;
         animation: fadeInBox 0.25s ease-out;
     ">
     </div>
@@ -303,14 +313,13 @@
     async function typeText(element, html, speed = 8) {
         element.innerHTML = "";
         let i = 0;
-
         while (i < html.length) {
             element.innerHTML = html.slice(0, i);
             i++;
             await new Promise(res => setTimeout(res, speed));
         }
+        element.innerHTML = html;
     }
-
 
     let isViewer = false;
 
@@ -365,46 +374,50 @@
 
         const ev = data.evaluation;
 
-        // Build the final plain text output first
-        const finalText = `
-            <div class="ev-row">
+        const finalHTML = `
+        <div class="ev-grid">
+
+            <div class="ev-pair">
                 <div class="ev-label">Rating</div>
                 <div class="ev-value">${ev.rating}/10</div>
             </div>
 
-            <div class="ev-row">
+            <div class="ev-pair">
                 <div class="ev-label">Summary</div>
                 <div class="ev-value">${ev.summary}</div>
             </div>
 
-            <div class="ev-row">
+            <div class="ev-pair">
                 <div class="ev-label">JD Match</div>
                 <div class="ev-value">${ev.jd_match}</div>
             </div>
 
-            <div class="ev-row">
+            <div class="ev-pair">
                 <div class="ev-label">Suitability</div>
                 <div class="ev-value">${ev.suitability}</div>
             </div>
 
-            <div class="ev-row">
+            <div class="ev-pair">
                 <div class="ev-label">Strengths</div>
                 <div class="ev-value">
-                    ${ev.strengths.map(s => "• "+s).join("<br>")}
+                    ${ev.strengths.map(s => "• " + s).join("<br>")}
                 </div>
             </div>
 
-            <div class="ev-row">
+            <div class="ev-pair">
                 <div class="ev-label">Weaknesses</div>
                 <div class="ev-value">
-                    ${ev.weaknesses.map(w => "• "+w).join("<br>")}
+                    ${ev.weaknesses.map(w => "• " + w).join("<br>")}
                 </div>
             </div>
+
+        </div>
         `;
+
 
         // Clear the box and animate
         evalBox.innerHTML = "";
-        typeText(evalBox, finalText, 6);
+        typeText(evalBox, finalHTML, 4);
 
     } catch (err) {
         console.error("AI Eval Error:", err);
