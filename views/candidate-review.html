@@ -119,6 +119,23 @@
     transform: translateY(0);
   }
 }
+  .ev-row {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 16px;
+  }
+
+  .ev-label {
+      width: 140px;
+      font-weight: 600;
+      color: #1e293b;
+  }
+
+  .ev-value {
+      flex: 1;
+      color: #334155;
+      line-height: 1.55;
+}
 
     </style>
 </head>
@@ -283,14 +300,17 @@
   </div>
 
   <script>
-    async function typeText(element, text, speed = 15) {
-        element.innerHTML = ""; 
-        const words = text.split(" ");
-        for (let i = 0; i < words.length; i++) {
-            element.innerHTML += words[i] + " ";
+    async function typeText(element, html, speed = 8) {
+        element.innerHTML = "";
+        let i = 0;
+
+        while (i < html.length) {
+            element.innerHTML = html.slice(0, i);
+            i++;
             await new Promise(res => setTimeout(res, speed));
         }
     }
+
 
     let isViewer = false;
 
@@ -346,31 +366,45 @@
         const ev = data.evaluation;
 
         // Build the final plain text output first
-        const finalText = 
-        `💡 AI Evaluation Result
+        const finalHTML = `
+            <div class="ev-row">
+                <div class="ev-label">Rating</div>
+                <div class="ev-value">${ev.rating}/10</div>
+            </div>
 
-        ────────────────────────
+            <div class="ev-row">
+                <div class="ev-label">Summary</div>
+                <div class="ev-value">${ev.summary}</div>
+            </div>
 
-        ⭐ Rating: ${ev.rating}/10
+            <div class="ev-row">
+                <div class="ev-label">JD Match</div>
+                <div class="ev-value">${ev.jd_match}</div>
+            </div>
 
-         Summary:
-        ${ev.summary}
+            <div class="ev-row">
+                <div class="ev-label">Suitability</div>
+                <div class="ev-value">${ev.suitability}</div>
+            </div>
 
-         JD Match:
-        ${ev.jd_match}
+            <div class="ev-row">
+                <div class="ev-label">Strengths</div>
+                <div class="ev-value">
+                    ${ev.strengths.map(s => "• "+s).join("<br>")}
+                </div>
+            </div>
 
-         Suitability:
-        ${ev.suitability}
-
-         Strengths:
-        ${ev.strengths.map(s => "• " + s).join("\n")}
-
-         Weaknesses:
-        ${ev.weaknesses.map(w => "• " + w).join("\n")}`;
+            <div class="ev-row">
+                <div class="ev-label">Weaknesses</div>
+                <div class="ev-value">
+                    ${ev.weaknesses.map(w => "• "+w).join("<br>")}
+                </div>
+            </div>
+        `;
 
         // Clear the box and animate
         evalBox.innerHTML = "";
-        typeText(evalBox, finalText, 12);
+        typeText(evalBox, finalText, 6);
 
     } catch (err) {
         console.error("AI Eval Error:", err);
