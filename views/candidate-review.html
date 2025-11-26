@@ -229,47 +229,45 @@
             </div>
         </div>
         </div>
-        <button id="generate-ai-eval" style="
-            background: #2563eb;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-        ">
-            Generate AI Evaluation
-        </button>
-        <button id="toggle-ai-box" style="
-            display:none;
-            background:white;
-            border-radius:50%;
-            width:40px;
-            height:40px;
-            margin-left:12px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.15);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            cursor:pointer;
-        ">
-            <span class="material-symbols-outlined">visibility_off</span>
-        </button>
-      <div id="ai-evaluation-box" class="ai-visible" style="
-          display:none;
-          background: #ffffff;
-          padding: 24px 28px;
-          border-radius: 14px;
-          border-left: 6px solid #2563eb;
-          margin-top: 22px;
-          width: 100%;
-          max-width: 100%;
-          box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-          font-size: 15px;
-          line-height: 1.7;
-          animation: fadeInBox 0.25s ease-out;
-      "></div>
-        <span class="material-symbols-outlined">visibility_off</span>
-    </button>
+<div class="flex items-center gap-3 mt-4">
+  <button id="generate-ai-eval" style="
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+  ">
+      Generate AI Evaluation
+  </button>
 
+  <button id="toggle-ai-box" style="
+      display:none;
+      background:white;
+      border-radius:50%;
+      width:40px;
+      height:40px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+  ">
+      <span class="material-symbols-outlined">visibility_off</span>
+  </button>
+</div>
+
+<div id="ai-evaluation-box" style="
+    display:none;
+    background: #ffffff;
+    padding: 24px 28px;
+    border-radius: 14px;
+    border-left: 6px solid #2563eb;
+    margin-top: 22px;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    font-size: 15px;
+    line-height: 1.7;
+    animation: fadeInBox 0.25s ease-out;
+"></div>
   </div>
 </header>
 
@@ -387,6 +385,9 @@
         element.innerHTML = html;
     }
 
+    const aiBox   = document.getElementById("ai-evaluation-box");
+    const toggleBtn = document.getElementById("toggle-ai-box");
+
     let isViewer = false;
 
     async function detectViewer() {
@@ -410,53 +411,46 @@
     let myUserIdGlobal = null; // store current user id if available
     let myReviewData = null; // hold the user's saved review (if any)
 
-    document.getElementById("generate-ai-eval").addEventListener("click", async () => {
-    try {
-        const evalBox = document.getElementById("ai-evaluation-box");
-        evalBox.style.display = "block";
-        evalBox.innerHTML = "Generating AI evaluation… please wait.";
-        toggleBtn.style.display = "flex";
+document.getElementById("generate-ai-eval").addEventListener("click", async () => {
+  try {
+      // show box + button
+      aiBox.style.display = "block";
+      aiBox.classList.remove("ai-hidden");
+      aiBox.classList.add("ai-visible");
+      aiBox.innerHTML = "Generating AI evaluation… please wait.";
+      toggleBtn.style.display = "flex";
 
-        // Collect JD
-        const jobDescription = window.currentInterviewJobDescription || "";
+      // Collect JD
+      const jobDescription = window.currentInterviewJobDescription || "";
+      const transcripts = window.allTranscripts || [];
 
-        // Collect transcripts per question
-        const transcripts = window.allTranscripts || [];
+      const res = await fetch("/api/ai/evaluate-candidate", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_description: jobDescription, transcripts })
+      });
 
-        const res = await fetch("/api/ai/evaluate-candidate", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                job_description: jobDescription,
-                transcripts: transcripts
-            })
-        });
+      const data = await res.json();
+      if (!data.evaluation) {
+          aiBox.innerHTML = "Failed to generate AI evaluation.";
+          return;
+      }
 
-        const data = await res.json();
-        if (!data.evaluation) {
-            evalBox.innerHTML = "Failed to generate AI evaluation.";
-            return;
-        }
-
-        const ev = data.evaluation;
+      const ev = data.evaluation;
 
       const finalHTML = `
       <div class="ev-container">
-
-          <!-- FULL WIDTH: SUMMARY -->
           <div class="ev-block-full">
               <div class="ev-title">Summary</div>
               <div class="ev-text">${ev.summary}</div>
           </div>
 
-          <!-- TWO COLUMN: JD MATCH + STRENGTHS -->
           <div class="ev-grid-2">
               <div class="ev-block">
                   <div class="ev-title">JD Match</div>
                   <div class="ev-text">${ev.jd_match}</div>
               </div>
-
               <div class="ev-block">
                   <div class="ev-title">Strengths</div>
                   <div class="ev-text">
@@ -465,7 +459,6 @@
               </div>
           </div>
 
-          <!-- TWO COLUMN: WEAKNESSES + SUITABILITY -->
           <div class="ev-grid-2">
               <div class="ev-block">
                   <div class="ev-title">Weaknesses</div>
@@ -473,50 +466,46 @@
                       ${ev.weaknesses.map(w => "• " + w).join("<br>")}
                   </div>
               </div>
-
               <div class="ev-block">
                   <div class="ev-title">Suitability</div>
                   <div class="ev-text">${ev.suitability}</div>
-                  <div class="ev-title">Rating</div>
+                  <div class="ev-title mt-3">Rating</div>
                   <div class="ev-text">${ev.rating}/10</div>
               </div>
-              
           </div>
       </div>
       `;
-        // Clear the box and animate
-        evalBox.innerHTML = "";
-        typeText(evalBox, finalHTML, 4);
 
-    } catch (err) {
-        console.error("AI Eval Error:", err);
-        document.getElementById("ai-evaluation-box").innerHTML = "AI evaluation failed.";
-    }
+      aiBox.innerHTML = "";
+      typeText(aiBox, finalHTML, 4);
+
+  } catch (err) {
+      console.error("AI Eval Error:", err);
+      aiBox.innerHTML = "AI evaluation failed.";
+  }
 });
-// --- Toggle AI Box Visibility ---
-const toggleBtn = document.getElementById("toggle-ai-box");
-const aiBox = document.getElementById("ai-evaluation-box");
 
 toggleBtn.addEventListener("click", () => {
-    if (aiBox.classList.contains("ai-visible")) {
+  const isVisible = aiBox.classList.contains("ai-visible");
 
-        // Hide animation
-        aiBox.classList.remove("ai-visible");
-        aiBox.classList.add("ai-hidden");
-
-        toggleBtn.innerHTML = 
-          '<span class="material-symbols-outlined">visibility</span>';
-
-    } else {
-
-        // Show animation
-        aiBox.classList.remove("ai-hidden");
-        aiBox.classList.add("ai-visible");
-
-        toggleBtn.innerHTML = 
-          '<span class="material-symbols-outlined">visibility_off</span>';
-    }
+  if (isVisible) {
+      // hide
+      aiBox.classList.remove("ai-visible");
+      aiBox.classList.add("ai-hidden");
+      // after fold animation finishes, actually remove from flow
+      setTimeout(() => { aiBox.style.display = "none"; }, 300);
+      toggleBtn.innerHTML =
+        '<span class="material-symbols-outlined">visibility</span>';
+  } else {
+      // show
+      aiBox.style.display = "block";
+      aiBox.classList.remove("ai-hidden");
+      aiBox.classList.add("ai-visible");
+      toggleBtn.innerHTML =
+        '<span class="material-symbols-outlined">visibility_off</span>';
+  }
 });
+
 
 
     // --- Notification Modal Helpers ---
