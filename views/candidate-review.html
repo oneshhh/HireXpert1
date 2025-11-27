@@ -108,6 +108,96 @@
 
       /* small tweak for other-reviews cards */
       .review-card { padding:16px; border-radius:10px; background:white; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
+
+      @keyframes fadeInBox {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+  .ev-row {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 16px;
+  }
+    .ev-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 50px;
+        row-gap: 25px;
+    }
+
+    .ev-pair {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ev-label {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 6px;
+    }
+
+    .ev-value {
+        color: #334155;
+        line-height: 1.55;
+    }
+  .ev-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+  }
+
+  .ev-block-full {
+      width: 100%;
+  }
+
+  .ev-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+  }
+
+  .ev-block { width: 100%; }
+
+  .ev-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #0f172a;
+  }
+
+  .ev-text {
+      color: #334155;
+      line-height: 1.6;
+      font-size: 0.96rem;
+  }
+
+  @keyframes foldUp {
+    0% { transform: scaleY(1); opacity:1; }
+    100% { transform: scaleY(0); opacity:0; }
+}
+
+@keyframes unfoldDown {
+    0% { transform: scaleY(0); opacity:0; }
+    100% { transform: scaleY(1); opacity:1; }
+}
+
+.ai-hidden {
+    animation: foldUp 0.3s forwards ease-out;
+    transform-origin: top;
+}
+
+.ai-visible {
+    animation: unfoldDown 0.3s forwards ease-out;
+    transform-origin: top;
+}
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -139,27 +229,47 @@
             </div>
         </div>
         </div>
-        <button id="generate-ai-eval" style="
-            background: #2563eb;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-        ">
-            Generate AI Evaluation
-        </button>
+<div class="flex items-center gap-3 mt-4">
+  <button id="generate-ai-eval" style="
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+  ">
+      Generate AI Evaluation
+  </button>
 
-        <div id="ai-evaluation-box" style="
-            display:none;
-            background:#f9fafb;
-            padding:20px;
-            border-radius:10px;
-            margin-top:20px;
-            border:1px solid #e5e7eb;">
-        </div>
-      
-    </div>
-    </header>
+  <button id="toggle-ai-box" style="
+      display:none;
+      background:white;
+      border-radius:50%;
+      width:40px;
+      height:40px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+  ">
+      <span class="material-symbols-outlined">visibility_off</span>
+  </button>
+</div>
+
+<div id="ai-evaluation-box" style="
+    display:none;
+    background: #ffffff;
+    padding: 24px 28px;
+    border-radius: 14px;
+    border-left: 6px solid #2563eb;
+    margin-top: 22px;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    font-size: 15px;
+    line-height: 1.7;
+    animation: fadeInBox 0.25s ease-out;
+"></div>
+  </div>
+</header>
 
   <!-- Main Content -->
   <main class="container mx-auto mt-6 px-6 pb-12">
@@ -264,6 +374,19 @@
   </div>
 
   <script>
+    async function typeText(element, html, speed = 8) {
+        element.innerHTML = "";
+        let i = 0;
+        while (i < html.length) {
+            element.innerHTML = html.slice(0, i);
+            i++;
+            await new Promise(res => setTimeout(res, speed));
+        }
+        element.innerHTML = html;
+    }
+
+    const aiBox   = document.getElementById("ai-evaluation-box");
+    const toggleBtn = document.getElementById("toggle-ai-box");
 
     let isViewer = false;
 
@@ -288,49 +411,103 @@
     let myUserIdGlobal = null; // store current user id if available
     let myReviewData = null; // hold the user's saved review (if any)
 
-    document.getElementById("generate-ai-eval").addEventListener("click", async () => {
-    try {
-        const evalBox = document.getElementById("ai-evaluation-box");
-        evalBox.style.display = "block";
-        evalBox.innerHTML = "Generating AI evaluation… please wait.";
+document.getElementById("generate-ai-eval").addEventListener("click", async () => {
+  try {
+      // show box + button
+      aiBox.style.display = "block";
+      aiBox.classList.remove("ai-hidden");
+      aiBox.classList.add("ai-visible");
+      aiBox.innerHTML = "Generating AI evaluation… please wait.";
+      toggleBtn.style.display = "flex";
 
-        // Collect JD
-        const jobDescription = window.currentInterviewJobDescription || "";
+      // Collect JD
+      const jobDescription = window.currentInterviewJobDescription || "";
+      const transcripts = window.allTranscripts || [];
 
-        // Collect transcripts per question
-        const transcripts = window.allTranscripts || [];
+      const res = await fetch("/api/ai/evaluate-candidate", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_description: jobDescription, transcripts })
+      });
 
-        const res = await fetch("/api/ai/evaluate-candidate", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                job_description: jobDescription,
-                transcripts: transcripts
-            })
-        });
+      const data = await res.json();
+      if (!data.evaluation) {
+          aiBox.innerHTML = "Failed to generate AI evaluation.";
+          return;
+      }
 
-        const data = await res.json();
-        if (!data.evaluation) {
-            evalBox.innerHTML = "Failed to generate AI evaluation.";
-            return;
-        }
+      const ev = data.evaluation;
 
-        const ev = data.evaluation;
+      const finalHTML = `
+      <div class="ev-container">
+          <div class="ev-block-full">
+              <div class="ev-title">Summary</div>
+              <div class="ev-text">${ev.summary}</div>
+          </div>
 
-        evalBox.innerHTML = `
-            <h2 style="font-size:20px; font-weight:600;">AI Evaluation Result</h2>
-            <p><strong>Rating:</strong> ${ev.rating}/10</p>
-            <p><strong>Summary:</strong> ${ev.summary}</p>
-            <p><strong>JD Match:</strong> ${ev.jd_match}</p>
-            <p><strong>Suitability:</strong> ${ev.suitability}</p>
-            <p><strong>Strengths:</strong><br> ${ev.strengths.map(s => "• " + s).join("<br>")}</p>
-            <p><strong>Weaknesses:</strong><br> ${ev.weaknesses.map(w => "• " + w).join("<br>")}</p>`;
-    } catch (err) {
-        console.error("AI Eval Error:", err);
-        document.getElementById("ai-evaluation-box").innerHTML = "AI evaluation failed.";
-    }
+          <div class="ev-grid-2">
+              <div class="ev-block">
+                  <div class="ev-title">JD Match</div>
+                  <div class="ev-text">${ev.jd_match}</div>
+              </div>
+              <div class="ev-block">
+                  <div class="ev-title">Strengths</div>
+                  <div class="ev-text">
+                      ${ev.strengths.map(s => "• " + s).join("<br>")}
+                  </div>
+              </div>
+          </div>
+
+          <div class="ev-grid-2">
+              <div class="ev-block">
+                  <div class="ev-title">Weaknesses</div>
+                  <div class="ev-text">
+                      ${ev.weaknesses.map(w => "• " + w).join("<br>")}
+                  </div>
+              </div>
+              <div class="ev-block">
+                  <div class="ev-title">Suitability</div>
+                  <div class="ev-text">${ev.suitability}</div>
+                  <div class="ev-title mt-3">Rating</div>
+                  <div class="ev-text">${ev.rating}/10</div>
+              </div>
+          </div>
+      </div>
+      `;
+
+      aiBox.innerHTML = "";
+      typeText(aiBox, finalHTML, 4);
+
+  } catch (err) {
+      console.error("AI Eval Error:", err);
+      aiBox.innerHTML = "AI evaluation failed.";
+  }
 });
+
+toggleBtn.addEventListener("click", () => {
+  const isVisible = aiBox.classList.contains("ai-visible");
+
+  if (isVisible) {
+      // hide
+      aiBox.classList.remove("ai-visible");
+      aiBox.classList.add("ai-hidden");
+      // after fold animation finishes, actually remove from flow
+      setTimeout(() => { aiBox.style.display = "none"; }, 300);
+      toggleBtn.innerHTML =
+        '<span class="material-symbols-outlined">visibility</span>';
+  } else {
+      // show
+      aiBox.style.display = "block";
+      aiBox.classList.remove("ai-hidden");
+      aiBox.classList.add("ai-visible");
+      toggleBtn.innerHTML =
+        '<span class="material-symbols-outlined">visibility_off</span>';
+  }
+});
+
+
+
     // --- Notification Modal Helpers ---
     const notificationModal = document.getElementById('notification-modal');
     const notificationDialog = notificationModal ? notificationModal.querySelector('[role="alertdialog"]') : null;
