@@ -674,7 +674,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         if (!job_description || !transcripts) {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
-        
+
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         const aiResult = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
@@ -857,22 +857,63 @@ app.post("/api/interview/:id/toggle-status", async (req, res) => {
 app.get("/api/candidates/all", async (req, res) => {
     try {
         const { search, department, page = 1, limit = 10 } = req.query;
+
         let queryParams = [];
         let whereClauses = [];
-        let baseQuery = ` SELECT cs.session_id, cs.candidate_email, cs.candidate_code, cs.status, cs.created_at, i.title AS interview_title, cs.department, cs.review_url FROM candidate_sessions cs JOIN interviews i ON cs.interview_id = i.id `;
-        if (department) { queryParams.push(department); whereClauses.push(`cs.department = $${queryParams.length}`); }
-        if (search) { queryParams.push(`%${search}%`); whereClauses.push(`(cs.candidate_email ILIKE $${queryParams.length} OR i.title ILIKE $${queryParams.length})`); }
-        if (whereClauses.length > 0) { baseQuery += " WHERE " + whereClauses.join(" AND "); }
+
+        let baseQuery = `
+            SELECT 
+                cs.session_id, 
+                cs.candidate_email, 
+                cs.candidate_code,
+                cs.status, 
+                cs.created_at, 
+                i.title AS interview_title, 
+                cs.department,
+                cs.review_url
+            FROM candidate_sessions cs
+            JOIN interviews i ON cs.interview_id = i.id
+        `;
+
+        // Filter by department
+        if (department) {
+            queryParams.push(department);
+            whereClauses.push(`cs.department = $${queryParams.length}`);
+        }
+
+        // 🔍 Search filter (NOW includes candidate_code)
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`
+                (
+                    cs.candidate_email ILIKE $${queryParams.length}
+                    OR cs.candidate_code ILIKE $${queryParams.length}
+                    OR i.title ILIKE $${queryParams.length}
+                )
+            `);
+        }
+
+        // Apply filters
+        if (whereClauses.length > 0) {
+            baseQuery += " WHERE " + whereClauses.join(" AND ");
+        }
+
         baseQuery += " ORDER BY cs.created_at DESC";
+
+        // Pagination
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
+
         queryParams.push(limitNum);
         baseQuery += ` LIMIT $${queryParams.length}`;
+
         queryParams.push(offset);
         baseQuery += ` OFFSET $${queryParams.length}`;
+
         const result = await pool.query(baseQuery, queryParams);
         res.json(result.rows);
+
     } catch (err) {
         console.error("Error fetching all candidates:", err);
         res.status(500).json({ error: "Database error" });
