@@ -67,7 +67,7 @@ async function safeLoop() {
   try {
     await mainLoop();
   } catch (err) {
-    console.error("💥 Worker crashed inside mainLoop:", err);
+    console.error(" Worker crashed inside mainLoop:", err);
   }
   isRunning = false;
 }

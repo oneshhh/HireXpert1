@@ -674,9 +674,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         if (!job_description || !transcripts) {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
-
-        console.log("🟦 AI ROUTE - JD:", job_description);
-        console.log("🟦 AI ROUTE - TRANSCRIPTS:", transcripts);
+        
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         const aiResult = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
