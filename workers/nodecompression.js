@@ -16,7 +16,13 @@ import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { createClient } from "@supabase/supabase-js";
 
-ffmpeg.setFfmpegPath(ffmpegStatic);
+if (!fs.existsSync(ffmpegStatic)) {
+  console.log("⚠️ ffmpeg-static not found, trying fallback path /usr/bin/ffmpeg");
+  ffmpeg.setFfmpegPath("/usr/bin/ffmpeg");
+} else {
+  ffmpeg.setFfmpegPath(ffmpegStatic);
+}
+
 
 // ---------------------------------------------------------
 // ⚙️ CONFIG
