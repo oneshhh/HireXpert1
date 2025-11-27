@@ -1530,6 +1530,17 @@ app.get("/candidate-review.html", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "candidate-review.html"));
 });
 
+// --------------------------------------------
+//  START BACKGROUND VIDEO COMPRESSION WORKER
+// --------------------------------------------
+
+try {
+  require("./workers/nodecompression.js"); 
+  console.log("🎞️ Video Compression Worker loaded.");
+} catch (err) {
+  console.error("❌ Failed to load Video Compression Worker:", err);
+}
+
 // ---------- Start server ----------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
