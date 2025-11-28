@@ -15,7 +15,7 @@ import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { createClient } from "@supabase/supabase-js";
-quire("dotenv").config();
+require("dotenv").config();
 // ---------------------------------------------------------
 // 🎥 FFmpeg + FFprobe PATH FALLBACK (REQUIRED FOR RENDER)
 // ---------------------------------------------------------
