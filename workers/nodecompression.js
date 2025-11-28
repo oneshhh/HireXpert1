@@ -14,7 +14,6 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
-import ffprobeStatic from "ffprobe-static";
 import { createClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------
@@ -25,23 +24,18 @@ function safeSetFFmpegPaths() {
   let chosenFfmpeg = null;
   let chosenFfprobe = null;
 
-  // ffmpeg-static first
+  // FFmpeg static (local) check
   if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
     chosenFfmpeg = ffmpegStatic;
   }
 
-  // fallback to /usr/bin/ffmpeg
+  // fallback to system ffmpeg
   if (!chosenFfmpeg && fs.existsSync("/usr/bin/ffmpeg")) {
     chosenFfmpeg = "/usr/bin/ffmpeg";
   }
 
-  // ffprobe-static
-  if (ffprobeStatic.path && fs.existsSync(ffprobeStatic.path)) {
-    chosenFfprobe = ffprobeStatic.path;
-  }
-
-  // fallback to /usr/bin/ffprobe
-  if (!chosenFfprobe && fs.existsSync("/usr/bin/ffprobe")) {
+  // Simply use system ffprobe, since Render includes it
+  if (fs.existsSync("/usr/bin/ffprobe")) {
     chosenFfprobe = "/usr/bin/ffprobe";
   }
 
