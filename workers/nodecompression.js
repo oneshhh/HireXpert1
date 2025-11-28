@@ -15,6 +15,8 @@ import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { createClient } from "@supabase/supabase-js";
+// supabaseClient.js
+const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 // ---------------------------------------------------------
 // 🎥 FFmpeg + FFprobe PATH FALLBACK (REQUIRED FOR RENDER)
