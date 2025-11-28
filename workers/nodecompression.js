@@ -1,99 +1,93 @@
 /**
- * SUPER-STABLE VIDEO COMPRESSION WORKER (FINAL PATCHED VERSION)
+ * SUPER-STABLE VIDEO COMPRESSION WORKER (CLEAN + FIXED)
  * -------------------------------------------------------------
- * Supports:
- *  - Render free dyno (ffmpeg-static fallback)
- *  - VPS (uses system ffmpeg automatically)
- *  - Dynamic bitrate based on TARGET_PERCENT
- *  - Full crash protection + safe-loop
- *  - Path validation, null checks, truncated path detection
- *  - ffmpeg + ffprobe fallback
- *  - Zero worker downtime
+ * - ES Modules only (Render compatible)
+ * - ffmpeg-static + system fallback
+ * - Dynamic bitrate compression
+ * - Safe looping system (never overlaps)
+ * - Full crash protection
  */
 
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { createClient } from "@supabase/supabase-js";
-// supabaseClient.js
-const { createClient } = require("@supabase/supabase-js");
-require("dotenv").config();
-// ---------------------------------------------------------
-// 🎥 FFmpeg + FFprobe PATH FALLBACK (REQUIRED FOR RENDER)
-// ---------------------------------------------------------
+import dotenv from "dotenv";
 
+dotenv.config();
+
+/* ---------------------------------------------------------
+ * 🎥 FFmpeg + FFprobe PATH FALLBACK
+ * --------------------------------------------------------- */
 function safeSetFFmpegPaths() {
-  let chosenFfmpeg = null;
-  let chosenFfprobe = null;
+  let ffmpegPath = null;
+  let ffprobePath = null;
 
-  // FFmpeg static (local) check
   if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
-    chosenFfmpeg = ffmpegStatic;
+    ffmpegPath = ffmpegStatic;
   }
 
-  // fallback to system ffmpeg
-  if (!chosenFfmpeg && fs.existsSync("/usr/bin/ffmpeg")) {
-    chosenFfmpeg = "/usr/bin/ffmpeg";
+  if (!ffmpegPath && fs.existsSync("/usr/bin/ffmpeg")) {
+    ffmpegPath = "/usr/bin/ffmpeg";
   }
 
-  // Simply use system ffprobe, since Render includes it
   if (fs.existsSync("/usr/bin/ffprobe")) {
-    chosenFfprobe = "/usr/bin/ffprobe";
+    ffprobePath = "/usr/bin/ffprobe";
   }
 
-  console.log("🎥 Using ffmpeg:", chosenFfmpeg);
-  console.log("🔍 Using ffprobe:", chosenFfprobe);
+  console.log("🎥 Using ffmpeg:", ffmpegPath);
+  console.log("🔍 Using ffprobe:", ffprobePath);
 
-  ffmpeg.setFfmpegPath(chosenFfmpeg);
-  ffmpeg.setFfprobePath(chosenFfprobe);
+  ffmpeg.setFfmpegPath(ffmpegPath);
+  ffmpeg.setFfprobePath(ffprobePath);
 }
 
 safeSetFFmpegPaths();
 
-// ---------------------------------------------------------
-// ⚙️ CONFIG
-// ---------------------------------------------------------
+/* ---------------------------------------------------------
+ * ⚙️ CONFIG (Safe for Render + Local)
+ * --------------------------------------------------------- */
+const SUPABASE_URL =
+  process.env.SECOND_SUPABASE_URL ||
+  "https://mytoggimxxnqlirfvtci.supabase.co";
 
-const SUPABASE_URL = process.envprocess.env.SECOND_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SECOND_SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_KEY =
+  process.env.SECOND_SUPABASE_SERVICE_ROLE_KEY ||
+  "YOUR_FALLBACK_SERVICE_ROLE_KEY_HERE";
 
-// 🎚 Compression Level Setting
-const TARGET_PERCENT = 0.40; // Example: 0.40 = 40% size
-
+const TARGET_PERCENT = 0.40;
 const TEMP_DIR = "./temp";
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 console.log("\n🚀 Ultra-Stable Video Worker Started\n");
 
 let isRunning = false;
 
-// ---------------------------------------------------------
-// 🔁 SAFE LOOP → never overlaps, never crashes
-// ---------------------------------------------------------
-
+/* ---------------------------------------------------------
+ * 🔁 SAFE LOOP (never overlaps)
+ * --------------------------------------------------------- */
 async function safeLoop() {
   if (isRunning) {
     console.log("⏳ Worker busy, skipping...\n");
     return;
   }
-  isRunning = true;
 
+  isRunning = true;
   try {
     await mainLoop();
   } catch (err) {
-    console.error("💥 Unhandled error in mainLoop:", err);
+    console.error("💥 Error in mainLoop:", err);
   }
-
   isRunning = false;
 }
 
 safeLoop();
 setInterval(safeLoop, 20000);
 
-// ---------------------------------------------------------
-// 🔍 MAIN LOOP
-// ---------------------------------------------------------
-
+/* ---------------------------------------------------------
+ * 🔍 MAIN LOOP
+ * --------------------------------------------------------- */
 async function mainLoop() {
   console.log("🔍 Querying videos where is_compressed = false ...");
 
@@ -101,7 +95,7 @@ async function mainLoop() {
     .from("answers")
     .select("*")
     .eq("is_compressed", false)
-    .limit(30);
+    .limit(20);
 
   if (error) {
     console.error("❌ DB fetch error:", error);
@@ -119,44 +113,42 @@ async function mainLoop() {
     try {
       await processVideo(row);
     } catch (err) {
-      console.error(`💥 processVideo crashed for ID ${row.id}:`, err);
+      console.error(`💥 Crash processing ID ${row.id}:`, err);
     }
   }
 }
 
-// ---------------------------------------------------------
-// 🎬 PROCESS VIDEO
-// ---------------------------------------------------------
-
+/* ---------------------------------------------------------
+ * 🎬 PROCESS VIDEO
+ * --------------------------------------------------------- */
 async function processVideo(row) {
   const { id, raw_path } = row;
 
   console.log(`🎬 Processing row: ${id}`);
   console.log(`📄 raw_path = ${raw_path}`);
 
-  // ---------------- SAFE VALIDATION ----------------
-  if (!raw_path || typeof raw_path !== "string" || raw_path.trim() === "") {
-    console.log(`⚠️ Row ${id} skipped — empty raw_path`);
+  if (!raw_path || typeof raw_path !== "string") {
+    console.log(`⚠️ Skipping ${id}: invalid path`);
     await markCompressed(id);
     return;
   }
 
   if (raw_path.includes("...")) {
-    console.log(`⚠️ Row ${id}: truncated path skipped`);
+    console.log(`⚠️ Skipping ${id}: truncated path`);
     await markCompressed(id);
     return;
   }
 
-  let storagePath = raw_path.replace(/^raw\//, "");
+  const storagePath = raw_path.replace(/^raw\//, "");
   console.log(`📁 Storage path: ${storagePath}`);
 
-  // ---------------- DOWNLOAD ----------------
-  const { data: fileData, error: downloadErr } =
+  // DOWNLOAD
+  const { data: fileData, error: dlErr } =
     await supabase.storage.from("raw").download(storagePath);
 
-  if (downloadErr || !fileData) {
+  if (dlErr || !fileData) {
     console.log(`❌ Download failed for ${storagePath}`);
-    console.log(downloadErr);
+    console.log(dlErr);
     await markCompressed(id);
     return;
   }
@@ -169,10 +161,9 @@ async function processVideo(row) {
   fs.writeFileSync(localRaw, Buffer.from(await fileData.arrayBuffer()));
   console.log(`⬇ Saved locally → ${localRaw}`);
 
-  // ---------------- EARLY MARK ----------------
   await markCompressed(id);
 
-  // ---------------- PROBE BITRATE ----------------
+  // GET ORIGINAL BITRATE
   let originalBitrate = 2000;
   try {
     originalBitrate = await getBitrate(localRaw);
@@ -184,9 +175,7 @@ async function processVideo(row) {
   const targetBitrate = Math.max(300, Math.floor(originalBitrate * TARGET_PERCENT));
   console.log(`🎚 Target bitrate = ${targetBitrate} kbps`);
 
-  // ---------------- COMPRESS ----------------
-  console.log("🎬 Running compression...");
-
+  // COMPRESS
   try {
     await new Promise((resolve, reject) => {
       ffmpeg(localRaw)
@@ -200,35 +189,29 @@ async function processVideo(row) {
 
     console.log(`🎉 Compression OK: ${localCompressed}`);
   } catch (err) {
-    console.error("❌ Compression error:", err);
+    console.error("❌ Compression failed:", err);
     cleanup(localRaw, localCompressed);
     return;
   }
 
-  // ---------------- UPLOAD ----------------
+  // UPLOAD
   const buffer = fs.readFileSync(localCompressed);
-
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadErr } = await supabase.storage
     .from("raw")
     .upload(storagePath, buffer, {
       upsert: true,
       contentType: "video/mp4",
     });
 
-  if (uploadError) {
-    console.error("❌ Upload failed:", uploadError);
-  } else {
-    console.log(`⬆ Replaced original → ${storagePath}`);
-  }
+  if (uploadErr) console.error("❌ Upload failed:", uploadErr);
+  else console.log(`⬆ Replaced original → ${storagePath}`);
 
-  // ---------------- CLEANUP ----------------
   cleanup(localRaw, localCompressed);
 }
 
-// ---------------------------------------------------------
-// 🛠️ HELPERS
-// ---------------------------------------------------------
-
+/* ---------------------------------------------------------
+ * 🔧 HELPERS
+ * --------------------------------------------------------- */
 async function markCompressed(id) {
   const { error } = await supabase
     .from("answers")
@@ -240,9 +223,9 @@ async function markCompressed(id) {
 }
 
 function cleanup(...files) {
-  for (const file of files) {
+  for (const f of files) {
     try {
-      if (fs.existsSync(file)) fs.unlinkSync(file);
+      if (fs.existsSync(f)) fs.unlinkSync(f);
     } catch {}
   }
   console.log("🧹 Cleanup complete\n");
@@ -255,8 +238,7 @@ function getBitrate(file) {
 
       try {
         const stream = data.streams.find((s) => s.codec_type === "video");
-        const bitrate = Math.floor(stream.bit_rate / 1000);
-        resolve(bitrate);
+        resolve(Math.floor(stream.bit_rate / 1000));
       } catch {
         reject("no bitrate");
       }
