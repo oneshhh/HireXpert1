@@ -309,7 +309,6 @@ app.post("/login", async (req, res) => {
                     departments: user.department,
                     activeDepartment: department
                 };
-                console.log('Session user set:', req.session.user); // Logging
 
                 // cookie-session automatically saves on response, so just redirect
                 if (department === 'Admin') {

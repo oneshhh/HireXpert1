@@ -193,6 +193,7 @@
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Candidate Code</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
@@ -736,6 +737,7 @@
                 const statusClass = candidate.status === 'Completed' ? 'status-active' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
                 tr.innerHTML = `
                     <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_email}</td>
+                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-[var(--text-primary)]">${candidate.candidate_code}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.interview_title}</td>
                     <td class="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">${candidate.department}</td>
                     <td class="whitespace-nowrap px-6 py-4"><div class="status-badge ${statusClass}">${candidate.status}</div></td>`;
