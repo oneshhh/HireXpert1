@@ -171,6 +171,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const month = now.toLocaleString('en-US', { month: 'short' });
       prefixSpan.textContent = `${year}/${month}/----/`;
   }
+    addCandidateRow();
+
+    document.getElementById("add-candidate-row").onclick = () => {
+        addCandidateRow();
+};
+
 
 
 // --- Candidate Table Logic ---
@@ -201,17 +207,6 @@ function addCandidateRow(first = "", last = "", email = "") {
 
     tbody.appendChild(row);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    // Always add first blank row at start
-    addCandidateRow();
-
-    document.getElementById("add-candidate-row").onclick = () => {
-        addCandidateRow();
-    };
-});
-
-
 
   // --- [NEW] ---
   // We need to find the interview department dropdown to add a listener
