@@ -172,6 +172,47 @@ document.addEventListener("DOMContentLoaded", () => {
       prefixSpan.textContent = `${year}/${month}/----/`;
   }
 
+
+// --- Candidate Table Logic ---
+
+function addCandidateRow(first = "", last = "", email = "") {
+    const tbody = document.querySelector("#candidate-table tbody");
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+        <td class="p-2">
+            <input value="${first}" type="text" class="first-name w-full border border-gray-300 rounded-md p-2" placeholder="First Name" required>
+        </td>
+        <td class="p-2">
+            <input value="${last}" type="text" class="last-name w-full border border-gray-300 rounded-md p-2" placeholder="Last Name" required>
+        </td>
+        <td class="p-2">
+            <input value="${email}" type="email" class="email w-full border border-gray-300 rounded-md p-2" placeholder="Email" required>
+        </td>
+        <td class="p-2 text-center">
+            <button type="button" class="text-red-500 hover:text-red-700 remove-row">
+                <span class="material-symbols-outlined">delete</span>
+            </button>
+        </td>
+    `;
+
+    row.querySelector(".remove-row").onclick = () => row.remove();
+
+    tbody.appendChild(row);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Always add first blank row at start
+    addCandidateRow();
+
+    document.getElementById("add-candidate-row").onclick = () => {
+        addCandidateRow();
+    };
+});
+
+
+
   // --- [NEW] ---
   // We need to find the interview department dropdown to add a listener
   // Since it's not in the HTML, I'll assume you'll add it.
@@ -281,17 +322,31 @@ document.addEventListener("DOMContentLoaded", () => {
             return `${year}/${month}/${uniqueNum}/${initials}`;
         }
 
-        const candidateEmailsRaw = formData.get("emails");
-        const candidateEmails = candidateEmailsRaw
-            .split(",")
-            .map(e => e.trim())
-            .filter(e => e.length > 0);
+    // ---- NEW CANDIDATE TABLE EXTRACTION ----
+    function getCandidatesFromTable() {
+        const rows = document.querySelectorAll("#candidate-table tbody tr");
+        const candidates = [];
 
-        const candidateCodes = candidateEmails.map(email => {
-            const prefix = email.split("@")[0];
-            const pseudoName = prefix + " X";
-            return generateCandidateCode(pseudoName);
+        rows.forEach(row => {
+            const first = row.querySelector(".first-name").value.trim();
+            const last = row.querySelector(".last-name").value.trim();
+            const email = row.querySelector(".email").value.trim();
+
+            if (first && last && email) {
+                candidates.push({ first, last, email });
+            }
         });
+
+        return candidates;
+    }
+
+    const candidates = getCandidatesFromTable();
+
+    // Generate Candidate Codes
+    const candidateCodes = candidates.map(c =>
+        generateCandidateCode(c.first + " " + c.last)
+    );
+
 
         // ---------------------------
         // Now build your data object
@@ -311,8 +366,8 @@ document.addEventListener("DOMContentLoaded", () => {
             timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
             date: `${yyyy}-${mm}-${dd}`,
             time: `${hh}:${min}`,
-            emails: formData.get("emails"),
-            candidateCodes: candidateCodes,  // now safe
+            candidates: candidates,      // <-- now contains first, last, email
+            candidateCodes: candidateCodes,
             schedulerEmail: formData.get("schedulerEmail"),
             jobDescription: document.getElementById('job-description').value,
             schedulerIds: visitorReviewerIds

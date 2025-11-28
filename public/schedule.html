@@ -130,15 +130,32 @@
     <p class="mt-1 text-xs text-[var(--text-secondary)]">The interview confirmation and calendar file will be sent here.</p>
 </div>
 <div>
-    <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]" for="candidate-emails">Candidate Emails</label>
-    <textarea
-        class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
-        id="candidate-emails"
-        name="emails"
-        rows="3"
-        placeholder="Enter candidate emails, separated by commas"
-        required></textarea>
-    <p class="mt-1 text-xs text-[var(--text-secondary)]">Separate multiple emails with a comma (,)</p>
+    <label class="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+        Candidates (First Name, Last Name, Email)
+    </label>
+
+    <table class="w-full border border-gray-300 rounded-md mb-3" id="candidate-table">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="p-2 text-left">First Name</th>
+                <th class="p-2 text-left">Last Name</th>
+                <th class="p-2 text-left">Email</th>
+                <th class="p-2"></th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <button type="button"
+        id="add-candidate-row"
+        class="flex items-center gap-2 bg-[var(--secondary-color)] hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium">
+        <span class="material-symbols-outlined">add</span>
+        Add Candidate
+    </button>
+
+    <p class="mt-1 text-xs text-[var(--text-secondary)]">
+        Add as many candidates as you want.
+    </p>
 </div>
 </div>
 <div class="flex justify-end border-t border-gray-200 bg-gray-50 p-6">

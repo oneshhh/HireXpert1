@@ -309,6 +309,7 @@ app.post("/login", async (req, res) => {
                     departments: user.department,
                     activeDepartment: department
                 };
+                console.log('Session user set:', req.session.user); // Logging
 
                 // cookie-session automatically saves on response, so just redirect
                 if (department === 'Admin') {
@@ -593,7 +594,8 @@ app.post("/schedule", async (req, res) => {
         const createdByUserId = req.session.user.id;
         
         await client.query('BEGIN');
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+        let { title, questions, timeLimits, date, time, candidates, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+
 
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
         if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
@@ -619,33 +621,41 @@ app.post("/schedule", async (req, res) => {
         );
 
         
-        const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
-        for (const email of candidateEmails) {
+        if (!Array.isArray(candidates) || candidates.length === 0) {
+            throw new Error("At least one candidate is required.");
+        }
+
+        const candidateEmails = [];
+
+        for (const cand of candidates) {
+            const { first, last, email } = cand;
+            if (!first || !last || !email) {
+                throw new Error("Each candidate must include first, last, email.");
+            }
+
+            candidateEmails.push(email);
+
             const sessionId = uuidv4();
-            // Generate candidate code (same logic used in update route)
+
+            // Generate code
             const month = String(new Date().getMonth() + 1).padStart(2, "0");
             const year = String(new Date().getFullYear());
             const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
-
-            let initials = "XX";
-            if (email.includes("@")) {
-            const namePart = email.split("@")[0];
-            const parts = namePart.split(/[._]/);
-            if (parts.length >= 2) {
-                initials = parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
-            } else {
-                initials = namePart[0].toUpperCase() + "X";
-            }
-            }
+            const initials = first[0].toUpperCase() + last[0].toUpperCase();
             const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+
             await client.query(
-            `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, candidate_code, department)
-            VALUES ($1, $2, $3, $4, $5)`,
-            [sessionId, interviewId, email, candidateCode, department]
-        );
+                `INSERT INTO candidate_sessions
+                (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [sessionId, interviewId, first, last, email, candidateCode, department]
+            );
+
+            // Send invite
             const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-            if (!emailResult.success) throw new Error(`Failed to send email to candidate ${email}.`);
+            if (!emailResult.success) throw new Error(`Failed to email ${email}.`);
         }
+
         const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
         if (!schedulerEmailResult.success) { throw new Error("Failed to send confirmation email to scheduler."); }
         
@@ -1150,50 +1160,39 @@ app.post("/api/interview/:id/update", async (req, res) => {
         );
 
         // 4. Handle adding and emailing new candidates
-        const candidateEmails = (emails || '').split(',').map(email => email.trim()).filter(email => email);
-        if (candidateEmails.length > 0) {
-        // Fetch interview details
-        const interviewResult = await client.query(
-            'SELECT title, date, time, department FROM interviews WHERE id = $1',
-            [id]
-        );
-        const interview = interviewResult.rows[0];
-
-        for (const email of candidateEmails) {
-            const sessionId = uuidv4();
-
-            // --- Generate candidate_code ---
-            const month = String(new Date().getMonth() + 1).padStart(2, "0");
-            const year = String(new Date().getFullYear());
-            const randomDigits = String(Math.floor(1000 + Math.random() * 9000)); // 4 digits
-
-            let initials = "XX";
-            if (email.includes("@")) {
-                const namePart = email.split("@")[0];
-                const parts = namePart.split(/[._]/);
-                if (parts.length >= 2) {
-                    initials = parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
-                } else {
-                    initials = namePart[0].toUpperCase() + "X";
-                }
-            }
-            const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
-            // Insert candidate session with candidate_code
-            await client.query(
-                `INSERT INTO candidate_sessions (session_id, interview_id, candidate_email, candidate_code, department)
-                VALUES ($1, $2, $3, $4, $5)`,
-                [sessionId, id, email, candidateCode, interview.department]
-            );
-            // Send invite email
-            await sendInterviewEmail(
-                email,
-                id,
-                interview.title,
-                interview.date,
-                interview.time
-            );
+        if (!Array.isArray(candidates) || candidates.length === 0) {
+            throw new Error("At least one candidate is required.");
         }
+
+       const { candidates } = req.body;
+
+        if (!Array.isArray(candidates) || candidates.length === 0) {
+             return res.status(400).json({ message: "Candidate list cannot be empty." });
     }
+
+    for (const cand of candidates) {
+        const { first, last, email } = cand;
+
+    if (!first || !last || !email) {
+        return res.status(400).json({ message: "Each candidate must have first, last, and email." });
+    }
+
+    // Candidate code generation (same as /schedule)
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    const year = String(new Date().getFullYear());
+    const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
+    const initials = first[0].toUpperCase() + last[0].toUpperCase();
+    const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+
+    await pool.query(
+        `INSERT INTO candidate_sessions
+        (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [uuidv4(), interviewId, first, last, email, candidateCode, department]
+    );
+
+    await sendInterviewEmail(email, interviewId, title, date, time);
+}
         // 5. If all steps succeed, commit the transaction
         await client.query('COMMIT');
         res.json({ message: "Interview updated successfully." });

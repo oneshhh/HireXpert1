@@ -27,8 +27,6 @@ router.get("/interview/:id/submissions", async (req, res) => {
   const interview_id = req.params.id;
 
   try {
-    console.log("🔥 USING NEW SUBMISSIONS ROUTE 🔥");
-
     // 1) Fetch DB_A candidate sessions
     const { rows: sessions } = await pool.query(
       `SELECT candidate_email, candidate_code, status, session_id
