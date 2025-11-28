@@ -205,6 +205,43 @@
 <button id="generate-questions-btn" class="flex h-10 w-full cursor-pointer items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-indigo-500 text-white hover:bg-indigo-600 gap-2">
     <span>Generate</span>
 </button>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<!-- CSV / Excel Upload Section -->
+<div class="mt-8">
+    <h3 class="text-sm font-medium text-indigo-800 mb-2">Upload Candidates (CSV / Excel)</h3>
+
+    <div id="drop-zone"
+        class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 rounded-xl p-6 bg-white hover:border-indigo-500 transition cursor-pointer">
+
+        <span class="material-symbols-outlined text-[48px] text-indigo-500 mb-2">folder</span>
+
+        <p class="text-sm text-gray-600 text-center">
+            Drag & drop your CSV or Excel file here
+        </p>
+
+        <p class="my-2 text-gray-400 text-xs">OR</p>
+
+        <button type="button"
+            class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-600">
+            Browse Files
+        </button>
+
+        <input type="file" id="file-input" accept=".csv, .xlsx, .xls" class="hidden" />
+    </div>
+
+    <p class="mt-2 text-xs text-indigo-700">
+        First Name, Last Name, Email columns will be auto-detected and added below.
+    </p>
+</div>
+
 </div>
 </div>
 </div>
@@ -226,7 +263,8 @@
         </div>
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/schedule.js"></script>
 <script src="js/generate.js"></script>
 

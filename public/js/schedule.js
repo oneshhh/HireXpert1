@@ -208,6 +208,102 @@ function addCandidateRow(first = "", last = "", email = "") {
     tbody.appendChild(row);
 }
 
+// =====================
+// CSV / Excel Importer
+// =====================
+
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("file-input");
+
+// Visual highlight on drag
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("border-blue-500");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("border-blue-500");
+});
+
+// Handle dropped file
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("border-blue-500");
+    handleFile(e.dataTransfer.files[0]);
+});
+
+// Browse button triggers input
+dropZone.querySelector("button").addEventListener("click", () => {
+    fileInput.click();
+});
+
+// File chooser
+fileInput.addEventListener("change", () => {
+    handleFile(fileInput.files[0]);
+});
+
+
+// -------- FILE HANDLER --------
+function handleFile(file) {
+    if (!file) return;
+
+    const name = file.name.toLowerCase();
+
+    if (name.endsWith(".csv")) {
+        parseCSV(file);
+    } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+        parseExcel(file);
+    } else {
+        alert("Unsupported file format. Please upload CSV or Excel.");
+    }
+}
+
+
+// -------- PARSE CSV --------
+function parseCSV(file) {
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+            processImportedRows(results.data);
+        }
+    });
+}
+
+
+// -------- PARSE EXCEL --------
+function parseExcel(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        // First sheet only
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+
+        processImportedRows(json);
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+
+// -------- IMPORTED ROW HANDLING --------
+function processImportedRows(rows) {
+    rows.forEach((row) => {
+        const first = row.first || row.First || row.FirstName || row["First Name"] || "";
+        const last = row.last || row.Last || row.LastName || row["Last Name"] || "";
+        const email = row.email || row.Email || row["Email Address"] || "";
+
+        if (first && last && email) {
+            addCandidateRow(first, last, email);
+        }
+    });
+
+    showNotification("CSV Import", "Candidates imported successfully!");
+}
+
+
   // --- [NEW] ---
   // We need to find the interview department dropdown to add a listener
   // Since it's not in the HTML, I'll assume you'll add it.
