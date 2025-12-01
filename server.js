@@ -871,15 +871,17 @@ app.get("/api/candidates/all", async (req, res) => {
         let whereClauses = [];
 
         let baseQuery = `
-            SELECT 
-                cs.session_id, 
-                cs.candidate_email, 
-                cs.candidate_code,
-                cs.status, 
-                cs.created_at, 
-                i.title AS interview_title, 
-                cs.department,
-                cs.review_url
+        SELECT 
+            cs.session_id,
+            cs.candidate_email,
+            cs.candidate_code,
+            cs.candidate_first_name,
+            cs.candidate_last_name,
+            cs.status,
+            cs.created_at,
+            i.title AS interview_title,
+            cs.department,
+            cs.review_url
             FROM candidate_sessions cs
             JOIN interviews i ON cs.interview_id = i.id
         `;

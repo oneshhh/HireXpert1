@@ -54,6 +54,7 @@
                     <table class="w-full text-sm text-left">
                         <thead class="bg-neutral-50 text-xs text-neutral-600 uppercase font-medium">
                             <tr>
+                                <th class="px-6 py-3" scope="col">Candidate Name</th>
                                 <th class="px-6 py-3" scope="col">Candidate Email</th>
                                 <th class="px-6 py-3" scope="col">Candidate Code</th>
                                 <th class="px-6 py-3" scope="col">Interview Title</th>
@@ -115,6 +116,7 @@
                 }
 
                 tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_first-name} ${candidate.candidate_last-name}</td>
                     <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_email}</td>
                     <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_code}</td>
                     <td class="px-6 py-4 text-neutral-600">${candidate.interview_title}</td>
