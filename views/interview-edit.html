@@ -363,6 +363,42 @@ function showNotification(title, text, options = {}) {
               <tr><td colspan="5" class="text-center text-gray-500 py-4">No candidates have been invited yet.</td></tr>
           `;
       }
+document.getElementById('add-new-candidate').onclick = async () => {
+    const first = document.getElementById('new-first-name').value.trim();
+    const last = document.getElementById('new-last-name').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+
+    if (!first || !last || !email) {
+        showNotification('Invalid Input', 'Please enter First Name, Last Name and Email.', { isError: true });
+        return;
+    }
+
+    try {
+        const payload = {
+            candidates: [{ first, last, email }]
+        };
+
+        const res = await fetch(`/api/interview/${interviewId}/add-candidates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message);
+
+        showNotification('Success', 'Candidate added and invite sent.', { isError: false });
+
+        document.getElementById('new-first-name').value = '';
+        document.getElementById('new-last-name').value = '';
+        document.getElementById('new-email').value = '';
+
+        loadInterview(); // refresh table
+
+    } catch (err) {
+        showNotification('Error', err.message, { isError: true });
+    }
+};
 
 
       // 6) Populate questions (existing addQuestion function can be used)
@@ -461,13 +497,13 @@ function showNotification(title, text, options = {}) {
     
     const selectedSchedulerIds = Array.from(schedulerSelect.selectedOptions).map(opt => opt.value);
 
-    const payload = {
-      title: form.title.value,
-      questions,
-      timeLimits,
-      visitorReviewerIds: selectedSchedulerIds,
-      newEmails: form.newEmails.value,
-    };
+  const payload = {
+    title: form.title.value,
+    questions,
+    timeLimits,
+    visitorReviewerIds: selectedSchedulerIds,
+  };
+
 
     try {
       const res = await fetch(`/api/interview/${interviewId}/update`, {
