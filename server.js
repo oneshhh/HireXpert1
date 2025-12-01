@@ -1151,10 +1151,10 @@ app.post("/api/interview/:id/update", async (req, res) => {
     try {
         await client.query("BEGIN");
 
-        // Extract values from body
+        // 1. Extract body params
         let { title, questions, timeLimits, visitorReviewerIds, candidates } = req.body;
 
-        // ---- 1. Normalize questions/time limits ----
+        // 2. Normalize questions & time limits
         if (!Array.isArray(questions)) {
             questions = [String(questions || "")];
         }
@@ -1169,69 +1169,80 @@ app.post("/api/interview/:id/update", async (req, res) => {
             timeLimits.push(0);
         }
 
-        // ---- 2. Update interview main data ----
+        // 3. Update the interview fields
         await client.query(
-            `UPDATE interviews 
+            `UPDATE interviews
              SET title=$1, questions=$2, time_limits=$3, visitor_reviewer_ids=$4
              WHERE id=$5`,
             [title, questions, timeLimits, visitorReviewerIds || [], interviewId]
         );
 
-        // -----------------------------------------------------------------------------
-        // ---- 3. Add NEW candidates (if provided)
-        // -----------------------------------------------------------------------------
-
+        // 4. If NEW candidates are provided → add them
         if (Array.isArray(candidates) && candidates.length > 0) {
-            
-            // Fetch department for candidate_sessions insert
+
+            // Fetch department for candidate_sessions
             const deptResult = await client.query(
-                "SELECT department FROM interviews WHERE id=$1",
+                "SELECT department, title, date, time FROM interviews WHERE id=$1",
                 [interviewId]
             );
 
-            const department = deptResult.rows[0]?.department || "General";
+            const interviewMeta = deptResult.rows[0];
+
+            const department = interviewMeta.department;
+            const interviewTitle = interviewMeta.title;
+            const interviewDate = interviewMeta.date;
+            const interviewTime = interviewMeta.time;
 
             for (const cand of candidates) {
                 const { first, last, email } = cand;
 
                 if (!first || !last || !email) {
-                    throw new Error("Each candidate must have first, last name, and email.");
+                    throw new Error("Each candidate must include first, last, and email.");
                 }
 
-                // Generate candidate code
+                // Candidate code
                 const month = String(new Date().getMonth() + 1).padStart(2, "0");
                 const year = String(new Date().getFullYear());
-                const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
+                const randomDigits = Math.floor(1000 + Math.random() * 9000);
                 const initials = first[0].toUpperCase() + last[0].toUpperCase();
                 const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+
                 const sessionId = uuidv4();
 
-                // Insert candidate into candidate_sessions
+                // Insert into candidate_sessions
                 await client.query(
                     `INSERT INTO candidate_sessions 
-                    (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department, status)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, 'Invited')`,
+                     (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department, status)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, 'Invited')`,
                     [sessionId, interviewId, first, last, email, candidateCode, department]
                 );
 
-                // Send email invite
+                // Send interview invite email
                 await sendInterviewEmail(
                     email,
                     interviewId,
-                    title,
-                    "N/A",
-                    "N/A"
+                    interviewTitle,
+                    interviewDate,
+                    interviewTime
                 );
             }
         }
 
         await client.query("COMMIT");
-        res.json({ message: "Interview updated successfully." });
+
+        res.json({
+            success: true,
+            message: "Interview updated successfully."
+        });
 
     } catch (err) {
         await client.query("ROLLBACK");
-        console.error("Update failed:", err);
-        res.status(500).json({ message: err.message || "Update failed." });
+        console.error("❌ Update failed:", err.message);
+
+        res.status(500).json({
+            success: false,
+            message: err.message || "Update failed."
+        });
     } finally {
         client.release();
     }
