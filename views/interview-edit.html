@@ -378,7 +378,7 @@ document.getElementById('add-new-candidate').onclick = async () => {
             candidates: [{ first, last, email }]
         };
 
-        const res = await fetch(`/api/interview/${interviewId}/add-candidates`, {
+        const res = await fetch(`/api/interview/${interviewId}/update`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
