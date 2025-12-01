@@ -1119,26 +1119,54 @@ app.get("/api/interview/by-custom-id", async (req, res) => {
 app.get("/api/interview/:id", async (req, res) => {
     try {
         const { id } = req.params;
+
         const interviewQuery = `
             SELECT i.*, u.first_name, u.last_name, u.email as creator_email
             FROM interviews i
             LEFT JOIN users u ON i.created_by_user_id = u.id
             WHERE i.id = $1
         `;
+
         const interviewResult = await pool.query(interviewQuery, [id]);
+
         if (interviewResult.rows.length === 0) {
             return res.status(404).json({ message: "Interview not found" });
         }
+
         const interviewData = interviewResult.rows[0];
-        const candidatesResult = await pool.query("SELECT candidate_email, status FROM candidate_sessions WHERE interview_id = $1", [id]);
+
+        // ✅ UPDATED QUERY — returns first name, last name, email, status, code
+        const candidatesResult = await pool.query(
+            `SELECT 
+                candidate_first_name,
+                candidate_last_name,
+                candidate_email,
+                candidate_code,
+                status
+             FROM candidate_sessions 
+             WHERE interview_id = $1
+             ORDER BY created_at ASC`,
+            [id]
+        );
+
         let schedulers = [];
         if (interviewData.scheduler_ids && interviewData.scheduler_ids.length > 0) {
-            const schedulersResult = await pool.query("SELECT id, first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])", [interviewData.scheduler_ids]);
+            const schedulersResult = await pool.query(
+                "SELECT id, first_name, last_name, email FROM users WHERE id = ANY($1::uuid[])",
+                [interviewData.scheduler_ids]
+            );
             schedulers = schedulersResult.rows;
         }
-        const responseData = { ...interviewData, candidates: candidatesResult.rows, schedulers: schedulers };
+
+        const responseData = {
+            ...interviewData,
+            candidates: candidatesResult.rows,
+            schedulers: schedulers
+        };
+
         res.json(responseData);
-    } catch(err) {
+
+    } catch (err) {
         console.error("Error fetching full interview details:", err);
         res.status(500).json({ message: "An internal server error occurred." });
     }
