@@ -116,7 +116,7 @@
                 }
 
                 tr.innerHTML = `
-                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_first_name} ${candidate.candidate_last_name}</td>
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_first_name ?? ""} ${candidate.candidate_last_name ?? ""}</td>
                     <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_email}</td>
                     <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_code}</td>
                     <td class="px-6 py-4 text-neutral-600">${candidate.interview_title}</td>
