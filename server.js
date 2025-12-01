@@ -1151,47 +1151,88 @@ app.post("/api/interview/:id/update", async (req, res) => {
     try {
         await client.query("BEGIN");
 
-        // 1. Extract body params
+        // Extract body params
         let { title, questions, timeLimits, visitorReviewerIds, candidates } = req.body;
 
-        // 2. Normalize questions & time limits
-        if (!Array.isArray(questions)) {
-            questions = [String(questions || "")];
+        // -----------------------------
+        // 1. Normalize questions & time limits ONLY IF PROVIDED
+        // -----------------------------
+        if (questions !== undefined) {
+            if (!Array.isArray(questions)) {
+                questions = [String(questions || "")];
+            }
         }
 
-        if (!Array.isArray(timeLimits)) {
-            timeLimits = String(timeLimits || "")
-                .split(",")
-                .map(t => parseInt(t, 10) || 0);
+        if (timeLimits !== undefined) {
+            if (!Array.isArray(timeLimits)) {
+                timeLimits = String(timeLimits || "")
+                    .split(",")
+                    .map(t => parseInt(t, 10) || 0);
+            }
+
+            if (questions && timeLimits.length < questions.length) {
+                while (timeLimits.length < questions.length) {
+                    timeLimits.push(0);
+                }
+            }
         }
 
-        while (timeLimits.length < questions.length) {
-            timeLimits.push(0);
+        // -----------------------------
+        // 2. Dynamic interview update
+        //    Only update fields that are provided
+        // -----------------------------
+        let updateFields = [];
+        let values = [];
+        let idx = 1;
+
+        if (title !== undefined) {
+            updateFields.push(`title = $${idx++}`);
+            values.push(title);
         }
 
-        // 3. Update the interview fields
-        await client.query(
-            `UPDATE interviews
-             SET title=$1, questions=$2, time_limits=$3, visitor_reviewer_ids=$4
-             WHERE id=$5`,
-            [title, questions, timeLimits, visitorReviewerIds || [], interviewId]
-        );
+        if (questions !== undefined) {
+            updateFields.push(`questions = $${idx++}`);
+            values.push(questions);
+        }
 
-        // 4. If NEW candidates are provided → add them
+        if (timeLimits !== undefined) {
+            updateFields.push(`time_limits = $${idx++}`);
+            values.push(timeLimits);
+        }
+
+        if (visitorReviewerIds !== undefined) {
+            updateFields.push(`visitor_reviewer_ids = $${idx++}`);
+            values.push(visitorReviewerIds);
+        }
+
+        if (updateFields.length > 0) {
+            const updateQuery = `
+                UPDATE interviews 
+                SET ${updateFields.join(", ")}
+                WHERE id = $${idx}
+            `;
+            values.push(interviewId);
+
+            await client.query(updateQuery, values);
+        }
+
+        // -----------------------------
+        // 3. Add NEW candidates (if provided)
+        // -----------------------------
         if (Array.isArray(candidates) && candidates.length > 0) {
 
-            // Fetch department for candidate_sessions
             const deptResult = await client.query(
                 "SELECT department, title, date, time FROM interviews WHERE id=$1",
                 [interviewId]
             );
 
             const interviewMeta = deptResult.rows[0];
+            if (!interviewMeta) throw new Error("Interview not found.");
 
-            const department = interviewMeta.department;
+            const department     = interviewMeta.department;
             const interviewTitle = interviewMeta.title;
-            const interviewDate = interviewMeta.date;
-            const interviewTime = interviewMeta.time;
+            const interviewDate  = interviewMeta.date;
+            const interviewTime  = interviewMeta.time;
 
             for (const cand of candidates) {
                 const { first, last, email } = cand;
@@ -1206,18 +1247,15 @@ app.post("/api/interview/:id/update", async (req, res) => {
                 const randomDigits = Math.floor(1000 + Math.random() * 9000);
                 const initials = first[0].toUpperCase() + last[0].toUpperCase();
                 const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
-
                 const sessionId = uuidv4();
 
-                // Insert into candidate_sessions
                 await client.query(
                     `INSERT INTO candidate_sessions 
-                     (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department, status)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, 'Invited')`,
+                    (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department, status)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, 'Invited')`,
                     [sessionId, interviewId, first, last, email, candidateCode, department]
                 );
 
-                // Send interview invite email
                 await sendInterviewEmail(
                     email,
                     interviewId,
@@ -1227,7 +1265,6 @@ app.post("/api/interview/:id/update", async (req, res) => {
                 );
             }
         }
-
         await client.query("COMMIT");
 
         res.json({
@@ -1237,12 +1274,8 @@ app.post("/api/interview/:id/update", async (req, res) => {
 
     } catch (err) {
         await client.query("ROLLBACK");
-        console.error("❌ Update failed:", err.message);
-
-        res.status(500).json({
-            success: false,
-            message: err.message || "Update failed."
-        });
+        console.error("❌ Update failed:", err);
+        res.status(500).json({ success: false, message: err.message || "Update failed." });
     } finally {
         client.release();
     }
