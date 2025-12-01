@@ -1145,73 +1145,98 @@ app.get("/api/interview/:id", async (req, res) => {
 });
 
 app.post("/api/interview/:id/update", async (req, res) => {
-    const { id } = req.params;
+    const { id: interviewId } = req.params;
     const client = await pool.connect();
+
     try {
-        await client.query('BEGIN');
+        await client.query("BEGIN");
 
-        // 1. Destructure all expected data from the request body
-        let { title, questions, timeLimits, date, time, emails, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+        // Extract values from body
+        let { title, questions, timeLimits, visitorReviewerIds, candidates } = req.body;
 
-        
-        // 2. Data validation and cleanup
-        if (!Array.isArray(questions)) questions = [String(questions || '')];
-        if (!Array.isArray(timeLimits)) timeLimits = (String(timeLimits || '').split(',')).map(t => parseInt(t, 10) || 0);
-        while (timeLimits.length < questions.length) timeLimits.push(0);
-
-        // 3. Update the main interview details
-        await client.query(
-            `UPDATE interviews SET title=$1, questions=$2, time_limits=$3, scheduler_ids=$4 WHERE id=$5`,
-            [title, questions, timeLimits, schedulerIds, id]
-        );
-
-        // 4. Handle adding and emailing new candidates
-        if (!Array.isArray(candidates) || candidates.length === 0) {
-            throw new Error("At least one candidate is required.");
+        // ---- 1. Normalize questions/time limits ----
+        if (!Array.isArray(questions)) {
+            questions = [String(questions || "")];
         }
 
-       const { candidates } = req.body;
+        if (!Array.isArray(timeLimits)) {
+            timeLimits = String(timeLimits || "")
+                .split(",")
+                .map(t => parseInt(t, 10) || 0);
+        }
 
-        if (!Array.isArray(candidates) || candidates.length === 0) {
-             return res.status(400).json({ message: "Candidate list cannot be empty." });
-    }
+        while (timeLimits.length < questions.length) {
+            timeLimits.push(0);
+        }
 
-    for (const cand of candidates) {
-        const { first, last, email } = cand;
+        // ---- 2. Update interview main data ----
+        await client.query(
+            `UPDATE interviews 
+             SET title=$1, questions=$2, time_limits=$3, visitor_reviewer_ids=$4
+             WHERE id=$5`,
+            [title, questions, timeLimits, visitorReviewerIds || [], interviewId]
+        );
 
-    if (!first || !last || !email) {
-        return res.status(400).json({ message: "Each candidate must have first, last, and email." });
-    }
+        // -----------------------------------------------------------------------------
+        // ---- 3. Add NEW candidates (if provided)
+        // -----------------------------------------------------------------------------
 
-    // Candidate code generation (same as /schedule)
-    const month = String(new Date().getMonth() + 1).padStart(2, "0");
-    const year = String(new Date().getFullYear());
-    const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
-    const initials = first[0].toUpperCase() + last[0].toUpperCase();
-    const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+        if (Array.isArray(candidates) && candidates.length > 0) {
+            
+            // Fetch department for candidate_sessions insert
+            const deptResult = await client.query(
+                "SELECT department FROM interviews WHERE id=$1",
+                [interviewId]
+            );
 
-    await pool.query(
-        `INSERT INTO candidate_sessions
-        (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [uuidv4(), interviewId, first, last, email, candidateCode, department]
-    );
+            const department = deptResult.rows[0]?.department || "General";
 
-    await sendInterviewEmail(email, interviewId, title, date, time);
-}
-        // 5. If all steps succeed, commit the transaction
-        await client.query('COMMIT');
+            for (const cand of candidates) {
+                const { first, last, email } = cand;
+
+                if (!first || !last || !email) {
+                    throw new Error("Each candidate must have first, last name, and email.");
+                }
+
+                // Generate candidate code
+                const month = String(new Date().getMonth() + 1).padStart(2, "0");
+                const year = String(new Date().getFullYear());
+                const randomDigits = String(Math.floor(1000 + Math.random() * 9000));
+                const initials = first[0].toUpperCase() + last[0].toUpperCase();
+                const candidateCode = `${month}/${year}/${randomDigits}/${initials}`;
+                const sessionId = uuidv4();
+
+                // Insert candidate into candidate_sessions
+                await client.query(
+                    `INSERT INTO candidate_sessions 
+                    (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department, status)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, 'Invited')`,
+                    [sessionId, interviewId, first, last, email, candidateCode, department]
+                );
+
+                // Send email invite
+                await sendInterviewEmail(
+                    email,
+                    interviewId,
+                    title,
+                    "N/A",
+                    "N/A"
+                );
+            }
+        }
+
+        await client.query("COMMIT");
         res.json({ message: "Interview updated successfully." });
 
     } catch (err) {
-        // If any step fails, roll back the entire transaction
-        await client.query('ROLLBACK');
+        await client.query("ROLLBACK");
         console.error("Update failed:", err);
-        res.status(500).json({ message: "Update failed due to an internal error." });
+        res.status(500).json({ message: err.message || "Update failed." });
     } finally {
         client.release();
     }
 });
+
 
 app.delete("/api/interview/:id/delete", async (req, res) => {
     const client = await pool.connect();
