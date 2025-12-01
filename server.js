@@ -892,17 +892,21 @@ app.get("/api/candidates/all", async (req, res) => {
             whereClauses.push(`cs.department = $${queryParams.length}`);
         }
 
-        // 🔍 Search filter (NOW includes candidate_code)
+        // 🔍 Search filter
         if (search) {
             queryParams.push(`%${search}%`);
             whereClauses.push(`
                 (
                     cs.candidate_email ILIKE $${queryParams.length}
                     OR cs.candidate_code ILIKE $${queryParams.length}
+                    OR cs.candidate_first_name ILIKE $${queryParams.length}
+                    OR cs.candidate_last_name ILIKE $${queryParams.length}
+                    OR (cs.candidate_first_name || ' ' || cs.candidate_last_name) ILIKE $${queryParams.length}
                     OR i.title ILIKE $${queryParams.length}
                 )
             `);
         }
+
 
         // Apply filters
         if (whereClauses.length > 0) {
