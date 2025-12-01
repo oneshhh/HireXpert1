@@ -338,6 +338,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const moveToClosedBtn = document.getElementById('move-to-closed-btn');
     const moveToOpenBtn = document.getElementById('move-to-open-btn');
     const searchBar = document.getElementById('search-bar');
+const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+
+  confirmBtn.addEventListener('click', () => {
+      if (typeof window._confirmCallback === 'function') window._confirmCallback();
+      hideConfirmModal();
+  });
+
+  cancelBtn.addEventListener('click', hideConfirmModal);
 
     // Select all toggle
     selectAllCheckbox.addEventListener('change', (e) => {
