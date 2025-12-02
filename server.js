@@ -14,7 +14,7 @@ const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
-import crypto from "crypto";
+const crypto = require("crypto");
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -1647,6 +1647,56 @@ app.get("/viewer/logout", (req, res) => {
         res.json({ success: true, message: "No session to clear." });
     }
 });
+
+// 3. Token-Based Interview Setup Route
+app.get("/api/setup", async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(400).json({ error: "MISSING_TOKEN" });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT * FROM interview_access_tokens WHERE token=$1",
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ error: "INVALID_TOKEN" });
+        }
+
+        const row = result.rows[0];
+
+        // Expired?
+        if (new Date() > row.expires_at) {
+            return res.status(401).json({ error: "TOKEN_EXPIRED" });
+        }
+
+        // One-time use check
+        if (row.used) {
+            return res.status(401).json({ error: "TOKEN_USED" });
+        }
+
+        // Mark as used
+        await pool.query(
+            "UPDATE interview_access_tokens SET used = TRUE, used_at = NOW() WHERE token=$1",
+            [token]
+        );
+
+        // Return safe interview details
+        res.json({
+            success: true,
+            interviewId: row.interview_id,
+            candidateEmail: row.candidate_email
+        });
+
+    } catch (err) {
+        console.error("Token validation error:", err);
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
 
 // --- NEW DATA ROUTE FOR VIEWERS ---
 
