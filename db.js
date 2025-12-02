@@ -6,7 +6,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 // ----------------- Hard-coded conservative settings (temporary) -----------------
-const MAX_CLIENTS = 1;                     // VERY conservative while debugging/recovering
+const MAX_CLIENTS = 10;                     // VERY conservative while debugging/recovering
 const IDLE_TIMEOUT_MS = 30000;
 const CONNECTION_TIMEOUT_MS = 20000;       // give slow nodes more time
 const WAIT_RETRIES = 6;
