@@ -620,91 +620,68 @@ app.get("/api/session/:sessionId", async (req, res) => {
 });
 
 app.post("/schedule", async (req, res) => {
-
     console.log("📥 /schedule HIT");
-    console.log("👉 Incoming body:", JSON.stringify(req.body, null, 2));
-
     const client = await pool.connect();
-    console.log("🔌 DB Client connected");
+
+    let createdInterviewId = null;
+    let createdCandidateRecords = [];
 
     try {
-        if (!req.session.user) {
-            console.log("❌ No session user");
-            return res.status(401).json({ message: "Unauthorized." });
-        }
-
-        console.log("👤 User:", req.session.user);
-
-        if (!req.session.user.activeDepartment || !req.session.user.id) {
-            console.log("❌ Missing department or user.id");
+        if (!req.session.user || !req.session.user.activeDepartment || !req.session.user.id) {
             return res.status(401).json({ message: "Unauthorized." });
         }
 
         const department = req.session.user.activeDepartment;
         const createdByUserId = req.session.user.id;
         
-        console.log("🏁 BEGIN TRANSACTION");
         await client.query('BEGIN');
 
         let { title, questions, timeLimits, date, time, candidates, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
 
-        if (!customIdText) throw new Error("Missing customInterviewId text");
-        if (!schedulerEmail) throw new Error("Missing schedulerEmail");
-        if (!schedulerIds || schedulerIds.length === 0) throw new Error("Missing reviewer assignments");
-
-        console.log("📌 Custom ID text:", customIdText);
-        console.log("📌 Scheduler email:", schedulerEmail);
-        console.log("📌 Scheduler IDs:", schedulerIds);
+        if (!customIdText) throw new Error("The custom Interview ID text is required.");
+        if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
+        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
 
         const now = new Date();
-        console.log("📅 Now:", now);
-
         const year = now.getFullYear().toString().slice(-2);
-        const monthTxt = now.toLocaleString('en-US', { month: 'short' });
+        const monthName = now.toLocaleString('en-US', { month: 'short' });
 
-        console.log("📊 Fetching serial number...");
         const serialResult = await client.query(
-            `SELECT COUNT(*) FROM interviews WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2`,
-            [now.getFullYear(), now.getMonth() + 1]
+            `SELECT COUNT(*) FROM interviews 
+             WHERE EXTRACT(YEAR FROM created_at) = $1 
+             AND EXTRACT(MONTH FROM created_at) = $2`,
+             [now.getFullYear(), now.getMonth() + 1]
         );
-        console.log("👉 serial query result:", serialResult.rows);
 
         const serialNumber = parseInt(serialResult.rows[0].count) + 1;
         const paddedSerialNumber = serialNumber.toString().padStart(4, '0');
-        const customInterviewId = `${year}/${monthTxt}/${paddedSerialNumber}/${customIdText}`;
-        
-        console.log("🆔 Final interview custom ID:", customInterviewId);
+        const customInterviewId = `${year}/${monthName}/${paddedSerialNumber}/${customIdText}`;
 
         if (!Array.isArray(questions)) questions = [String(questions || '')];
-        if (!Array.isArray(timeLimits)) timeLimits = String(timeLimits || '').split(',').map(t => parseInt(t, 10) || 0);
-
+        if (!Array.isArray(timeLimits)) {
+            timeLimits = String(timeLimits || '').split(',').map(t => parseInt(t, 10) || 0);
+        }
         while (timeLimits.length < questions.length) timeLimits.push(0);
 
         const interviewId = uuidv4();
-        console.log("🆔 interviewId:", interviewId);
+        createdInterviewId = interviewId;
 
-        console.log("📝 Inserting interview INTO DB...");
         await client.query(
-            `INSERT INTO interviews (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, visitor_reviewer_ids)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
+            `INSERT INTO interviews 
+            (id, custom_interview_id, title, questions, time_limits, date, time, department, created_at, position_status, job_description, created_by_user_id, visitor_reviewer_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'open', $9, $10, $11)`,
             [interviewId, customInterviewId, title, questions, timeLimits, date, time, department, jobDescription, createdByUserId, schedulerIds]
         );
-        console.log("✅ Interview inserted");
 
         if (!Array.isArray(candidates) || candidates.length === 0) {
-            throw new Error("Candidates array empty");
+            throw new Error("At least one candidate is required.");
         }
 
-        console.log("👥 Candidates:", candidates);
-
-        const candidateEmails = [];
-
         for (const cand of candidates) {
-            console.log("➡ Candidate:", cand);
-
             const { first, last, email } = cand;
-
-            candidateEmails.push(email);
+            if (!first || !last || !email) {
+                throw new Error("Each candidate must include first, last, and email.");
+            }
 
             const sessionId = uuidv4();
             const month = String(new Date().getMonth() + 1).padStart(2, "0");
@@ -713,47 +690,40 @@ app.post("/schedule", async (req, res) => {
             const initials = first[0].toUpperCase() + last[0].toUpperCase();
             const candidateCode = `${month}/${yearFull}/${randomDigits}/${initials}`;
 
-            console.log(`📝 Inserting candidate ${email} into candidate_sessions`);
             await client.query(
                 `INSERT INTO candidate_sessions
                 (session_id, interview_id, candidate_first_name, candidate_last_name, candidate_email, candidate_code, department)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [sessionId, interviewId, first, last, email, candidateCode, department]
             );
-            console.log("➡ Candidate inserted:", email);
 
-            console.log("📨 Sending interview email to:", email);
-            const emailResult = await sendInterviewEmail(email, interviewId, title, date, time);
-            console.log("➡ sendInterviewEmail result:", emailResult);
-
-            if (!emailResult.success) {
-                throw new Error(`Failed to email ${email}`);
-            }
+            createdCandidateRecords.push({ email, first, last });
         }
 
-        console.log("📨 Sending scheduler confirmation email to:", schedulerEmail);
-        const schedulerEmailResult = await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, candidateEmails);
+        await client.query("COMMIT");
 
-        if (!schedulerEmailResult.success) throw new Error("Failed sending scheduler confirmation");
+        // 🔥🔥🔥 EMAILS SENT AFTER COMMIT — SAFE 🔥🔥🔥
+        for (const cand of createdCandidateRecords) {
+            console.log("📨 Sending email AFTER COMMIT:", cand.email);
+            await sendInterviewEmail(cand.email, createdInterviewId, title, date, time);
+        }
 
-        console.log("🏁 COMMIT");
-        await client.query('COMMIT');
+        await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, createdCandidateRecords.map(c => c.email));
 
-        res.json({ success: true, message: `Interview scheduled for ${candidateEmails.length} candidate(s).` });
+        return res.json({
+            success: true,
+            message: `Interview scheduled for ${createdCandidateRecords.length} candidate(s).`
+        });
 
     } catch (err) {
-
-        console.log("💥 ROLLBACK triggered");
-        await client.query('ROLLBACK');
-
+        await client.query("ROLLBACK");
         console.error("❌ Error in /schedule route:", err);
-        return res.status(500).json({ message: err.message || "Failed to schedule interview." });
-
+        return res.status(500).json({ message: err.message });
     } finally {
-        console.log("🔌 DB Client released");
         client.release();
     }
 });
+
 
 
 // ========================
