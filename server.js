@@ -14,6 +14,7 @@ const reviewRoutes = require('./review.routes.js');
 const PORT = process.env.PORT || 3000;
 const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
+import crypto from "crypto";
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -215,22 +216,46 @@ function parseQuestionsField(q) {
 }
 
 async function sendInterviewEmail(to, interviewId, title, date, time) {
-    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
-    const link = `https://candidateportal1.onrender.com/setup?id=${interviewId}`;
+    const verifiedSenderEmail = process.env.EMAIL_USER;
+
+    // 1. Create secure token
+    const token = crypto.randomBytes(32).toString("hex");
+
+    // 2. Set expiry (24 hours)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // 3. Store token
+    await pool.query(
+        `INSERT INTO interview_access_tokens 
+         (token, interview_id, candidate_email, expires_at)
+         VALUES ($1, $2, $3, $4)`,
+        [token, interviewId, to, expiresAt]
+    );
+
+    // 4. Build tokenized interview link
+    const link = `https://candidateportal1.onrender.com/setup?token=${token}`;
+
+    // 5. Send email
     const msg = {
         to: to,
         from: verifiedSenderEmail,
         subject: `Interview Scheduled: ${title}`,
-        html: `<p>Dear Candidate,</p><p>You have an interview scheduled for <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p>Click <a href="${link}">here</a> to join your interview.</p><p>Regards,<br>HireXpert Team</p>`,
+        html: `
+            <p>Dear Candidate,</p>
+            <p>Your interview for <b>${title}</b> has been scheduled.</p>
+            <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+            <p><a href="${link}">Click here to begin your interview</a></p>
+            <p>This link will expire in 24 hours for security reasons.</p>
+            <p>Regards,<br>HireXpert Team</p>
+        `,
     };
+
     try {
         await sgMail.send(msg);
-        console.log(`✅ Email sent successfully to: ${to} via SendGrid`);
         return { success: true };
     } catch (err) {
-        console.error(`❌ CRITICAL: Error sending email via SendGrid:`, err);
-        if (err.response) { console.error(err.response.body) }
-        return { success: false, error: err };
+        console.error("SendGrid Error:", err);
+        return { success: false };
     }
 }
 
