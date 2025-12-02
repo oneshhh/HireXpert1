@@ -50,19 +50,10 @@ app.get("/api/setup", async (req, res) => {
             return res.status(401).json({ error: "TOKEN_EXPIRED" });
         }
 
-        // One-time use check
-        if (row.used) {
-            return res.status(401).json({ error: "TOKEN_USED" });
-        }
+        // DO NOT CHECK row.used here
+        // DO NOT UPDATE row.used here
 
-        // Mark as used
-        await pool.query(
-            "UPDATE interview_access_tokens SET used = TRUE, used_at = NOW() WHERE token=$1",
-            [token]
-        );
-
-        // Return safe interview details
-        res.json({
+        return res.json({
             success: true,
             interviewId: row.interview_id,
             candidateEmail: row.candidate_email
@@ -74,6 +65,41 @@ app.get("/api/setup", async (req, res) => {
     }
 });
 
+app.post("/api/consume-token", async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: "MISSING_TOKEN" });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT * FROM interview_access_tokens WHERE token=$1",
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ error: "INVALID_TOKEN" });
+        }
+
+        const row = result.rows[0];
+
+        if (row.used) {
+            return res.status(400).json({ error: "TOKEN_USED" });
+        }
+
+        await pool.query(
+            "UPDATE interview_access_tokens SET used = TRUE, used_at = NOW() WHERE token=$1",
+            [token]
+        );
+
+        return res.json({ success: true });
+
+    } catch (err) {
+        console.error("Token consume error:", err);
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
 app.get(
   "/api/external/interviews/:id",
   cors({
