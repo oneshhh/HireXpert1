@@ -811,7 +811,7 @@ app.post("/schedule", async (req, res) => {
 
 
 // ========================
-// AI Candidate Evaluation (Debug Version)
+// AI Candidate Evaluation (PostgreSQL + Cache)
 // ========================
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
@@ -825,23 +825,22 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
-        // 1️⃣ CHECK IF AI RESULT ALREADY EXISTS
-        const existing = await db.query(
-            `SELECT ai_used, ai_evaluation FROM candidate_sessions 
-             WHERE interview_id = $1 AND candidate_email = $2
-             LIMIT 1`,
+        // 1️⃣ CHECK CACHE IN Postgres (your main DB)
+        const existingResult = await pool.query(
+            `SELECT ai_used, ai_evaluation 
+             FROM candidate_sessions 
+             WHERE interview_id = $1 AND candidate_email = $2`,
             [interview_id, candidate_email]
         );
 
-        if (existing.rows.length > 0 && existing.rows[0].ai_used) {
-            // Already generated → return cached evaluation
+        if (existingResult.rows.length > 0 && existingResult.rows[0].ai_used) {
             return res.json({
-                evaluation: existing.rows[0].ai_evaluation,
+                evaluation: existingResult.rows[0].ai_evaluation,
                 from_cache: true
             });
         }
 
-        // 2️⃣ RUN ORIGINAL GEMINI LOGIC (unchanged)
+        // 2️⃣ RUN AI GENERATION (same logic as before)
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
         const aiResult = await fetch(
@@ -855,21 +854,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
                             parts: [
                                 {
                                     text: `
-You are an expert technical interviewer. Evaluate the candidate based on:
-
-• The Job Description  
-• Their transcripts  
-
-Return ONLY valid JSON:
-
-{
-  "rating": number (0–10),
-  "summary": string,
-  "jd_match": string,
-  "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
-  "strengths": string[],
-  "weaknesses": string[]
-}
+You are an expert evaluator. Return ONLY JSON.
 
 ### JOB DESCRIPTION:
 ${job_description}
@@ -893,24 +878,24 @@ ${transcripts
         const aiJson = await aiResult.json();
 
         if (!aiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            console.error("❌ AI returned unexpected format:", aiJson);
+            console.error("Unexpected AI response:", aiJson);
             return res.status(500).json({ message: "AI returned no text." });
         }
 
         let raw = aiJson.candidates[0].content.parts[0].text;
-        const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+        let cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
         let evaluation;
         try {
             evaluation = JSON.parse(cleaned);
         } catch (err) {
-            console.error("❌ JSON Parse Failed");
+            console.error("JSON PARSE ERROR:", cleaned);
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
-        // 3️⃣ STORE RESULT IN candidate_sessions
-        await db.query(
-            `UPDATE candidate_sessions 
+        // 3️⃣ STORE INTO Postgres
+        await pool.query(
+            `UPDATE candidate_sessions
              SET ai_used = TRUE,
                  ai_evaluation = $1,
                  ai_generated_at = NOW()
@@ -918,15 +903,16 @@ ${transcripts
             [evaluation, interview_id, candidate_email]
         );
 
-        // 4️⃣ RETURN RESULT
-        return res.json({ evaluation, from_cache: false });
+        return res.json({
+            evaluation,
+            from_cache: false
+        });
 
     } catch (err) {
         console.error("❌ AI Evaluation Error:", err);
         return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
-
 
 
 app.get("/api/interviews/counts", async (req, res) => {
