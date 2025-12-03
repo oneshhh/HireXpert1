@@ -50,10 +50,17 @@ app.get(
 
       const row = result.rows[0];
 
+      // 🔒 Check expiration
       if (new Date() > row.expires_at) {
         return res.status(401).json({ error: "TOKEN_EXPIRED" });
       }
 
+      // 🔒 Check if token already used
+      if (row.used) {
+        return res.status(401).json({ error: "TOKEN_USED" });
+      }
+
+      // ✅ Valid and unused token — allow setup page to load
       return res.json({
         success: true,
         interviewId: row.interview_id,
@@ -66,7 +73,6 @@ app.get(
     }
   }
 );
-
 
 app.post("/api/consume-token", async (req, res) => {
     const { token } = req.body;
