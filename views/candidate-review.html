@@ -452,42 +452,45 @@ document.getElementById("generate-ai-eval").addEventListener("click", async () =
 
       const ev = data.evaluation;
 
-      const finalHTML = `
-      <div class="ev-container">
-          <div class="ev-block-full">
-              <div class="ev-title">Summary</div>
-              <div class="ev-text">${ev.summary}</div>
-          </div>
+    const finalHTML = `
+    <div class="ev-container">
+        <div class="ev-block-full">
+            <div class="ev-title">Summary</div>
+            <div class="ev-text">${ev.summary || "No summary available."}</div>
+        </div>
 
-          <div class="ev-grid-2">
-              <div class="ev-block">
-                  <div class="ev-title">JD Match</div>
-                  <div class="ev-text">${ev.jd_match}</div>
-              </div>
-              <div class="ev-block">
-                  <div class="ev-title">Strengths</div>
-                  <div class="ev-text">
-                      ${ev.strengths.map(s => "• " + s).join("<br>")}
-                  </div>
-              </div>
-          </div>
+        <div class="ev-grid-2">
+            <div class="ev-block">
+                <div class="ev-title">JD Match</div>
+                <div class="ev-text">${ev.jd_match || "N/A"}</div>
+            </div>
 
-          <div class="ev-grid-2">
-              <div class="ev-block">
-                  <div class="ev-title">Weaknesses</div>
-                  <div class="ev-text">
-                      ${ev.weaknesses.map(w => "• " + w).join("<br>")}
-                  </div>
-              </div>
-              <div class="ev-block">
-                  <div class="ev-title">Suitability</div>
-                  <div class="ev-text">${ev.suitability}</div>
-                  <div class="ev-title mt-3">Rating</div>
-                  <div class="ev-text">${ev.rating}/10</div>
-              </div>
-          </div>
-      </div>
-      `;
+            <div class="ev-block">
+                <div class="ev-title">Strengths</div>
+                <div class="ev-text">
+                    ${(ev.strengths || []).map(s => "• " + s).join("<br>")}
+                </div>
+            </div>
+        </div>
+
+        <div class="ev-grid-2">
+            <div class="ev-block">
+                <div class="ev-title">Weaknesses</div>
+                <div class="ev-text">
+                    ${(ev.weaknesses || []).map(w => "• " + w).join("<br>")}
+                </div>
+            </div>
+
+            <div class="ev-block">
+                <div class="ev-title">Suitability</div>
+                <div class="ev-text">${ev.suitability || "N/A"}</div>
+
+                <div class="ev-title mt-3">Rating</div>
+                <div class="ev-text">${ev.rating ?? "N/A"}/10</div>
+            </div>
+        </div>
+    </div>
+    `;
 
       aiBox.innerHTML = "";
       typeText(aiBox, finalHTML, 4);
