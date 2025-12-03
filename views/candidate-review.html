@@ -424,13 +424,6 @@ document.getElementById("generate-ai-eval").addEventListener("click", async () =
       const jobDescription = window.currentInterviewJobDescription || "";
       const transcripts = window.allTranscripts || [];
 
-      const res = await fetch("/api/ai/evaluate-candidate", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ job_description: jobDescription, transcripts })
-      });
-
     const res = await fetch("/api/ai/evaluate-candidate", {
         method: "POST",
         credentials: "include",
