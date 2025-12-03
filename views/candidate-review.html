@@ -413,28 +413,42 @@
 
 document.getElementById("generate-ai-eval").addEventListener("click", async () => {
   try {
-      // show box + button
       aiBox.style.display = "block";
       aiBox.classList.remove("ai-hidden");
       aiBox.classList.add("ai-visible");
       aiBox.innerHTML = "Generating AI evaluation… please wait.";
       toggleBtn.style.display = "flex";
 
-      // Collect JD
       const jobDescription = window.currentInterviewJobDescription || "";
       const transcripts = window.allTranscripts || [];
 
-    const res = await fetch("/api/ai/evaluate-candidate", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            interview_id: currentInterviewId,
-            candidate_email: currentCandidateEmail,
-            job_description: jobDescription,
-            transcripts
-        })
-    });
+      // ----- SAFE FETCH -----
+      const res = await fetch("/api/ai/evaluate-candidate", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              interview_id: currentInterviewId,
+              candidate_email: currentCandidateEmail,
+              job_description: jobDescription,
+              transcripts
+          })
+      });
+
+      // Server returned error
+      if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Server error:", errorText);
+          aiBox.innerHTML = "AI evaluation failed (server error).";
+          return;
+      }
+
+      const data = await res.json();
+
+      if (!data || !data.evaluation) {
+          aiBox.innerHTML = "AI evaluation failed (no data).";
+          return;
+      }
 
       const ev = data.evaluation;
 
@@ -480,7 +494,7 @@ document.getElementById("generate-ai-eval").addEventListener("click", async () =
 
   } catch (err) {
       console.error("AI Eval Error:", err);
-      aiBox.innerHTML = "AI evaluation failed.";
+      aiBox.innerHTML = "AI evaluation failed (exception).";
   }
 });
 
