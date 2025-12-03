@@ -812,15 +812,38 @@ app.post("/schedule", async (req, res) => {
 
 // ========================
 // AI Candidate Evaluation (Debug Version)
+// ========================
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
-        const { job_description, transcripts } = req.body;
+        const { interview_id, candidate_email, job_description, transcripts } = req.body;
+
+        if (!interview_id || !candidate_email) {
+            return res.status(400).json({ message: "Missing interview_id or candidate_email." });
+        }
 
         if (!job_description || !transcripts) {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
+        // 1️⃣ CHECK IF AI RESULT ALREADY EXISTS
+        const existing = await db.query(
+            `SELECT ai_used, ai_evaluation FROM candidate_sessions 
+             WHERE interview_id = $1 AND candidate_email = $2
+             LIMIT 1`,
+            [interview_id, candidate_email]
+        );
+
+        if (existing.rows.length > 0 && existing.rows[0].ai_used) {
+            // Already generated → return cached evaluation
+            return res.json({
+                evaluation: existing.rows[0].ai_evaluation,
+                from_cache: true
+            });
+        }
+
+        // 2️⃣ RUN ORIGINAL GEMINI LOGIC (unchanged)
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
         const aiResult = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
             {
@@ -875,29 +898,35 @@ ${transcripts
         }
 
         let raw = aiJson.candidates[0].content.parts[0].text;
-
-        // 🔧 FIX: Remove ```json ... ``` wrappers
-        const cleaned = raw
-            .replace(/```json/gi, "")
-            .replace(/```/g, "")
-            .trim();
+        const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
         let evaluation;
         try {
             evaluation = JSON.parse(cleaned);
-        } catch (parseErr) {
-            console.error("❌ JSON Parse Failed!");
-            console.error("RAW:", raw);
-            console.error("CLEANED:", cleaned);
+        } catch (err) {
+            console.error("❌ JSON Parse Failed");
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
-        res.json({ evaluation });
+        // 3️⃣ STORE RESULT IN candidate_sessions
+        await db.query(
+            `UPDATE candidate_sessions 
+             SET ai_used = TRUE,
+                 ai_evaluation = $1,
+                 ai_generated_at = NOW()
+             WHERE interview_id = $2 AND candidate_email = $3`,
+            [evaluation, interview_id, candidate_email]
+        );
+
+        // 4️⃣ RETURN RESULT
+        return res.json({ evaluation, from_cache: false });
+
     } catch (err) {
         console.error("❌ AI Evaluation Error:", err);
         return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
+
 
 
 app.get("/api/interviews/counts", async (req, res) => {

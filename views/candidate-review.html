@@ -431,11 +431,17 @@ document.getElementById("generate-ai-eval").addEventListener("click", async () =
           body: JSON.stringify({ job_description: jobDescription, transcripts })
       });
 
-      const data = await res.json();
-      if (!data.evaluation) {
-          aiBox.innerHTML = "Failed to generate AI evaluation.";
-          return;
-      }
+    const res = await fetch("/api/ai/evaluate-candidate", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            interview_id: currentInterviewId,
+            candidate_email: currentCandidateEmail,
+            job_description: jobDescription,
+            transcripts
+        })
+    });
 
       const ev = data.evaluation;
 
