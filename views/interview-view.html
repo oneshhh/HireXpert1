@@ -135,14 +135,22 @@
     <div id="interview-content" class="hidden space-y-8">
         <!-- Interview Header Card -->
         <div class="bg-white shadow-lg rounded-lg p-6">
-            <div class="flex flex-col md:flex-row justify-between md:items-center">
-                <div>
-                    <h2 id="title" class="text-3xl font-bold text-gray-800"></h2>
-                    <p id="custom-id" class="text-sm text-gray-500 mt-1"></p>
-                </div>
-                <div id="status-badge" class="mt-4 md:mt-0 text-sm font-semibold px-4 py-2 rounded-full"></div>
-            </div>
+          <div class="flex flex-col md:flex-row justify-between md:items-center">
+              <div>
+                  <h2 id="title" class="text-3xl font-bold text-gray-800"></h2>
+                  <p id="custom-id" class="text-sm text-gray-500 mt-1"></p>
+              </div>
 
+              <div class="flex items-center gap-3 mt-4 md:mt-0">
+                  <div id="status-badge" class="text-sm font-semibold px-4 py-2 rounded-full"></div>
+
+                  <!-- DOWNLOAD BUTTON -->
+                  <button id="download-report-btn"
+                      class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                      Download Report
+                  </button>
+              </div>
+          </div>
             <!-- CENTERED STATS ROW -->
             <div class="mt-6 border-t border-gray-200 pt-6 text-sm header-stats">
                 <div>
@@ -583,6 +591,24 @@ async function checkUserType() {
 
     // --- Run Fetch Function ---
     fetchInterview();
+
+document.getElementById("download-report-btn").addEventListener("click", () => {
+    if (!currentInterviewId) {
+        showNotification("Error", "Interview ID not available.", { isError: true });
+        return;
+    }
+
+    const url = `/api/interview/${currentInterviewId}/download`;
+
+    // Force browser download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+});
+
 
     // --- Show More / Less buttons (unchanged) ---
     const showMoreBtn = document.getElementById('show-more-questions-btn');

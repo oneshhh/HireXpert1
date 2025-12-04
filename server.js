@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
+const { Parser } = require('json2csv');
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -808,7 +809,83 @@ app.post("/schedule", async (req, res) => {
     }
 });
 
+app.get("/api/interview/:id/download", async (req, res) => {
+    try {
+        const { id } = req.params;
 
+        // 1️⃣ FETCH INTERVIEW DETAILS
+        const interviewQuery = await pool.query(
+            `SELECT title, custom_interview_id, date, time, department, job_description
+             FROM interviews WHERE id = $1`,
+            [id]
+        );
+
+        if (interviewQuery.rows.length === 0) {
+            return res.status(404).json({ message: "Interview not found" });
+        }
+
+        const interview = interviewQuery.rows[0];
+
+        // 2️⃣ FETCH ALL CANDIDATES FOR THIS INTERVIEW
+        const candQuery = await pool.query(
+            `SELECT candidate_first_name, candidate_last_name, candidate_email, department,
+                    created_at, status, ai_evaluation
+             FROM candidate_sessions
+             WHERE interview_id = $1
+             ORDER BY created_at ASC`,
+            [id]
+        );
+
+        const candidates = candQuery.rows;
+
+        // 3️⃣ FORMAT DATA FOR CSV
+        const csvRows = candidates.map(c => ({
+            first_name: c.candidate_first_name || "",
+            last_name: c.candidate_last_name || "",
+            email: c.candidate_email,
+            department: c.department,
+            invited_at: c.created_at ? new Date(c.created_at).toISOString() : "",
+            status: c.status || "Invited",
+            ai_evaluation: c.ai_evaluation ? "Generated" : "Not Generated"
+        }));
+
+        // 4️⃣ ADD INTERVIEW METADATA AS TOP ROWS
+        const interviewHeader = [
+            { label: "Interview Title", value: interview.title },
+            { label: "Interview ID", value: interview.custom_interview_id },
+            { label: "Department", value: interview.department },
+            { label: "Date", value: interview.date },
+            { label: "Time", value: interview.time },
+            { label: "Job Description", value: (interview.job_description || "").replace(/\n/g, " ") }
+        ];
+
+        let metadataCSV = "Field,Value\n";
+        interviewHeader.forEach(row => {
+            metadataCSV += `${row.label},"${row.value}"\n`;
+        });
+
+        metadataCSV += "\n\n"; // separation from candidate data
+
+        // 5️⃣ GENERATE CSV USING json2csv
+        const csvParser = new Parser({
+            fields: ["first_name", "last_name", "email", "department", "invited_at", "status", "ai_evaluation"]
+        });
+
+        const candidateCSV = csvParser.parse(csvRows);
+
+        const finalCSV = metadataCSV + candidateCSV;
+
+        // 6️⃣ SEND FILE
+        const safeName = interview.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        res.header("Content-Type", "text/csv");
+        res.attachment(`${safeName}_interview_report.csv`);
+        res.send(finalCSV);
+
+    } catch (err) {
+        console.error("❌ Error generating interview CSV:", err);
+        res.status(500).json({ message: "Failed to generate CSV" });
+    }
+});
 
 // ========================
 // AI Candidate Evaluation (PostgreSQL + Cache)
