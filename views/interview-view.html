@@ -598,16 +598,10 @@ document.getElementById("download-report-btn").addEventListener("click", () => {
         return;
     }
 
-    const url = `/api/interview/${currentInterviewId}/download`;
-
-    // Force browser download
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    // Direct browser navigation triggers Excel file download
+    window.location.href = `/api/interview/${currentInterviewId}/download-excel`;
 });
+
 
 
     // --- Show More / Less buttons (unchanged) ---

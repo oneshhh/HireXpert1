@@ -16,6 +16,7 @@ const app = express();
 const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
+const ExcelJS = require("exceljs");
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -809,81 +810,170 @@ app.post("/schedule", async (req, res) => {
     }
 });
 
-app.get("/api/interview/:id/download", async (req, res) => {
+
+// Excel Export Route
+app.get("/api/interview/:id/download-excel", async (req, res) => {
     try {
         const { id } = req.params;
 
+        // -----------------------------------------
         // 1️⃣ FETCH INTERVIEW DETAILS
-        const interviewQuery = await pool.query(
+        // -----------------------------------------
+        const interviewRes = await pool.query(
             `SELECT title, custom_interview_id, date, time, department, job_description
              FROM interviews WHERE id = $1`,
             [id]
         );
 
-        if (interviewQuery.rows.length === 0) {
+        if (interviewRes.rows.length === 0)
             return res.status(404).json({ message: "Interview not found" });
-        }
 
-        const interview = interviewQuery.rows[0];
+        const interview = interviewRes.rows[0];
 
-        // 2️⃣ FETCH ALL CANDIDATES FOR THIS INTERVIEW
-        const candQuery = await pool.query(
-            `SELECT candidate_first_name, candidate_last_name, candidate_email, department,
-                    created_at, status, ai_evaluation
+        // -----------------------------------------
+        // 2️⃣ FETCH CANDIDATES
+        // -----------------------------------------
+        const candRes = await pool.query(
+            `SELECT candidate_first_name, candidate_last_name, candidate_email,
+                    department, created_at, status, ai_evaluation
              FROM candidate_sessions
              WHERE interview_id = $1
              ORDER BY created_at ASC`,
             [id]
         );
 
-        const candidates = candQuery.rows;
+        const candidates = candRes.rows;
 
-        // 3️⃣ FORMAT DATA FOR CSV
-        const csvRows = candidates.map(c => ({
-            first_name: c.candidate_first_name || "",
-            last_name: c.candidate_last_name || "",
-            email: c.candidate_email,
-            department: c.department,
-            invited_at: c.created_at ? new Date(c.created_at).toISOString() : "",
-            status: c.status || "Invited",
-            ai_evaluation: c.ai_evaluation ? "Generated" : "Not Generated"
-        }));
+        // -----------------------------------------
+        // 3️⃣ CREATE WORKBOOK
+        // -----------------------------------------
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet("Interview Report");
 
-        // 4️⃣ ADD INTERVIEW METADATA AS TOP ROWS
-        const interviewHeader = [
-            { label: "Interview Title", value: interview.title },
-            { label: "Interview ID", value: interview.custom_interview_id },
-            { label: "Department", value: interview.department },
-            { label: "Date", value: interview.date },
-            { label: "Time", value: interview.time },
-            { label: "Job Description", value: (interview.job_description || "").replace(/\n/g, " ") }
+        // -----------------------------------------
+        // 4️⃣ METADATA SECTION
+        // -----------------------------------------
+        const metadata = [
+            ["Interview Title", interview.title],
+            ["Interview ID", interview.custom_interview_id],
+            ["Department", interview.department],
+            ["Date", new Date(interview.date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric"
+            })],
+            ["Time", interview.time],
+            ["Job Description", interview.job_description || ""]
         ];
 
-        let metadataCSV = "Field,Value\n";
-        interviewHeader.forEach(row => {
-            metadataCSV += `${row.label},"${row.value}"\n`;
+        metadata.forEach(row => {
+            ws.addRow([row[0], row[1], "", "", "", "", ""]);
         });
 
-        metadataCSV += "\n\n"; // separation from candidate data
+        // Formatting metadata
+        for (let i = 1; i <= metadata.length; i++) {
+            ws.getCell(`A${i}`).font = { bold: true };
+            ws.getCell(`A${i}`).alignment = { wrapText: true };
+            ws.getCell(`B${i}`).alignment = { wrapText: true };
+        }
 
-        // 5️⃣ GENERATE CSV USING json2csv
-        const csvParser = new Parser({
-            fields: ["first_name", "last_name", "email", "department", "invited_at", "status", "ai_evaluation"]
+        // Add two blank rows for spacing
+        ws.addRow([]);
+        ws.addRow([]);
+
+        // -----------------------------------------
+        // 5️⃣ CANDIDATE TABLE HEADERS (formatted)
+        // -----------------------------------------
+        const headers = [
+            "First Name",
+            "Last Name",
+            "Email",
+            "Department",
+            "Invited At",
+            "Status",
+            "Rating",
+            "Summary",
+            "JD Match",
+            "Suitability",
+            "Strengths",
+            "Weaknesses"
+        ];
+
+        ws.addRow(headers);
+
+        const headerRow = ws.getRow(ws.lastRow.number);
+        headerRow.font = { bold: true };
+        headerRow.alignment = { wrapText: true };
+
+        // -----------------------------------------
+        // 6️⃣ CANDIDATE ROWS
+        // -----------------------------------------
+        candidates.forEach(c => {
+            let rating = "N/A";
+            let summary = "N/A";
+            let jd_match = "N/A";
+            let suitability = "N/A";
+            let strengths = "N/A";
+            let weaknesses = "N/A";
+
+            if (c.ai_evaluation) {
+                rating = c.ai_evaluation.rating ?? "N/A";
+                summary = c.ai_evaluation.summary || "N/A";
+                jd_match = c.ai_evaluation.jd_match || "N/A";
+                suitability = c.ai_evaluation.suitability || "N/A";
+
+                strengths = Array.isArray(c.ai_evaluation.strengths)
+                    ? c.ai_evaluation.strengths.join("; ")
+                    : "N/A";
+
+                weaknesses = Array.isArray(c.ai_evaluation.weaknesses)
+                    ? c.ai_evaluation.weaknesses.join("; ")
+                    : "N/A";
+            }
+
+            ws.addRow([
+                c.candidate_first_name,
+                c.candidate_last_name,
+                c.candidate_email,
+                c.department,
+                new Date(c.created_at).toLocaleString("en-US"),
+                c.status || "Invited",
+                rating,
+                summary,
+                jd_match,
+                suitability,
+                strengths,
+                weaknesses
+            ]);
         });
 
-        const candidateCSV = csvParser.parse(csvRows);
+        // -----------------------------------------
+        // 7️⃣ AUTO-FORMAT ALL COLUMNS
+        // -----------------------------------------
+        ws.columns.forEach(col => {
+            let maxLength = 20;
+            col.eachCell({ includeEmpty: true }, cell => {
+                const len = (cell.value ? cell.value.toString().length : 0) + 5;
+                if (len > maxLength) maxLength = len;
+            });
+            col.width = maxLength;
+            col.alignment = { wrapText: true };
+        });
 
-        const finalCSV = metadataCSV + candidateCSV;
-
-        // 6️⃣ SEND FILE
+        // -----------------------------------------
+        // 8️⃣ SEND FILE
+        // -----------------------------------------
         const safeName = interview.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-        res.header("Content-Type", "text/csv");
-        res.attachment(`${safeName}_interview_report.csv`);
-        res.send(finalCSV);
+
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", `attachment; filename="${safeName}_report.xlsx"`);
+
+        await wb.xlsx.write(res);
+        res.end();
 
     } catch (err) {
-        console.error("❌ Error generating interview CSV:", err);
-        res.status(500).json({ message: "Failed to generate CSV" });
+        console.error("Excel Export Error:", err);
+        res.status(500).json({ message: "Failed to generate Excel file." });
     }
 });
 
