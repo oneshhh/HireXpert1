@@ -825,23 +825,50 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
-        // 1️⃣ CHECK CACHE IN Postgres (your main DB)
-        const existingResult = await pool.query(
+        // 1️⃣ CHECK CACHE
+        const existing = await pool.query(
             `SELECT ai_used, ai_evaluation 
              FROM candidate_sessions 
              WHERE interview_id = $1 AND candidate_email = $2`,
             [interview_id, candidate_email]
         );
 
-        if (existingResult.rows.length > 0 && existingResult.rows[0].ai_used) {
+        if (existing.rows.length > 0 && existing.rows[0].ai_used) {
             return res.json({
-                evaluation: existingResult.rows[0].ai_evaluation,
+                evaluation: existing.rows[0].ai_evaluation,
                 from_cache: true
             });
         }
 
-        // 2️⃣ RUN AI GENERATION (same logic as before)
+        // 2️⃣ RUN AI WITH STRICT SCHEMA ENFORCEMENT
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+        const prompt = `
+You are an expert technical interviewer. Evaluate the candidate using the job description and transcripts.
+
+You MUST return ONLY valid JSON matching EXACTLY this schema:
+
+{
+  "rating": number (0–10),
+  "summary": string,
+  "jd_match": string,
+  "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
+  "strengths": string[],
+  "weaknesses": string[]
+}
+
+❗ DO NOT wrap inside any other object (no "evaluation_report", no "data", no "results").
+❗ DO NOT add extra fields.
+❗ DO NOT change key names.
+
+### JOB DESCRIPTION:
+${job_description}
+
+### TRANSCRIPTS:
+${transcripts
+    .map((t, i) => `Q${i + 1}: ${t.question}\nA${i + 1}: ${t.transcript}`)
+    .join("\n\n")}
+`;
 
         const aiResult = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
@@ -852,22 +879,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
                     contents: [
                         {
                             parts: [
-                                {
-                                    text: `
-You are an expert evaluator. Return ONLY JSON.
-
-### JOB DESCRIPTION:
-${job_description}
-
-### TRANSCRIPTS:
-${transcripts
-    .map(
-        (t, i) =>
-            `Q${i + 1}: ${t.question}\nA${i + 1}: ${t.transcript}`
-    )
-    .join("\n\n")}
-`
-                                }
+                                { text: prompt }
                             ]
                         }
                     ]
@@ -878,22 +890,33 @@ ${transcripts
         const aiJson = await aiResult.json();
 
         if (!aiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            console.error("Unexpected AI response:", aiJson);
-            return res.status(500).json({ message: "AI returned no text." });
+            return res.status(500).json({ message: "AI returned no text" });
         }
 
         let raw = aiJson.candidates[0].content.parts[0].text;
         let cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
         let evaluation;
+
+        // 3️⃣ PARSE & AUTO-FIX JSON SHAPE
         try {
             evaluation = JSON.parse(cleaned);
         } catch (err) {
-            console.error("JSON PARSE ERROR:", cleaned);
+            console.error("❌ JSON parse failed. Raw output:", cleaned);
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
-        // 3️⃣ STORE INTO Postgres
+        // AUTO-REPAIR FIELDS IF NEEDED
+        evaluation = {
+            rating: typeof evaluation.rating === "number" ? evaluation.rating : 0,
+            summary: evaluation.summary || "No summary provided.",
+            jd_match: evaluation.jd_match || "No JD match analysis provided.",
+            suitability: evaluation.suitability || "Average",
+            strengths: Array.isArray(evaluation.strengths) ? evaluation.strengths : [],
+            weaknesses: Array.isArray(evaluation.weaknesses) ? evaluation.weaknesses : []
+        };
+
+        // 4️⃣ STORE INTO DB
         await pool.query(
             `UPDATE candidate_sessions
              SET ai_used = TRUE,
@@ -913,7 +936,6 @@ ${transcripts
         return res.status(500).json({ message: "AI evaluation failed." });
     }
 });
-
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
