@@ -49,14 +49,13 @@ function setFormState(isLoading) {
 }
 
 // Event listener for the "Generate" button
+// Event listener for the "Generate" button
 generateBtn.addEventListener('click', async () => {
     const jobDescription = jobDescriptionEl.value.trim();
     const numQuestions = numQuestionsEl.value;
     const difficulty = difficultyEl.value;
 
-
     if (!jobDescription || numQuestions < 1) {
-        // UPDATED: Use the custom pop-up
         showNotification('Input Required', 'Please enter a job description and select the number of questions.', true);
         return;
     }
@@ -64,50 +63,50 @@ generateBtn.addEventListener('click', async () => {
     setFormState(true);
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        // ✅ Correct backend request
+        const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `Based on the following job description, generate ${numQuestions} technical interview questions at a "${difficulty}" difficulty level. Return ONLY a valid JSON array of strings, with each string being a question. Do not include any other text, formatting, or markdown backticks. \n\nJob Description: ${jobDescription}`
-                    }]
-                }]
+                jobDescription,
+                numQuestions,
+                difficulty
             })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`HTTP error! Status: ${response.status} - ${errorData.error.message}`);
+            throw new Error(errorData.error || `HTTP error: ${response.status}`);
         }
 
         const data = await response.json();
 
+        // ✅ Your backend returns the Gemini result directly
+        // Expected format:
+        // data.candidates[0].content.parts[0].text
         if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            throw new Error('Invalid API response format from the AI model.');
+            throw new Error("Invalid API response format from the AI model.");
         }
 
         const responseText = data.candidates[0].content.parts[0].text;
+
         const cleanJsonString = responseText
             .trim()
-            .replace(/^```json\n?/, '')
-            .replace(/```$/, '');
+            .replace(/^```json\n?/, "")
+            .replace(/```$/, "");
 
         const questionsArray = JSON.parse(cleanJsonString);
 
-        questionsContainer.innerHTML = '';
+        // CLEAR & ADD GENERATED QUESTIONS
+        questionsContainer.innerHTML = "";
         questionsArray.forEach(question => {
             addQuestion(question);
         });
 
     } catch (error) {
-        // UPDATED: Use the custom pop-up for errors
-        showNotification('Generation Error', error.message, true);
-        console.error('Generation Error:', error);
+        showNotification("Generation Error", error.message, true);
+        console.error("Generation Error:", error);
     } finally {
         setFormState(false);
     }
 });
-
