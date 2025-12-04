@@ -4,8 +4,6 @@ const numQuestionsEl = document.getElementById('num-questions');
 const questionsContainer = document.getElementById('questions-container');
 const difficultyEl = document.getElementById('difficulty');
 
-// This is the hardcoded API key from your file.
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // =================================================================
 // ===========        THIS IS THE CORRECTED FUNCTION        ===========
