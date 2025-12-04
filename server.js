@@ -938,7 +938,6 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
             }
 
             ws.addRow([
-                "", "", // placeholders to force data start at Column C
                 c.candidate_first_name,
                 c.candidate_last_name,
                 c.candidate_email,
