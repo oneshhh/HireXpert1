@@ -830,6 +830,14 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
 
         const interview = interviewRes.rows[0];
 
+        // Format time (clean)
+        const formattedTime = interview.time
+            ? new Date(`1970-01-01T${interview.time}Z`).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "numeric"
+              })
+            : "N/A";
+
         // -----------------------------------------
         // 2️⃣ FETCH CANDIDATES
         // -----------------------------------------
@@ -851,18 +859,15 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
         const ws = wb.addWorksheet("Interview Report");
 
         // -----------------------------------------
-        // 4️⃣ METADATA SECTION
+        // 4️⃣ METADATA SECTION (Formatted)
+        // 7 Columns Wide: A–G
         // -----------------------------------------
         const metadata = [
             ["Interview Title", interview.title],
             ["Interview ID", interview.custom_interview_id],
             ["Department", interview.department],
-            ["Date", new Date(interview.date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric"
-            })],
-            ["Time", interview.time],
+            ["Date", new Date(interview.date).toLocaleDateString("en-US")],
+            ["Time", formattedTime],
             ["Job Description", interview.job_description || ""]
         ];
 
@@ -870,21 +875,22 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
             ws.addRow([row[0], row[1], "", "", "", "", ""]);
         });
 
-        // Formatting metadata
+        // Apply formatting to metadata rows
         for (let i = 1; i <= metadata.length; i++) {
             ws.getCell(`A${i}`).font = { bold: true };
-            ws.getCell(`A${i}`).alignment = { wrapText: true };
-            ws.getCell(`B${i}`).alignment = { wrapText: true };
+            ws.getCell(`A${i}`).alignment = { wrapText: true, vertical: "top" };
+            ws.getCell(`B${i}`).alignment = { wrapText: true, vertical: "top" };
         }
 
-        // Add two blank rows for spacing
+        // Add spacing rows
         ws.addRow([]);
         ws.addRow([]);
 
         // -----------------------------------------
-        // 5️⃣ CANDIDATE TABLE HEADERS (formatted)
+        // 5️⃣ CANDIDATE HEADERS — START AT COLUMN C
         // -----------------------------------------
         const headers = [
+            "", "", // placeholders for col A + B
             "First Name",
             "Last Name",
             "Email",
@@ -932,6 +938,7 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
             }
 
             ws.addRow([
+                "", "", // placeholders to force data start at Column C
                 c.candidate_first_name,
                 c.candidate_last_name,
                 c.candidate_email,
@@ -948,16 +955,29 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
         });
 
         // -----------------------------------------
-        // 7️⃣ AUTO-FORMAT ALL COLUMNS
+        // 7️⃣ CONTROL COLUMN WIDTHS EXACTLY
         // -----------------------------------------
-        ws.columns.forEach(col => {
-            let maxLength = 20;
-            col.eachCell({ includeEmpty: true }, cell => {
-                const len = (cell.value ? cell.value.toString().length : 0) + 5;
-                if (len > maxLength) maxLength = len;
-            });
-            col.width = maxLength;
-            col.alignment = { wrapText: true };
+
+        // Metadata layout (A-B normal, C-G spacing)
+        ws.getColumn(1).width = 22; // Field label
+        ws.getColumn(2).width = 50; // Main metadata text
+        for (let col = 3; col <= 7; col++) {
+            ws.getColumn(col).width = 3; // spacing columns
+        }
+
+        // Candidate table (Columns C → N)
+        ws.columns.forEach((col, idx) => {
+            if (idx + 1 >= 3) {
+                let max = 15; // minimum width
+                col.eachCell({ includeEmpty: true }, cell => {
+                    const v = cell.value ? cell.value.toString() : "";
+                    const len = v.length + 2;
+                    if (len > max) max = len;
+                });
+                if (max > 40) max = 40; // cap width
+                col.width = max;
+                col.alignment = { wrapText: true, vertical: "top" };
+            }
         });
 
         // -----------------------------------------
