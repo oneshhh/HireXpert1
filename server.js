@@ -885,12 +885,8 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
         // Add spacing rows
         ws.addRow([]);
         ws.addRow([]);
-
-        // -----------------------------------------
-        // 5️⃣ CANDIDATE HEADERS — START AT COLUMN C
-        // -----------------------------------------
+        
         const headers = [
-            "", "", // placeholders for col A + B
             "First Name",
             "Last Name",
             "Email",
