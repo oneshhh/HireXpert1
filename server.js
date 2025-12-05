@@ -722,7 +722,7 @@ app.post("/schedule", async (req, res) => {
         
         await client.query('BEGIN');
 
-        let { title, questions, timeLimits, date, time, candidates, schedulerEmail, customIdText, jobDescription, schedulerIds } = req.body;
+        let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
 
         if (!customIdText) throw new Error("The custom Interview ID text is required.");
         if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
