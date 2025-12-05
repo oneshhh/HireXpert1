@@ -722,11 +722,11 @@ app.post("/schedule", async (req, res) => {
         
         await client.query('BEGIN');
 
-        let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
+    let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
 
-        if (!customIdText) throw new Error("The custom Interview ID text is required.");
-        if (!schedulerEmail) throw new Error("Your email for confirmation is required.");
-        if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
+    if (!customIdText) throw new Error("The custom Interview ID text is required.");
+    if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
+
 
         const now = new Date();
         const year = now.getFullYear().toString().slice(-2);
@@ -793,8 +793,6 @@ app.post("/schedule", async (req, res) => {
             console.log("📨 Sending email AFTER COMMIT:", cand.email);
             await sendInterviewEmail(cand.email, createdInterviewId, title, date, time);
         }
-
-        await sendSchedulerConfirmationEmail(schedulerEmail, title, date, time, createdCandidateRecords.map(c => c.email));
 
         return res.json({
             success: true,
