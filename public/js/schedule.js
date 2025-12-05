@@ -186,23 +186,28 @@ function addCandidateRow(first = "", last = "", email = "") {
 
     const row = document.createElement("tr");
 
-    row.innerHTML = `
+        row.innerHTML = `
         <td class="p-2">
-            <input value="${first}" type="text" class="first-name w-full border border-gray-300 rounded-md p-2" placeholder="First Name" required>
+            <input value="${first}" type="text"
+                    class="first-name w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="First Name" required>
         </td>
         <td class="p-2">
-            <input value="${last}" type="text" class="last-name w-full border border-gray-300 rounded-md p-2" placeholder="Last Name" required>
+            <input value="${last}" type="text"
+                    class="last-name w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Last Name" required>
         </td>
         <td class="p-2">
-            <input value="${email}" type="email" class="email w-full border border-gray-300 rounded-md p-2" placeholder="Email" required>
+            <input value="${email}" type="email"
+                    class="email w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Email Address" required>
         </td>
         <td class="p-2 text-center">
-            <button type="button" class="text-red-500 hover:text-red-700 remove-row">
-                <span class="material-symbols-outlined">delete</span>
+            <button type="button" class="text-slate-400 hover:text-red-500 remove-row transition">
+                <span class="material-symbols-outlined text-lg">delete</span>
             </button>
         </td>
-    `;
-
+        `;
     row.querySelector(".remove-row").onclick = () => row.remove();
 
     tbody.appendChild(row);
@@ -243,7 +248,6 @@ fileInput.addEventListener("change", () => {
 });
 
 
-// -------- FILE HANDLER --------
 function handleFile(file) {
     if (!file) return;
 
@@ -256,7 +260,11 @@ function handleFile(file) {
     } else {
         alert("Unsupported file format. Please upload CSV or Excel.");
     }
+
+    // IMPORTANT FIX
+    document.getElementById("file-input").value = "";
 }
+
 
 
 // -------- PARSE CSV --------
