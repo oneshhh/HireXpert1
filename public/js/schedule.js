@@ -530,7 +530,6 @@ function processImportedRows(rows) {
             time: `${hh}:${min}`,
             candidates: candidates,      // <-- now contains first, last, email
             candidateCodes: candidateCodes,
-            schedulerEmail: formData.get("schedulerEmail"),
             jobDescription: document.getElementById('real-job-description').value,
             schedulerIds: visitorReviewerIds
         };
