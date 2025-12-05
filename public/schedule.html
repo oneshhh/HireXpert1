@@ -95,37 +95,30 @@
 </div>
 </div>
 <div>
-    <div class="flex items-center justify-between mb-2">
-        <label class="text-sm font-medium text-[var(--text-primary)]" for="schedulerIds">
-            Assign Schedulers / Interviewers
-        </label>
+    <!-- ASSIGN SCHEDULERS CARD -->
+<div class="rounded-lg border border-gray-200 bg-white shadow-sm p-4 self-start">
 
-        <!-- Refresh Button -->
-        <button
-            type="button"
-            id="refresh-schedulers"
-            class="text-[var(--primary-color)] hover:text-blue-700 flex items-center gap-1"
-            title="Refresh Schedulers List"
-        >
-            <span class="material-symbols-outlined text-lg">refresh</span>
-        </button>
+    <h3 class="text-lg font-semibold text-slate-900 mb-4">Assign Schedulers</h3>
+
+    <!-- SEARCH BAR -->
+    <div class="relative mb-4">
+        <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
+        <input id="scheduler-search"
+               placeholder="Search team members..."
+               class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
     </div>
 
-    <select
-        id="schedulerIds"
-        name="schedulerIds"
-        multiple
-        required
-        class="w-full rounded-md border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-32"
-    >
-        <option disabled>Loading users...</option>
-    </select>
+    <!-- CUSTOM LIST -->
+    <div id="scheduler-list" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+        <!-- JS will populate users here -->
+    </div>
 
-    <p class="mt-1 text-xs text-[var(--text-secondary)]">
-        Select one or more users from your department. Hold Ctrl/Cmd to select multiple.
-    </p>
+    <!-- HIDDEN SELECT to keep schedule.js working -->
+    <select id="schedulerIds" name="schedulerIds" multiple class="hidden"></select>
+
+    <p class="text-xs text-slate-500 mt-3">Select one or more users.</p>
 </div>
-
+</div>
 
 <div>
 <!-- CSV Upload -->

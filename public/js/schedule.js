@@ -109,47 +109,100 @@ function addQuestion(questionText = '') {
 // --- [NEW] ---
 // This function now fetches VISITORS based on the selected department
 async function loadSchedulers(department) {
-    const schedulerSelect = document.getElementById('schedulerIds');
-    schedulerSelect.innerHTML = '<option disabled>Loading reviewers...</option>'; // Update text
+    const hiddenSelect = document.getElementById("schedulerIds");
+    const list = document.getElementById("scheduler-list");
+
+    // Reset UI
+    hiddenSelect.innerHTML = "";
+    list.innerHTML = `<p class="text-sm text-slate-500">Loading reviewers...</p>`;
 
     if (!department) {
-        schedulerSelect.innerHTML = '<option disabled>Please select an interview department first.</option>';
+        list.innerHTML = `<p class="text-sm text-slate-500">Please select an interview department first.</p>`;
         return;
     }
 
     try {
-        // Call the new API endpoint
         const response = await fetch(`/api/visitors/by-dept?department=${department}`);
+
         if (!response.ok) {
             if (response.status === 401) {
-                throw new Error('Your session may have expired. Please log in again.');
+                throw new Error("Your session may have expired. Please log in again.");
             }
-            throw new Error('Failed to load reviewers for this department.');
+            throw new Error("Failed to load reviewers for this department.");
         }
-        
+
         const visitors = await response.json();
-        schedulerSelect.innerHTML = ''; // Clear "Loading..."
+        list.innerHTML = "";
+        hiddenSelect.innerHTML = "";
 
         if (visitors.length === 0) {
-            schedulerSelect.innerHTML = `<option disabled>No reviewers found for ${department}.</option>`;
-        } else {
-            visitors.forEach(visitor => {
-                const option = document.createElement('option');
-                option.value = visitor.id; // Use visitor ID
-                option.textContent = `${visitor.first_name} ${visitor.last_name} (${visitor.email})`; // Show visitor info
-                schedulerSelect.appendChild(option);
-            });
+            list.innerHTML = `<p class="text-sm text-slate-500">No reviewers found for ${department}.</p>`;
+            return;
         }
+
+        visitors.forEach(visitor => {
+            const id = visitor.id;
+            const name = `${visitor.first_name} ${visitor.last_name}`;
+            const email = visitor.email;
+
+            // Generate initials
+            const initials =
+                visitor.first_name.charAt(0).toUpperCase() +
+                visitor.last_name.charAt(0).toUpperCase();
+
+            // Create list row
+            const row = document.createElement("div");
+            row.className =
+                "flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-100 transition";
+
+            row.innerHTML = `
+                <input type="checkbox"
+                       class="scheduler-checkbox h-4 w-4"
+                       data-id="${id}">
+
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center 
+                                text-indigo-700 font-semibold">
+                        ${initials}
+                    </div>
+
+                    <div class="text-sm">
+                        <p class="font-medium text-slate-800">${name}</p>
+                        <p class="text-slate-500 text-xs">${email}</p>
+                    </div>
+                </div>
+            `;
+
+            list.appendChild(row);
+
+            // Add hidden select option
+            const option = document.createElement("option");
+            option.value = id;
+            hiddenSelect.appendChild(option);
+
+            const checkbox = row.querySelector(".scheduler-checkbox");
+
+            // Toggle select option on click
+            checkbox.addEventListener("change", () => {
+                option.selected = checkbox.checked;
+            });
+
+            // Allow clicking whole row to toggle
+            row.addEventListener("click", (e) => {
+                if (e.target.tagName !== "INPUT") {
+                    checkbox.checked = !checkbox.checked;
+                    option.selected = checkbox.checked;
+                }
+            });
+        });
+
     } catch (error) {
-        console.error('Error loading schedulers:', error);
-        schedulerSelect.innerHTML = `<option disabled>Error loading reviewers.</option>`;
-        showNotification(
-            'Error', 
-            error.message, 
-            { isError: true }
-        );
+        console.error("Error loading schedulers:", error);
+        list.innerHTML = `<p class="text-sm text-red-500">Error loading reviewers.</p>`;
+        showNotification("Error", error.message, { isError: true });
     }
 }
+
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -338,6 +391,16 @@ function processImportedRows(rows) {
   }
 
   getActiveDepartmentAndLoadReviewers();
+
+  document.getElementById("scheduler-search").addEventListener("input", function () {
+    const value = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#scheduler-list > div");
+
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(value) ? "flex" : "none";
+    });
+});
 
   // --- Refresh schedulers button ---
     const refreshBtn = document.getElementById("refresh-schedulers");
