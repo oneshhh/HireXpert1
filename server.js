@@ -1144,7 +1144,7 @@ app.post("/api/interviews/bulk-update-status", async (req, res) => {
     }
 });
 
-app.post("/api/interviews/bulk-delete", async (req, res) => {
+/* app.post("/api/interviews/bulk-delete", async (req, res) => {
     const { interviewIds } = req.body;
     if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) { return res.status(400).json({ error: "interviewIds array is required." }); }
     const client = await pool.connect();
@@ -1160,7 +1160,17 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     } finally {
         client.release();
     }
-});
+});**/
+
+app.post("/api/interviews/bulk-delete", async (req, res) => {
+    const { interviewIds } = req.body;
+
+    console.log("Bulk Delete Called. interviewIds:", interviewIds);
+
+    if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) {
+        return res.status(400).json({ error: "interviewIds array is required." });
+    }
+
 
 app.get("/api/interviews", async (req, res) => {
     try {
