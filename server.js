@@ -1170,7 +1170,9 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) {
         return res.status(400).json({ error: "interviewIds array is required." });
     }
+});
 
+    
 
 app.get("/api/interviews", async (req, res) => {
     try {
