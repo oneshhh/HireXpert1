@@ -1146,18 +1146,49 @@ app.post("/api/interviews/bulk-update-status", async (req, res) => {
 
 app.post("/api/interviews/bulk-delete", async (req, res) => {
     const { interviewIds } = req.body;
-    if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) { return res.status(400).json({ error: "interviewIds array is required." }); }
+
+    console.log("Bulk Delete Called. interviewIds:", interviewIds);
+
+    if (!interviewIds || !Array.isArray(interviewIds) || interviewIds.length === 0) {
+        return res.status(400).json({ error: "interviewIds array is required." });
+    }
+
     const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
-        await client.query("DELETE FROM candidate_sessions WHERE interview_id = ANY($1::uuid[])", [interviewIds]);
-        await client.query("DELETE FROM interviews WHERE id = ANY($1::uuid[])", [interviewIds]);
+
+        // DELETE CHILD TABLES FIRST
+        await client.query(
+            "DELETE FROM interview_access_tokens WHERE interview_id = ANY($1::uuid[])",
+            [interviewIds]
+        );
+
+        await client.query(
+            "DELETE FROM candidate_sessions WHERE interview_id = ANY($1::uuid[])",
+            [interviewIds]
+        );
+
+        // NOW SAFE TO DELETE INTERVIEWS
+        await client.query(
+            "DELETE FROM interviews WHERE id = ANY($1::uuid[])",
+            [interviewIds]
+        );
+
         await client.query('COMMIT');
-        res.json({ success: true, message: `${interviewIds.length} interviews deleted.` });
+
+        res.json({
+            success: true,
+            message: `${interviewIds.length} interviews deleted.`
+        });
+
     } catch (err) {
         console.error("Bulk Delete Error:", err);
         await client.query('ROLLBACK');
-        res.status(500).json({ error: "Failed to delete interviews." });
+        res.status(500).json({
+            error: "Failed to delete interviews.",
+            details: err.message
+        });
     } finally {
         client.release();
     }
