@@ -247,6 +247,7 @@ router.get('/candidate/review/:token', async (req, res) => {
                 // ---- VIDEO URL ----
                 let videoUrl = null;
                 if (answer.raw_path && answer.status === 'ready') {
+                    console.log("RAW PATH:", answer.raw_path);
                     const { data, error } = await supabase_second_db.storage
                         .from('raw')
                         .createSignedUrl(answer.raw_path, 3600);
