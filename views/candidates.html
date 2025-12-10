@@ -78,11 +78,10 @@
         const res = await fetch(`/api/candidates/with-status?department=${department}`);
         const list = await res.json();
 
-        list.forEach(c => {
-            const link = c.candidateToken
-                ? `/candidate-review.html?token=${c.candidateToken}&interview_id=${c.interview_id}`
-                : "#";
-
+        if (!Array.isArray(list)) {
+            console.error("Expected array but got:", list);
+            return;
+        }
             const clickable = c.candidateToken ? "cursor-pointer text-blue-600 underline" : "text-gray-400";
 
             tableBody.innerHTML += `
