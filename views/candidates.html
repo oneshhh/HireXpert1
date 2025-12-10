@@ -69,38 +69,68 @@
 
 <script>
     // This function now takes the department as an argument
-    async function loadCandidates() {
-        const tableBody = document.getElementById("candidate-table-body");
-        tableBody.innerHTML = "";
+    async function loadCandidates(department, searchTerm = "") {
+        const tbody = document.getElementById("candidate-table-body");
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">Loading candidate data...</td></tr>`;
+        try {
+            let url = '/api/candidates/all';
+            const params = new URLSearchParams();
+            if (department) {
+                params.append('department', department);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
 
-        const department = new URLSearchParams(window.location.search).get("department");
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+            const candidates = await response.json();
+            tbody.innerHTML = "";
 
-        const res = await fetch(`/api/candidates/with-status?department=${department}`);
-        const list = await res.json();
+            if (candidates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-neutral-500">No candidates found for this department.</td></tr>`;
+                return;
+            }
 
-        if (!Array.isArray(list)) {
-            console.error("Expected array but got:", list);
-            return;
+            const formatDate = (dateString) => new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+            candidates.forEach(candidate => {
+                const tr = document.createElement("tr");
+                tr.classList.add("border-t", "border-neutral-200", "hover:bg-neutral-50", "transition-colors");
+
+                let statusColorClasses = "bg-blue-500/10 text-blue-600";
+                if (candidate.status.toLowerCase() === 'completed') {
+                    statusColorClasses = "bg-green-500/10 text-green-600";
+                } else if (candidate.status.toLowerCase() === 'started') {
+                    statusColorClasses = "bg-yellow-500/10 text-yellow-600";
+                }
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_first_name ?? ""} ${candidate.candidate_last_name ?? ""}</td>
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_email}</td>
+                    <td class="px-6 py-4 font-medium text-neutral-900 whitespace-nowrap">${candidate.candidate_code}</td>
+                    <td class="px-6 py-4 text-neutral-600">${candidate.interview_title}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColorClasses}">
+                            ${candidate.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-neutral-600">${formatDate(candidate.created_at)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error("Failed to load candidates:", error);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-500">Failed to load candidate data. Please try again.</td></tr>`;
         }
-            const clickable = c.candidateToken ? "cursor-pointer text-blue-600 underline" : "text-gray-400";
+    };
 
-            tableBody.innerHTML += `
-            <tr class="border-t hover:bg-neutral-50">
-                <td class="px-6 py-4 ${clickable}" onclick="if('${link}' !== '#') window.location.href='${link}'">
-                    ${c.candidate_first_name} ${c.candidate_last_name}
-                </td>
-                <td class="px-6 py-4">${c.candidate_email}</td>
-                <td class="px-6 py-4">${c.interview_title}</td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 rounded-full text-sm
-                        ${c.status === "Submitted" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}">
-                        ${c.status}
-                    </span>
-                </td>
-            </tr>
-            `;
-        });
-    }
     // This block runs when the page loads
     document.addEventListener('DOMContentLoaded', () => {
         // --- THIS IS THE NEW LOGIC ---
@@ -141,4 +171,3 @@
 
 </body>
 </html>
-
