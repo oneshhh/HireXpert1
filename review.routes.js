@@ -254,7 +254,6 @@ router.get('/candidate/review/:token', async (req, res) => {
                     if (error) console.error('Error creating signed URL:', error.message);
                     else videoUrl = data.signedUrl;
                 }
-
                                 // ---- TRANSCRIPT TEXT ----
                 let transcript_text = "Transcript not available.";
 
