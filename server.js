@@ -1046,32 +1046,51 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
 
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
-You are an expert interviewer. Evaluate the candidate using:
+        You are an expert technical interviewer and hiring intelligence system.
 
-1. Job Description
-2. Interview Transcript
-3. Resume Content
+        Evaluate the candidate using THREE sources of truth:
 
-Return ONLY valid JSON EXACTLY in this format:
+        1. Job Description (JD)
+        2. Interview Transcripts
+        3. Resume Text
 
-{
-  "rating": number,
-  "summary": string,
-  "jd_match": string,
-  "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
-  "strengths": string[],
-  "weaknesses": string[]
-}
+        You must produce a final weighted score based on:
 
-### JOB DESCRIPTION:
-${job_description}
+        - Resume Score = how well the resume demonstrates experience, skills, and relevance (weight: 40%)
+        - Transcript Score = how strong and coherent the candidate's interview responses are (weight: 40%)
+        - JD Match Score = how well the candidate aligns with the job requirements (weight: 20%)
 
-### TRANSCRIPTS:
-${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
+        Weighted Score Formula:
+        Final Rating = (ResumeScore * 0.40) + (TranscriptScore * 0.40) + (JDMatchScore * 0.20)
 
-### RESUME CONTENT:
-${resumeText}
-`;
+        Ensure:
+        - Each internal score is between 0–10.
+        - Final "rating" must be an integer between 0–10 (round to nearest whole number).
+        - Use the resume, transcript, and JD together to generate fair scoring.
+        - Provide 3 points each for strengths and weaknesses based on all sources.
+
+        Return ONLY valid JSON in EXACT format:
+
+        {
+        "rating": number,
+        "summary": string,
+        "jd_match": string,
+        "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
+        "strengths": string[],
+        "weaknesses": string[]
+        }
+
+        Do NOT return the individual subscores. Only use them to compute the final rating.
+
+        ### JOB DESCRIPTION:
+        ${job_description}
+
+        ### TRANSCRIPTS:
+        ${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
+
+        ### RESUME CONTENT:
+        ${resumeText}
+        `;
 
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 

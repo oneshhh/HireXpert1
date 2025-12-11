@@ -49,9 +49,6 @@ router.get("/interview/:id/submissions", async (req, res) => {
       .in("email", emails);
 
     if (metaErr) throw metaErr;
-
-    console.log("Candidates Meta:", candidatesMeta);
-
     // Extract tokens
     const tokens = (candidatesMeta || [])
       .map(c => c.candidate_token)
