@@ -24,6 +24,7 @@
     "json2csv": "^6.0.0-alpha.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.3",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.16.3",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.0"
