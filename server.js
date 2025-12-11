@@ -17,6 +17,7 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
+const pdfParse = require("pdf-parse");
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -254,7 +255,6 @@ async function generateCandidateCode(client, email, interviewId) {
     // 4. Build final candidate_code
     return `${month}/${year}/${number}/${initials}`;
 }
-
 
 
 // --- Viewer Initialization Route ---
@@ -993,12 +993,14 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
 // ========================
 // AI Candidate Evaluation (PostgreSQL + Cache)
 // ========================
+const pdfParse = require("pdf-parse");
+
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
-        const { interview_id, candidate_email, job_description, transcripts } = req.body;
+        const { interview_id, candidate_email, candidate_token, job_description, transcripts } = req.body;
 
-        if (!interview_id || !candidate_email) {
-            return res.status(400).json({ message: "Missing interview_id or candidate_email." });
+        if (!interview_id || !candidate_email || !candidate_token) {
+            return res.status(400).json({ message: "Missing interview_id, candidate_email or candidate_token." });
         }
 
         if (!job_description || !transcripts) {
@@ -1020,16 +1022,42 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             });
         }
 
-        // 2️⃣ RUN AI WITH STRICT SCHEMA ENFORCEMENT
-        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        // 2️⃣ FETCH RESUME PATH FROM DB_B USING candidate_token
+        const { data: candRow, error: candErr } = await supabase_second_db
+            .from("candidates")
+            .select("resume_path")
+            .eq("candidate_token", candidate_token)
+            .single();
 
+        let resumeText = "No resume available.";
+
+        // If a resume exists, download and extract
+        if (candRow?.resume_path) {
+            const resumePath = candRow.resume_path;
+
+            const { data: fileData, error: fileErr } = await supabase_second_storage
+                .from("resumes") // your bucket name
+                .download(resumePath);
+
+            if (!fileErr && fileData) {
+                const buffer = Buffer.from(await fileData.arrayBuffer());
+                const pdfData = await pdfParse(buffer);
+                resumeText = pdfData.text || "Could not extract resume text.";
+            }
+        }
+
+        // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
-You are an expert technical interviewer. Evaluate the candidate using the job description and transcripts.
+You are an expert interviewer. Evaluate the candidate using:
 
-You MUST return ONLY valid JSON matching EXACTLY this schema:
+1. Job Description
+2. Interview Transcript
+3. Resume Content
+
+Return ONLY valid JSON EXACTLY in this format:
 
 {
-  "rating": number (0–10),
+  "rating": number,
   "summary": string,
   "jd_match": string,
   "suitability": "Strong Fit" | "Good Fit" | "Average" | "Weak" | "No Fit",
@@ -1037,18 +1065,17 @@ You MUST return ONLY valid JSON matching EXACTLY this schema:
   "weaknesses": string[]
 }
 
-❗ DO NOT wrap inside any other object (no "evaluation_report", no "data", no "results").
-❗ DO NOT add extra fields.
-❗ DO NOT change key names.
-
 ### JOB DESCRIPTION:
 ${job_description}
 
 ### TRANSCRIPTS:
-${transcripts
-    .map((t, i) => `Q${i + 1}: ${t.question}\nA${i + 1}: ${t.transcript}`)
-    .join("\n\n")}
+${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
+
+### RESUME CONTENT:
+${resumeText}
 `;
+
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
         const aiResult = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
@@ -1057,11 +1084,7 @@ ${transcripts
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     contents: [
-                        {
-                            parts: [
-                                { text: prompt }
-                            ]
-                        }
+                        { parts: [{ text: prompt }] }
                     ]
                 })
             }
@@ -1077,26 +1100,24 @@ ${transcripts
         let cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
         let evaluation;
-
-        // 3️⃣ PARSE & AUTO-FIX JSON SHAPE
         try {
             evaluation = JSON.parse(cleaned);
         } catch (err) {
-            console.error("❌ JSON parse failed. Raw output:", cleaned);
+            console.error("JSON PARSE ERROR:", cleaned);
             return res.status(500).json({ message: "AI returned invalid JSON." });
         }
 
-        // AUTO-REPAIR FIELDS IF NEEDED
+        // Normalize values
         evaluation = {
-            rating: typeof evaluation.rating === "number" ? evaluation.rating : 0,
+            rating: evaluation.rating ?? 0,
             summary: evaluation.summary || "No summary provided.",
-            jd_match: evaluation.jd_match || "No JD match analysis provided.",
+            jd_match: evaluation.jd_match || "No JD match provided.",
             suitability: evaluation.suitability || "Average",
             strengths: Array.isArray(evaluation.strengths) ? evaluation.strengths : [],
             weaknesses: Array.isArray(evaluation.weaknesses) ? evaluation.weaknesses : []
         };
 
-        // 4️⃣ STORE INTO DB
+        // 4️⃣ STORE INTO POSTGRES
         await pool.query(
             `UPDATE candidate_sessions
              SET ai_used = TRUE,
@@ -1106,16 +1127,17 @@ ${transcripts
             [evaluation, interview_id, candidate_email]
         );
 
-        return res.json({
+        res.json({
             evaluation,
             from_cache: false
         });
 
     } catch (err) {
         console.error("❌ AI Evaluation Error:", err);
-        return res.status(500).json({ message: "AI evaluation failed." });
+        res.status(500).json({ message: "AI evaluation failed." });
     }
 });
+
 
 app.get("/api/interviews/counts", async (req, res) => {
     try {
