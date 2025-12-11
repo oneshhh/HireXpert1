@@ -993,8 +993,6 @@ app.get("/api/interview/:id/download-excel", async (req, res) => {
 // ========================
 // AI Candidate Evaluation (PostgreSQL + Cache)
 // ========================
-const pdfParse = require("pdf-parse");
-
 app.post("/api/ai/evaluate-candidate", async (req, res) => {
     try {
         const { interview_id, candidate_email, candidate_token, job_description, transcripts } = req.body;
