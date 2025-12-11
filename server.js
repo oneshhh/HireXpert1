@@ -1021,7 +1021,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         }
 
         // 2️⃣ FETCH RESUME PATH FROM DB_B USING candidate_token
-        const { data: candRow, error: candErr } = await supabase_second_db
+        const { data: candRow, error: candErr } = await supabase_second_db_service
             .from("candidates")
             .select("resume_path")
             .eq("candidate_token", candidate_token)
@@ -1033,7 +1033,7 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         if (candRow?.resume_path) {
             const resumePath = candRow.resume_path;
 
-            const { data: fileData, error: fileErr } = await supabase_second_storage
+            const { data: fileData, error: fileErr } = await supabase_second_db_service.storage
                 .from("resumes") // your bucket name
                 .download(resumePath);
 
