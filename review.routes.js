@@ -251,7 +251,7 @@ router.get('/candidate/review/:token', async (req, res) => {
                     if (error) console.error('Error creating signed URL:', error.message);
                     else videoUrl = data.signedUrl;
                 }
-                                // ---- TRANSCRIPT TEXT ----
+                // ---- TRANSCRIPT TEXT ----
                 let transcript_text = "Transcript not available.";
 
                 if (answer.transcript_path) {
@@ -259,13 +259,16 @@ router.get('/candidate/review/:token', async (req, res) => {
                         // Clean CRLF and extra spaces
                         let cleanPath = answer.transcript_path.trim();
 
-                        // Your real file is inside /processed/ folder inside transcripts bucket
-                        const fullPath = `processed/${cleanPath}`;
+                        // Remove accidental leading bucket name if present
+                        cleanPath = cleanPath.replace(/^transcripts\//, "");
+
+                        // The path in your database is already the correct internal path
+                        const finalPath = cleanPath;
 
                         const { data: signed, error: signedError } =
                             await supabase_second_db.storage
                                 .from('transcripts')       // correct bucket
-                                .createSignedUrl(fullPath, 3600);
+                                .createSignedUrl(finalPath, 3600);
 
                         if (signedError) {
                             console.error("Transcript signed URL error:", signedError.message);
@@ -277,7 +280,6 @@ router.get('/candidate/review/:token', async (req, res) => {
                         console.error("Transcript fetch failed:", err);
                     }
                 }
-
                 return {
                     ...answer,
                     question_text,
