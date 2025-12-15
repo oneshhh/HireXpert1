@@ -26,6 +26,8 @@ app.use(express.static("public"));
 const allowedOrigins = [
   "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
+  "http://62.72.29.77:3010",                    // local testing on VPS
+
 ];
 
 // 3. Token-Based Interview Setup Route
@@ -179,6 +181,37 @@ function requireApiKey(req, res, next) {
     return res.status(403).json({ error: "Forbidden: Invalid API Key" });
   }
   next();
+}
+// ===============================
+// DASHBOARD ACCESS MIDDLEWARE
+// ===============================
+function requireDashboardAccess(department) {
+  return (req, res, next) => {
+    if (!req.session.user) {
+      return res.redirect('/');
+    }
+
+    const { departments, activeDepartment } = req.session.user;
+
+    // Admin can access everything
+    if (departments.includes('Admin')) {
+      return next();
+    }
+
+    // Must have department AND must be active
+    if (
+      departments.includes(department) &&
+      activeDepartment === department
+    ) {
+      return next();
+    }
+
+    return res.status(403).send(`
+      <h1>403 Forbidden</h1>
+      <p>You do not have access to ${department} dashboard.</p>
+      <a href="/">Login again</a>
+    `);
+  };
 }
 
 // --- PUBLIC EXTERNAL INTERVIEW API (API-KEY PROTECTED) ---
@@ -499,9 +532,31 @@ app.get("/logout", (req, res) => {
 
 });
 
-app.get("/HR_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html")); });
-app.get("/PMO_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html")); });
-app.get("/GTA_Dashboard.html", (req, res) => { res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html")); });
+// Dashboard Routes with Access Control
+app.get(
+  "/HR_Dashboard.html",
+  requireDashboardAccess("HR"),
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "HR_Dashboard.html"));
+  }
+);
+
+app.get(
+  "/PMO_Dashboard.html",
+  requireDashboardAccess("PMO"),
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "PMO_Dashboard.html"));
+  }
+);
+
+app.get(
+  "/GTA_Dashboard.html",
+  requireDashboardAccess("GTA"),
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "GTA_Dashboard.html"));
+  }
+);
+
 app.get("/admin_Dashboard.html", (req, res) => {
     if (req.session.user?.activeDepartment === 'Admin') {
         return res.sendFile(path.join(__dirname, "views", "admin_Dashboard.html"));
