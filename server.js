@@ -25,10 +25,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const allowedOrigins = [
-  "http://localhost:3010",
-  "http://62.72.29.77",
-  "http://62.72.29.77:3010",
-  "https://hirexpert.onrender.com"
+  "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
+  "https://candidateportal1.onrender.com",     // external application   abhishek 
+  "http://62.72.29.77:3010",                    // local testing on VPS
+
 ];
 
 
