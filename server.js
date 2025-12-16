@@ -23,12 +23,14 @@ app.use(express.json());
 app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-const allowedOrigins = [
-  "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
-  "https://candidateportal1.onrender.com",     // external application   abhishek 
-  "http://62.72.29.77:3010",                    // local testing on VPS
 
+const allowedOrigins = [
+  "http://localhost:3010",
+  "http://62.72.29.77",
+  "http://62.72.29.77:3010",
+  "https://hirexpert.onrender.com"
 ];
+
 
 // 3. Token-Based Interview Setup Route
 app.get(
@@ -170,7 +172,7 @@ app.use(cookieSession({
   name: 'session',
   keys: ['secret1', 'secret2'],
   sameSite: 'lax',     // ✅ allows same-site requests
-  secure: process.env.NODE_ENV === 'production',  // ✅ safe for both local + live
+  secure: false,  // ✅ safe for both local + live
   maxAge: 24 * 60 * 60 * 1000                    // 1 day
 }));
 
