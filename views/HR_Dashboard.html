@@ -340,6 +340,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBar = document.getElementById('search-bar');
 const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
 const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+// --- TAB SWITCHING (FIX FOR CLOSED POSITIONS) ---
+const openTab = document.getElementById('open-positions-tab');
+const closedTab = document.getElementById('closed-positions-tab');
+
+function switchTab(newStatus) {
+    currentStatusFilter = newStatus;
+
+    openTab.classList.toggle('tab-active', newStatus === 'open');
+    closedTab.classList.toggle('tab-active', newStatus === 'closed');
+
+    selectedInterviewIds.clear();
+    updateBulkActionBar();
+    fetchAndRenderInterviews();
+}
+
+openTab.addEventListener('click', () => switchTab('open'));
+closedTab.addEventListener('click', () => switchTab('closed'));
+
 
   confirmBtn.addEventListener('click', () => {
       if (typeof window._confirmCallback === 'function') window._confirmCallback();
