@@ -531,8 +531,6 @@ app.get("/logout", (req, res) => {
     res.clearCookie('session');
     // Redirect to the login page
     res.redirect('/');
-    window.location.href = "/";
-
 });
 
 // Dashboard Routes with Access Control
@@ -1074,12 +1072,17 @@ console.log(`[AI-EVAL ${requestId}] Started`);
             [interview_id, candidate_email]
         );
 
-        if (existing.rows.length > 0 && existing.rows[0].ai_used) {
+        if (
+            existing.rows.length > 0 &&
+            existing.rows[0].ai_used &&
+            existing.rows[0].ai_evaluation
+        ) {
             return res.json({
                 evaluation: existing.rows[0].ai_evaluation,
                 from_cache: true
             });
         }
+
 
         // 2️⃣ FETCH RESUME PATH FROM DB_B USING candidate_token
         const { data: candRow, error: candErr } = await supabase_second_db_service
@@ -1098,65 +1101,57 @@ console.log(`[AI-EVAL ${requestId}] Started`);
             console.log(`[AI-EVAL ${requestId}] Resume path found:`, candRow.resume_path);
         }
 
-        let resumeText = "";
-        let resumeStatus = "missing";
+let resumeText = "";
+let resumeStatus = "missing";
 
-        if (candRow?.resume_path) {
-            const resumePath = candRow.resume_path;
-            const { data: fileData, error: fileErr } =
-                await supabase_second_db_service.storage
-                    .from("resumes")
-                    .download(resumePath);
+if (candRow?.resume_path) {
+    const resumePath = candRow.resume_path;
+    console.log(`[AI-EVAL ${requestId}] Attempting resume download`);
 
-            if (fileErr) {
-                console.error(`[AI-EVAL ${requestId}] Resume download failed:`, fileErr);
-            } else if (!fileData) {
-                console.error(`[AI-EVAL ${requestId}] Resume download returned EMPTY file`);
+    try {
+        const { data: fileData, error: fileErr } =
+            await supabase_second_db_service.storage
+                .from("resumes")
+                .download(resumePath);
+
+        if (fileErr) {
+            console.error(`[AI-EVAL ${requestId}] Resume download failed`, fileErr);
+            resumeStatus = "unreadable";
+        } else if (!fileData) {
+            console.error(`[AI-EVAL ${requestId}] Resume download returned empty file`);
+            resumeStatus = "unreadable";
+        } else {
+            console.log(`[AI-EVAL ${requestId}] Resume downloaded`);
+
+            const buffer = Buffer.from(await fileData.arrayBuffer());
+            console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
+
+            const pdfData = await pdfParse(buffer);
+
+            console.log(`[AI-EVAL ${requestId}] PDF pages`, pdfData.numpages);
+            console.log(
+                `[AI-EVAL ${requestId}] Extracted text length`,
+                pdfData.text?.length || 0
+            );
+
+            if (pdfData.text && pdfData.text.trim().length > 50) {
+                resumeText = pdfData.text;
+                resumeStatus = "available";
+                console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
             } else {
-                console.log(
-                    `[AI-EVAL ${requestId}] Resume downloaded successfully`
-                );
+                resumeStatus = "unreadable";
+                console.warn(`[AI-EVAL ${requestId}] Resume text too short`);
             }
-
-
-            if (!fileErr && fileData) {
-                   try {
-                        const buffer = Buffer.from(await fileData.arrayBuffer());
-                        console.log(`[AI-EVAL ${requestId}] Resume buffer size:`, buffer.length);
-
-                        const pdfData = await pdfParse(buffer);
-                            console.log(
-                                `[AI-EVAL ${requestId}] PDF pages:`,
-                                pdfData.numpages
-                            );
-
-                            console.log(
-                                `[AI-EVAL ${requestId}] Extracted text length:`,
-                                pdfData.text?.length || 0
-                            );
-
-                            if (pdfData.text && pdfData.text.trim().length > 50) {
-                                resumeText = pdfData.text;
-                                resumeStatus = "available";
-                                console.log(`[AI-EVAL ${requestId}] Resume parsed SUCCESSFULLY`);
-                        } else {
-                            resumeStatus = "unreadable";
-                            console.warn(`[AI-EVAL ${requestId}] Resume parsed but text too short`);
-                        }
-                            } catch (err) {
-                            console.error(`[AI-EVAL ${requestId}] PDF parse exception:`, err);
-                            resumeStatus = "unreadable";
-                        }
-
-console.log(`[AI-EVAL ${requestId}] Final resumeStatus:`, resumeStatus);
-if (resumeStatus === "available") {
-    console.log(
-        `[AI-EVAL ${requestId}] Resume preview:`,
-        resumeText.slice(0, 300)
-    );
+        }
+    } catch (err) {
+        console.error(`[AI-EVAL ${requestId}] Resume processing error`, err);
+        resumeStatus = "unreadable";
+    }
 }
 
-
+console.log(
+    `[AI-EVAL ${requestId}] Final resumeStatus=${resumeStatus}, resumeTextLength=${resumeText.length}`
+);
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
         You are an expert technical interviewer and hiring intelligence system.
