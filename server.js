@@ -20,23 +20,7 @@ const ExcelJS = require("exceljs");
 
 // PDF parsing library
 const mammoth = require("mammoth");
-// ---------------- PDF PARSE (NODE 22 SAFE) ----------------
-const pdfParseModule = require("pdf-parse");
-
-let pdfParse;
-
-if (typeof pdfParseModule === "function") {
-    pdfParse = pdfParseModule;
-} else if (typeof pdfParseModule?.default === "function") {
-    pdfParse = pdfParseModule.default;
-} else if (typeof pdfParseModule?.default?.default === "function") {
-    pdfParse = pdfParseModule.default.default;
-} else {
-    throw new Error("pdf-parse could not be resolved to a function");
-}
-
-console.log("[BOOT] pdfParse resolved as function:", typeof pdfParse === "function");
-
+const pdfParse = require("pdf-parse");
 
 // Middleware
 app.use(express.json());
