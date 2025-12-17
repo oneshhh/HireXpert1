@@ -374,6 +374,29 @@
   </div>
 
   <script>
+  function updateGlobalStatusBadge(status) {
+    const el = document.getElementById('global-status');
+    if (!el) return;
+
+    const value = status || 'To Evaluate';
+    el.textContent = value;
+
+    // reset styles
+    el.className =
+      'text-sm font-semibold px-4 py-2 rounded-full';
+
+    // color mapping
+    if (value === 'Evaluated') {
+      el.classList.add('bg-green-100', 'text-green-800');
+    } else if (value === 'Discarded') {
+      el.classList.add('bg-red-100', 'text-red-800');
+    } else {
+      el.classList.add('bg-gray-100', 'text-gray-800');
+    }
+  }
+
+
+
   const urlParams = new URLSearchParams(window.location.search);
   window.candidateToken = urlParams.get("token");
 
@@ -813,7 +836,12 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
             if (myUserId) {
               myReviewData = allReviews.find(r => r.user_id === myUserId || r.viewer_id === myUserId) || null;
             }
-
+            // ✅ Set global status from my evaluation if available
+            if (myReviewData && myReviewData.status) {
+              updateGlobalStatusBadge(myReviewData.status);
+            } else {
+              updateGlobalStatusBadge('To Evaluate');
+            }
             // sort to put my review on top if present
             const reviews = Array.isArray(allReviews) ? allReviews.slice() : [];
             if (myUserId) {
@@ -1017,9 +1045,6 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
                 codeEl.classList.add('hidden');
             }
             }
-
-            // page title & global status (unchanged)
-            document.getElementById('global-status').textContent = data.candidate.status || 'To Evaluate';
 
             // populate answers
             answersContainer.innerHTML = '';
