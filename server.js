@@ -113,7 +113,7 @@ app.post("/api/consume-token", async (req, res) => {
 
     } catch (err) {
         console.error("Token consume error:", err);
-        res.status(500).json({ error: "SERVER_ERROR" });
+        return res.status(500).json({ error: "SERVER_ERROR" });
     }
 });
 app.get(
@@ -410,6 +410,7 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         subject: `CONFIRMATION: Interview Scheduled for ${title}`,
         html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>`,
     };
+    
     try {
         await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
@@ -779,7 +780,7 @@ app.post("/schedule", async (req, res) => {
         
         await client.query('BEGIN');
 
-    let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
+        let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
 
     if (!customIdText) throw new Error("The custom Interview ID text is required.");
     if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
@@ -1102,31 +1103,58 @@ console.log(`[AI-EVAL ${requestId}] Started`);
 
         if (candRow?.resume_path) {
             const resumePath = candRow.resume_path;
-
             const { data: fileData, error: fileErr } =
                 await supabase_second_db_service.storage
                     .from("resumes")
                     .download(resumePath);
 
-            if (!fileErr && fileData) {
-                try {
-                    const buffer = Buffer.from(await fileData.arrayBuffer());
-                    const pdfData = await pdfParse(buffer);
-
-                    if (pdfData.text && pdfData.text.trim().length > 50) {
-                        resumeText = pdfData.text;
-                        resumeStatus = "available";
-                    } else {
-                        resumeStatus = "unreadable";
-                    }
-                } catch (err) {
-                    console.error("PDF parse failed:", err);
-                    resumeStatus = "unreadable";
-                }
+            if (fileErr) {
+                console.error(`[AI-EVAL ${requestId}] Resume download failed:`, fileErr);
+            } else if (!fileData) {
+                console.error(`[AI-EVAL ${requestId}] Resume download returned EMPTY file`);
             } else {
-                resumeStatus = "unreadable";
+                console.log(
+                    `[AI-EVAL ${requestId}] Resume downloaded successfully`
+                );
             }
-        }
+
+
+            if (!fileErr && fileData) {
+                   try {
+                        const buffer = Buffer.from(await fileData.arrayBuffer());
+                        console.log(`[AI-EVAL ${requestId}] Resume buffer size:`, buffer.length);
+
+                        const pdfData = await pdfParse(buffer);
+                            console.log(
+                                `[AI-EVAL ${requestId}] PDF pages:`,
+                                pdfData.numpages
+                            );
+
+                            console.log(
+                                `[AI-EVAL ${requestId}] Extracted text length:`,
+                                pdfData.text?.length || 0
+                            );
+
+                            if (pdfData.text && pdfData.text.trim().length > 50) {
+                                resumeText = pdfData.text;
+                                resumeStatus = "available";
+                                console.log(`[AI-EVAL ${requestId}] Resume parsed SUCCESSFULLY`);
+                        } else {
+                            resumeStatus = "unreadable";
+                            console.warn(`[AI-EVAL ${requestId}] Resume parsed but text too short`);
+                        }
+                            } catch (err) {
+                            console.error(`[AI-EVAL ${requestId}] PDF parse exception:`, err);
+                            resumeStatus = "unreadable";
+                        }
+
+console.log(`[AI-EVAL ${requestId}] Final resumeStatus:`, resumeStatus);
+if (resumeStatus === "available") {
+    console.log(
+        `[AI-EVAL ${requestId}] Resume preview:`,
+        resumeText.slice(0, 300)
+    );
+}
 
 
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
@@ -1528,7 +1556,6 @@ app.post("/api/visitors/add", async (req, res) => {
         });
 
     } catch (error) {
-// ... (rest of the function is the same)
         console.error("Error creating visitor:", error);
         if (error.code === '23505') { // Unique constraint (email)
             return res.status(409).json({ message: "A visitor with this email already exists." });
