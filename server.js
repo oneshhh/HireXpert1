@@ -17,7 +17,11 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
+
+// PDF parsing library
+const mammoth = require("mammoth");
 const pdfParse = require("pdf-parse");
+
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -113,7 +117,7 @@ app.post("/api/consume-token", async (req, res) => {
 
     } catch (err) {
         console.error("Token consume error:", err);
-        res.status(500).json({ error: "SERVER_ERROR" });
+        return res.status(500).json({ error: "SERVER_ERROR" });
     }
 });
 app.get(
@@ -410,6 +414,7 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         subject: `CONFIRMATION: Interview Scheduled for ${title}`,
         html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>`,
     };
+    
     try {
         await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
@@ -530,8 +535,6 @@ app.get("/logout", (req, res) => {
     res.clearCookie('session');
     // Redirect to the login page
     res.redirect('/');
-    window.location.href = "/";
-
 });
 
 // Dashboard Routes with Access Control
@@ -779,7 +782,7 @@ app.post("/schedule", async (req, res) => {
         
         await client.query('BEGIN');
 
-    let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
+        let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
 
     if (!customIdText) throw new Error("The custom Interview ID text is required.");
     if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
@@ -1062,6 +1065,9 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
+const requestId = `${candidate_token}-${Date.now()}`;
+console.log(`[AI-EVAL ${requestId}] Started`);
+
         // 1️⃣ CHECK CACHE
         const existing = await pool.query(
             `SELECT ai_used, ai_evaluation 
@@ -1070,12 +1076,17 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             [interview_id, candidate_email]
         );
 
-        if (existing.rows.length > 0 && existing.rows[0].ai_used) {
+        if (
+            existing.rows.length > 0 &&
+            existing.rows[0].ai_used &&
+            existing.rows[0].ai_evaluation
+        ) {
             return res.json({
                 evaluation: existing.rows[0].ai_evaluation,
                 from_cache: true
             });
         }
+
 
         // 2️⃣ FETCH RESUME PATH FROM DB_B USING candidate_token
         const { data: candRow, error: candErr } = await supabase_second_db_service
@@ -1084,22 +1095,102 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             .eq("candidate_token", candidate_token)
             .single();
 
-        let resumeText = "No resume available.";
+        if (candErr) {
+            console.error(`[AI-EVAL ${requestId}] Supabase DB error:`, candErr);
+        } else if (!candRow) {
+            console.warn(`[AI-EVAL ${requestId}] No candidate row found for token`);
+        } else if (!candRow.resume_path) {
+            console.warn(`[AI-EVAL ${requestId}] Candidate has NO resume_path`);
+        } else {
+            console.log(`[AI-EVAL ${requestId}] Resume path found:`, candRow.resume_path);
+        }
 
-        // If a resume exists, download and extract
+        let resumeText = "";
+        let resumeStatus = "missing";
+
         if (candRow?.resume_path) {
             const resumePath = candRow.resume_path;
 
-            const { data: fileData, error: fileErr } = await supabase_second_db_service.storage
-                .from("resumes") // your bucket name
-                .download(resumePath);
+            // 🔧 FIX: normalize object path (remove bucket prefix if present)
+            const normalizedPath = resumePath.replace(/^resumes\//, "");
 
-            if (!fileErr && fileData) {
+            if (resumePath !== normalizedPath) {
+                console.warn(
+                    `[AI-EVAL ${requestId}] Normalizing resume path: ${resumePath} → ${normalizedPath}`
+                );
+            }
+
+            console.log(`[AI-EVAL ${requestId}] Attempting resume download`);
+
+            try {
+                const { data: fileData, error: fileErr } =
+                    await supabase_second_db_service.storage
+                        .from("resumes") // bucket name
+                        .download(normalizedPath); // ✅ FIXED
+
+                if (fileErr) {
+                    console.error(`[AI-EVAL ${requestId}] Resume download failed`, fileErr);
+                    resumeStatus = "unreadable";
+                } else if (!fileData) {
+                    console.error(`[AI-EVAL ${requestId}] Resume download returned empty file`);
+                    resumeStatus = "unreadable";
+                } else {
+                    console.log(`[AI-EVAL ${requestId}] Resume downloaded`);
+
                 const buffer = Buffer.from(await fileData.arrayBuffer());
-                const pdfData = await pdfParse(buffer);
-                resumeText = pdfData.text || "Could not extract resume text.";
+                console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
+
+                // detect file type using normalized path
+                const lowerPath = normalizedPath.toLowerCase();
+
+                let extractedText = "";
+
+                if (lowerPath.endsWith(".pdf")) {
+                    // ✅ PDF parsing
+                    const pdfData = await pdfParse(buffer);
+                    extractedText = pdfData.text || "";
+
+                    console.log(
+                        `[AI-EVAL ${requestId}] PDF extracted text length`,
+                        extractedText.length
+                    );
+
+                } else if (lowerPath.endsWith(".docx")) {
+                    // ✅ DOCX parsing
+                    const docxResult = await mammoth.extractRawText({ buffer });
+                    extractedText = docxResult.value || "";
+
+                    console.log(
+                        `[AI-EVAL ${requestId}] DOCX extracted text length`,
+                        extractedText.length
+                    );
+
+                } else {
+                    console.warn(
+                        `[AI-EVAL ${requestId}] Unsupported resume format: ${lowerPath}`
+                    );
+                    resumeStatus = "unreadable";
+                }
+
+                // common validation
+                if (extractedText.trim().length > 50) {
+                    resumeText = extractedText;
+                    resumeStatus = "available";
+                    console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
+                } else {
+                    resumeStatus = "unreadable";
+                    console.warn(`[AI-EVAL ${requestId}] Resume text too short or empty`);
+                }
+                }
+            } catch (err) {
+                console.error(`[AI-EVAL ${requestId}] Resume processing error`, err);
+                resumeStatus = "unreadable";
             }
         }
+
+console.log(
+    `[AI-EVAL ${requestId}] Final resumeStatus=${resumeStatus}, resumeTextLength=${resumeText.length}`
+);
 
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
@@ -1116,6 +1207,20 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         - Resume Score = how well the resume demonstrates experience, skills, and relevance (weight: 40%)
         - Transcript Score = how strong and coherent the candidate's interview responses are (weight: 40%)
         - JD Match Score = how well the candidate aligns with the job requirements (weight: 20%)
+
+        IMPORTANT SCORING RULES:
+        - If RESUME STATUS = "available":
+        Use resume normally in scoring (40% weight).
+
+        - If RESUME STATUS = "unreadable":
+        DO NOT penalize the candidate.
+        Redistribute the resume weight proportionally to:
+            - Transcript (60%)
+            - JD Match (40%)
+
+        - If RESUME STATUS = "missing":
+        Resume weight applies normally and may reduce score.
+
 
         Weighted Score Formula:
         Final Rating = (ResumeScore * 0.40) + (TranscriptScore * 0.40) + (JDMatchScore * 0.20)
@@ -1145,8 +1250,13 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         ### TRANSCRIPTS:
         ${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
 
+        ### RESUME STATUS:
+        ${resumeStatus}
+
         ### RESUME CONTENT:
-        ${resumeText}
+        ${resumeStatus === "available"
+            ? resumeText
+            : "Resume exists but could not be reliably parsed. DO NOT penalize the candidate for missing resume content."}
         `;
 
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -1481,7 +1591,6 @@ app.post("/api/visitors/add", async (req, res) => {
         });
 
     } catch (error) {
-// ... (rest of the function is the same)
         console.error("Error creating visitor:", error);
         if (error.code === '23505') { // Unique constraint (email)
             return res.status(409).json({ message: "A visitor with this email already exists." });
