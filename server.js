@@ -1350,6 +1350,69 @@ app.post("/api/interviews/bulk-update-status", async (req, res) => {
     }
 });
 
+    async function deleteInterviewStorageFromDBB(interviewId) {
+    // 1. Collect resume paths
+    const { data: candidates, error: candErr } =
+        await supabase_second_db
+        .from("candidates")
+        .select("resume_path")
+        .eq("interview_id", interviewId);
+
+    if (candErr) throw candErr;
+
+    // 2. Collect video + transcript paths
+    const { data: answers, error: ansErr } =
+        await supabase_second_db
+        .from("answers")
+        .select("raw_path, transcript_path")
+        .eq("interview_id", interviewId);
+
+    if (ansErr) throw ansErr;
+
+    // 3. Normalize paths
+    const filesToDelete = [];
+
+    for (const c of candidates || []) {
+        if (c.resume_path) filesToDelete.push(c.resume_path);
+    }
+
+    for (const a of answers || []) {
+        if (a.raw_path) filesToDelete.push(a.raw_path);
+        if (a.transcript_path) filesToDelete.push(a.transcript_path);
+    }
+
+    if (filesToDelete.length === 0) return;
+
+    // 4. Group by bucket
+    const bucketMap = {};
+    for (const fullPath of filesToDelete) {
+        const [bucket, ...rest] = fullPath.split("/");
+        const path = rest.join("/");
+        if (!bucketMap[bucket]) bucketMap[bucket] = [];
+        bucketMap[bucket].push(path);
+    }
+
+    // 5. Delete per bucket
+    for (const bucket of Object.keys(bucketMap)) {
+        const { error } =
+        await supabase_second_db
+            .storage
+            .from(bucket)
+            .remove(bucketMap[bucket]);
+
+        if (error) {
+        console.error(`[Storage Delete Failed] ${bucket}`, error);
+        throw error;
+        }
+    }
+
+
+    console.log(`[DELETE] Interview ${interviewId} — storage cleanup start`);
+    console.log(`[Storage Deleted] Interview ${interviewId}`);
+
+    }
+
+    
 app.post("/api/interviews/bulk-delete", async (req, res) => {
     const { interviewIds } = req.body;
 
@@ -1363,6 +1426,9 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
 
     try {
         await client.query('BEGIN');
+
+        // 🔹 NEW: DELETE STORAGE FILES FIRST (DB-B)
+        await deleteInterviewStorageFromDBB(interviewIds);
 
         // DELETE CHILD TABLES FIRST
         await client.query(
@@ -1398,7 +1464,7 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     } finally {
         client.release();
     }
-});    
+}); 
 
 app.get("/api/interviews", async (req, res) => {
     try {
