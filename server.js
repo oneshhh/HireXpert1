@@ -17,8 +17,16 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
+
+// PDF parsing library
 const mammoth = require("mammoth");
-const pdfParse = require("pdf-parse");
+const pdfParseModule = require("pdf-parse");
+// normalize for Node 22 + CommonJS
+const pdfParse =
+    typeof pdfParseModule === "function"
+        ? pdfParseModule
+        : pdfParseModule.default;
+
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
