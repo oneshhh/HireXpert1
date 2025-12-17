@@ -1101,57 +1101,68 @@ console.log(`[AI-EVAL ${requestId}] Started`);
             console.log(`[AI-EVAL ${requestId}] Resume path found:`, candRow.resume_path);
         }
 
-let resumeText = "";
-let resumeStatus = "missing";
+        let resumeText = "";
+        let resumeStatus = "missing";
 
-if (candRow?.resume_path) {
-    const resumePath = candRow.resume_path;
-    console.log(`[AI-EVAL ${requestId}] Attempting resume download`);
+        if (candRow?.resume_path) {
+            const resumePath = candRow.resume_path;
 
-    try {
-        const { data: fileData, error: fileErr } =
-            await supabase_second_db_service.storage
-                .from("resumes")
-                .download(resumePath);
+            // 🔧 FIX: normalize object path (remove bucket prefix if present)
+            const normalizedPath = resumePath.replace(/^resumes\//, "");
 
-        if (fileErr) {
-            console.error(`[AI-EVAL ${requestId}] Resume download failed`, fileErr);
-            resumeStatus = "unreadable";
-        } else if (!fileData) {
-            console.error(`[AI-EVAL ${requestId}] Resume download returned empty file`);
-            resumeStatus = "unreadable";
-        } else {
-            console.log(`[AI-EVAL ${requestId}] Resume downloaded`);
+            if (resumePath !== normalizedPath) {
+                console.warn(
+                    `[AI-EVAL ${requestId}] Normalizing resume path: ${resumePath} → ${normalizedPath}`
+                );
+            }
 
-            const buffer = Buffer.from(await fileData.arrayBuffer());
-            console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
+            console.log(`[AI-EVAL ${requestId}] Attempting resume download`);
 
-            const pdfData = await pdfParse(buffer);
+            try {
+                const { data: fileData, error: fileErr } =
+                    await supabase_second_db_service.storage
+                        .from("resumes") // bucket name
+                        .download(normalizedPath); // ✅ FIXED
 
-            console.log(`[AI-EVAL ${requestId}] PDF pages`, pdfData.numpages);
-            console.log(
-                `[AI-EVAL ${requestId}] Extracted text length`,
-                pdfData.text?.length || 0
-            );
+                if (fileErr) {
+                    console.error(`[AI-EVAL ${requestId}] Resume download failed`, fileErr);
+                    resumeStatus = "unreadable";
+                } else if (!fileData) {
+                    console.error(`[AI-EVAL ${requestId}] Resume download returned empty file`);
+                    resumeStatus = "unreadable";
+                } else {
+                    console.log(`[AI-EVAL ${requestId}] Resume downloaded`);
 
-            if (pdfData.text && pdfData.text.trim().length > 50) {
-                resumeText = pdfData.text;
-                resumeStatus = "available";
-                console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
-            } else {
+                    const buffer = Buffer.from(await fileData.arrayBuffer());
+                    console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
+
+                    const pdfData = await pdfParse(buffer);
+
+                    console.log(`[AI-EVAL ${requestId}] PDF pages`, pdfData.numpages);
+                    console.log(
+                        `[AI-EVAL ${requestId}] Extracted text length`,
+                        pdfData.text?.length || 0
+                    );
+
+                    if (pdfData.text && pdfData.text.trim().length > 50) {
+                        resumeText = pdfData.text;
+                        resumeStatus = "available";
+                        console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
+                    } else {
+                        resumeStatus = "unreadable";
+                        console.warn(`[AI-EVAL ${requestId}] Resume text too short`);
+                    }
+                }
+            } catch (err) {
+                console.error(`[AI-EVAL ${requestId}] Resume processing error`, err);
                 resumeStatus = "unreadable";
-                console.warn(`[AI-EVAL ${requestId}] Resume text too short`);
             }
         }
-    } catch (err) {
-        console.error(`[AI-EVAL ${requestId}] Resume processing error`, err);
-        resumeStatus = "unreadable";
-    }
-}
 
 console.log(
     `[AI-EVAL ${requestId}] Final resumeStatus=${resumeStatus}, resumeTextLength=${resumeText.length}`
 );
+
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
         You are an expert technical interviewer and hiring intelligence system.
