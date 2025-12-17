@@ -17,7 +17,7 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
-const pdfParse = require("pdf-parse");
+const pdfParse = require("pdf-parse").default;
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
