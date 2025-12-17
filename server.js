@@ -17,7 +17,8 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
-const pdfParse = require("pdf-parse").default;
+const mammoth = require("mammoth");
+const pdfParse = require("pdf-parse");
 // Middleware
 app.use(express.json());
 app.set('trust proxy', 1);
@@ -1133,25 +1134,50 @@ console.log(`[AI-EVAL ${requestId}] Started`);
                 } else {
                     console.log(`[AI-EVAL ${requestId}] Resume downloaded`);
 
-                    const buffer = Buffer.from(await fileData.arrayBuffer());
-                    console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
+                const buffer = Buffer.from(await fileData.arrayBuffer());
+                console.log(`[AI-EVAL ${requestId}] Resume buffer size`, buffer.length);
 
+                // detect file type using normalized path
+                const lowerPath = normalizedPath.toLowerCase();
+
+                let extractedText = "";
+
+                if (lowerPath.endsWith(".pdf")) {
+                    // ✅ PDF parsing
                     const pdfData = await pdfParse(buffer);
+                    extractedText = pdfData.text || "";
 
-                    console.log(`[AI-EVAL ${requestId}] PDF pages`, pdfData.numpages);
                     console.log(
-                        `[AI-EVAL ${requestId}] Extracted text length`,
-                        pdfData.text?.length || 0
+                        `[AI-EVAL ${requestId}] PDF extracted text length`,
+                        extractedText.length
                     );
 
-                    if (pdfData.text && pdfData.text.trim().length > 50) {
-                        resumeText = pdfData.text;
-                        resumeStatus = "available";
-                        console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
-                    } else {
-                        resumeStatus = "unreadable";
-                        console.warn(`[AI-EVAL ${requestId}] Resume text too short`);
-                    }
+                } else if (lowerPath.endsWith(".docx")) {
+                    // ✅ DOCX parsing
+                    const docxResult = await mammoth.extractRawText({ buffer });
+                    extractedText = docxResult.value || "";
+
+                    console.log(
+                        `[AI-EVAL ${requestId}] DOCX extracted text length`,
+                        extractedText.length
+                    );
+
+                } else {
+                    console.warn(
+                        `[AI-EVAL ${requestId}] Unsupported resume format: ${lowerPath}`
+                    );
+                    resumeStatus = "unreadable";
+                }
+
+                // common validation
+                if (extractedText.trim().length > 50) {
+                    resumeText = extractedText;
+                    resumeStatus = "available";
+                    console.log(`[AI-EVAL ${requestId}] Resume parsed successfully`);
+                } else {
+                    resumeStatus = "unreadable";
+                    console.warn(`[AI-EVAL ${requestId}] Resume text too short or empty`);
+                }
                 }
             } catch (err) {
                 console.error(`[AI-EVAL ${requestId}] Resume processing error`, err);
