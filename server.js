@@ -1062,6 +1062,9 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             return res.status(400).json({ message: "Missing job description or transcripts." });
         }
 
+const requestId = `${candidate_token}-${Date.now()}`;
+console.log(`[AI-EVAL ${requestId}] Started`);
+
         // 1️⃣ CHECK CACHE
         const existing = await pool.query(
             `SELECT ai_used, ai_evaluation 
@@ -1084,22 +1087,47 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
             .eq("candidate_token", candidate_token)
             .single();
 
-        let resumeText = "No resume available.";
+        if (candErr) {
+            console.error(`[AI-EVAL ${requestId}] Supabase DB error:`, candErr);
+        } else if (!candRow) {
+            console.warn(`[AI-EVAL ${requestId}] No candidate row found for token`);
+        } else if (!candRow.resume_path) {
+            console.warn(`[AI-EVAL ${requestId}] Candidate has NO resume_path`);
+        } else {
+            console.log(`[AI-EVAL ${requestId}] Resume path found:`, candRow.resume_path);
+        }
 
-        // If a resume exists, download and extract
+        let resumeText = "";
+        let resumeStatus = "missing";
+
         if (candRow?.resume_path) {
             const resumePath = candRow.resume_path;
 
-            const { data: fileData, error: fileErr } = await supabase_second_db_service.storage
-                .from("resumes") // your bucket name
-                .download(resumePath);
+            const { data: fileData, error: fileErr } =
+                await supabase_second_db_service.storage
+                    .from("resumes")
+                    .download(resumePath);
 
             if (!fileErr && fileData) {
-                const buffer = Buffer.from(await fileData.arrayBuffer());
-                const pdfData = await pdfParse(buffer);
-                resumeText = pdfData.text || "Could not extract resume text.";
+                try {
+                    const buffer = Buffer.from(await fileData.arrayBuffer());
+                    const pdfData = await pdfParse(buffer);
+
+                    if (pdfData.text && pdfData.text.trim().length > 50) {
+                        resumeText = pdfData.text;
+                        resumeStatus = "available";
+                    } else {
+                        resumeStatus = "unreadable";
+                    }
+                } catch (err) {
+                    console.error("PDF parse failed:", err);
+                    resumeStatus = "unreadable";
+                }
+            } else {
+                resumeStatus = "unreadable";
             }
         }
+
 
         // 3️⃣ BUILD AI PROMPT INCLUDING RESUME
         const prompt = `
@@ -1116,6 +1144,20 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         - Resume Score = how well the resume demonstrates experience, skills, and relevance (weight: 40%)
         - Transcript Score = how strong and coherent the candidate's interview responses are (weight: 40%)
         - JD Match Score = how well the candidate aligns with the job requirements (weight: 20%)
+
+        IMPORTANT SCORING RULES:
+        - If RESUME STATUS = "available":
+        Use resume normally in scoring (40% weight).
+
+        - If RESUME STATUS = "unreadable":
+        DO NOT penalize the candidate.
+        Redistribute the resume weight proportionally to:
+            - Transcript (60%)
+            - JD Match (40%)
+
+        - If RESUME STATUS = "missing":
+        Resume weight applies normally and may reduce score.
+
 
         Weighted Score Formula:
         Final Rating = (ResumeScore * 0.40) + (TranscriptScore * 0.40) + (JDMatchScore * 0.20)
@@ -1145,8 +1187,13 @@ app.post("/api/ai/evaluate-candidate", async (req, res) => {
         ### TRANSCRIPTS:
         ${transcripts.map((t, i) => `Q${i+1}: ${t.question}\nA${i+1}: ${t.transcript}`).join("\n\n")}
 
+        ### RESUME STATUS:
+        ${resumeStatus}
+
         ### RESUME CONTENT:
-        ${resumeText}
+        ${resumeStatus === "available"
+            ? resumeText
+            : "Resume exists but could not be reliably parsed. DO NOT penalize the candidate for missing resume content."}
         `;
 
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
