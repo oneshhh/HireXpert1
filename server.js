@@ -1352,7 +1352,9 @@ app.post("/api/interviews/bulk-update-status", async (req, res) => {
 
 async function deleteInterviewStorageFromDBB(interviewIds) {
 
-    // ---- RESUMES ----
+    // -------------------------------
+    // Fetch resume paths
+    // -------------------------------
     const { data: candidates, error: candErr } =
         await supabase_second_db_service
             .from("candidates")
@@ -1361,7 +1363,9 @@ async function deleteInterviewStorageFromDBB(interviewIds) {
 
     if (candErr) throw candErr;
 
-    // ---- RAW VIDEOS + TRANSCRIPTS ----
+    // -------------------------------
+    // Fetch raw + transcript paths
+    // -------------------------------
     const { data: answers, error: ansErr } =
         await supabase_second_db_service
             .from("answers")
@@ -1370,44 +1374,62 @@ async function deleteInterviewStorageFromDBB(interviewIds) {
 
     if (ansErr) throw ansErr;
 
+    // -------------------------------
+    // Build delete lists (bucket-relative)
+    // -------------------------------
     const deletes = {
         resumes: [],
         raw: [],
         transcript: []
     };
 
-    // resumes bucket (path includes bucket)
+    // Resumes → path includes "resumes/"
     for (const c of candidates || []) {
         if (c.resume_path?.startsWith("resumes/")) {
-            deletes.resumes.push(c.resume_path.replace("resumes/", ""));
+            deletes.resumes.push(
+                c.resume_path.replace("resumes/", "")
+            );
         }
     }
 
-    // raw + transcript
+    // Raw videos + transcripts
     for (const a of answers || []) {
 
-        // raw bucket (path includes raw/)
+        // Raw videos → path includes "raw/"
         if (a.raw_path?.startsWith("raw/")) {
-            deletes.raw.push(a.raw_path.replace("raw/", ""));
+            deletes.raw.push(
+                a.raw_path.replace("raw/", "")
+            );
         }
 
-        // transcript bucket (NO prefix stored)
+        // Transcripts → NO bucket prefix stored
         if (a.transcript_path) {
             deletes.transcript.push(a.transcript_path);
         }
     }
 
-    // ---- DELETE PER BUCKET ----
+    // -------------------------------
+    // Delete per bucket
+    // -------------------------------
     for (const bucket of Object.keys(deletes)) {
         if (deletes[bucket].length === 0) continue;
 
-        const { error } = await supabase_second_db_service
-            .storage
-            .from(bucket)
-            .remove(deletes[bucket]);
+        console.log(
+            `[Storage Delete Attempt] bucket=${bucket}`,
+            deletes[bucket]
+        );
+
+        const { error } =
+            await supabase_second_db_service
+                .storage
+                .from(bucket)
+                .remove(deletes[bucket]);
 
         if (error) {
-            console.error(`[Storage Delete Failed] bucket=${bucket}`, error);
+            console.error(
+                `[Storage Delete FAILED] bucket=${bucket}`,
+                error
+            );
             throw error;
         }
     }
@@ -1416,7 +1438,6 @@ async function deleteInterviewStorageFromDBB(interviewIds) {
         `[Storage Cleanup Complete] resumes=${deletes.resumes.length}, raw=${deletes.raw.length}, transcript=${deletes.transcript.length}`
     );
 }
-
 
 app.post("/api/interviews/bulk-delete", async (req, res) => {
     const { interviewIds } = req.body;
