@@ -117,7 +117,7 @@
 
   <!-- Main Content -->
   <main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
-    <h1 class="text-3xl font-bold text-[var(--text-primary)]">Viewer Management</h1>
+    <h1 class="text-3xl font-bold text-[var(--text-primary)]">Evaluator Management</h1>
     <p class="mt-1 text-base text-[var(--text-secondary)]">Add or remove users who can access the interview viewer page.</p>
     
     <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -125,7 +125,7 @@
         <!-- Add New Visitor Form -->
         <div class="lg:col-span-1">
             <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-                <h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Add New Visitor</h2>
+                <h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Add New Evaluator</h2>
                 <form id="add-visitor-form" class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -155,7 +155,7 @@
                     </div>
                     
                     <button type="submit" id="add-visitor-btn" class="w-full flex justify-center items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 disabled:opacity-50">
-                        Add Visitor
+                        Add Evaluator
                     </button>
                 </form>
             </div>
@@ -564,7 +564,7 @@
         function confirmDelete(id, email) {
             showNotification(
                 'Delete Visitor?',
-                `Are you sure you want to delete the visitor ${email}? This action cannot be undone.`,
+                `Are you sure you want to delete the evaluator ${email}? This action cannot be undone.`,
                 {
                     isError: true,
                     confirmText: 'Yes, Delete',
