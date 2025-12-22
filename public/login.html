@@ -94,6 +94,39 @@
               <input id="password" name="password" type="password" required class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]" />
             </div>
 
+            <!-- OTP SECTION (hidden initially) -->
+            <div id="otpSection" class="hidden space-y-3 mt-4">
+              <label class="block text-xs font-medium">Enter OTP</label>
+              <input
+                id="otp"
+                type="text"
+                maxlength="6"
+                class="w-full px-3 py-2 text-sm border rounded-lg"
+                placeholder="6-digit code"
+              />
+
+              <button
+                id="verifyOtpBtn"
+                type="button"
+                class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]"
+              >
+                Verify OTP
+              </button>
+
+              <div class="text-xs text-gray-600 text-center">
+                Resend OTP in <span id="otpTimer">30</span>s
+              </div>
+
+              <button
+                id="resendOtpBtn"
+                type="button"
+                disabled
+                class="w-full py-2 text-xs rounded-lg border text-gray-400 cursor-not-allowed"
+              >
+                Resend OTP
+              </button>
+            </div>
+
             <div>
               <label class="block text-xs font-medium mb-1">Department</label>
               <select id="department" name="department" required class="w-full px-3 py-2 text-sm border rounded-lg">
@@ -138,62 +171,120 @@
   </div>
 
   <!-- Backend Logic -->
-<script>
-  const loginForm = document.getElementById("loginForm");
-  const loginBtn = loginForm.querySelector("button[type='submit']");
-  const loaderBox = document.getElementById("loginLoader");
+    <script>
+      const loginForm = document.getElementById("loginForm");
+      const loginBtn = loginForm.querySelector("button[type='submit']");
+      const loaderBox = document.getElementById("loginLoader");
 
-  const anim = lottie.loadAnimation({
-    container: document.getElementById("lottieAnim"),
-    renderer: "svg",
-    loop: false,
-    autoplay: false,
-    path: "/assets/loading.json"
-  });
+      const otpSection = document.getElementById("otpSection");
+      const otpInput = document.getElementById("otp");
+      const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+      const resendOtpBtn = document.getElementById("resendOtpBtn");
+      const otpTimerEl = document.getElementById("otpTimer");
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+      let otpCountdown = null;
+      let lastLoginPayload = null;
 
-    // Show Loader
-    loginBtn.classList.add("loading-hidden");
-    loaderBox.classList.remove("hidden");
-    loaderBox.classList.add("loading-show");
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-    anim.playSegments([0, 97], true);
+        loginBtn.classList.add("loading-hidden");
+        loaderBox.classList.remove("hidden");
 
-    const formProps = Object.fromEntries(new FormData(loginForm));
+        const formProps = Object.fromEntries(new FormData(loginForm));
+        lastLoginPayload = formProps;
 
-    try {
-      const response = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formProps),
+        try {
+          const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formProps)
+          });
+
+          const data = await res.json();
+
+          if (data.status === "OTP_REQUIRED") {
+            // Switch UI to OTP
+            loaderBox.classList.add("hidden");
+            loginForm.querySelectorAll("input, select, button[type='submit']")
+              .forEach(el => el.classList.add("hidden"));
+
+            otpSection.classList.remove("hidden");
+            startOtpTimer(30);
+          } else {
+            alert(data.message || "Login failed.");
+            resetLoader();
+          }
+
+        } catch {
+          alert("Network error.");
+          resetLoader();
+        }
       });
 
-      if (response.ok && response.redirected) {
+      verifyOtpBtn.addEventListener("click", async () => {
+        const otp = otpInput.value.trim();
+        if (otp.length !== 6) {
+          alert("Enter a valid 6-digit OTP.");
+          return;
+        }
 
-        anim.playSegments([97, 130], true);
+        const payload = {
+          email: lastLoginPayload.email,
+          department: lastLoginPayload.department,
+          otp
+        };
 
-        setTimeout(() => {
-          window.location.href = response.url;
-        }, 500);
+        const res = await fetch("/verify-login-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-      } else {
-        alert(await response.text());
-        resetLoader();
+        const data = await res.json();
+
+        if (data.status === "SUCCESS") {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.message || "OTP verification failed.");
+        }
+      });
+
+      resendOtpBtn.addEventListener("click", async () => {
+        resendOtpBtn.disabled = true;
+        resendOtpBtn.classList.add("cursor-not-allowed", "text-gray-400");
+
+        await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lastLoginPayload)
+        });
+
+        startOtpTimer(30);
+      });
+
+      function startOtpTimer(seconds) {
+        let remaining = seconds;
+        otpTimerEl.textContent = remaining;
+
+        clearInterval(otpCountdown);
+        otpCountdown = setInterval(() => {
+          remaining--;
+          otpTimerEl.textContent = remaining;
+
+          if (remaining <= 0) {
+            clearInterval(otpCountdown);
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.classList.remove("cursor-not-allowed", "text-gray-400");
+          }
+        }, 1000);
       }
-    } catch (err) {
-      alert("Network error — please try again.");
-      resetLoader();
-    }
-  });
 
-  function resetLoader() {
-    loaderBox.classList.add("hidden");
-    loaderBox.classList.remove("loading-show");
-    loginBtn.classList.remove("loading-hidden");
-  }
-</script>
+      function resetLoader() {
+        loaderBox.classList.add("hidden");
+        loginBtn.classList.remove("loading-hidden");
+      }
+    </script>
 
 
 <div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">

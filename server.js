@@ -340,6 +340,36 @@ function parseQuestionsField(q) {
     return [String(q)];
 }
 
+// OTP helpers
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+}
+
+function otpExpiry(minutes = 10) {
+  return new Date(Date.now() + minutes * 60 * 1000);
+}
+
+async function sendLoginOtpEmail(to, otp) {
+  const verifiedSenderEmail = process.env.EMAIL_USER;
+
+  const msg = {
+    to,
+    from: verifiedSenderEmail,
+    subject: "Your HireXpert login code",
+    html: `
+      <p>Hello,</p>
+      <p>Your one-time login code is:</p>
+      <h2 style="letter-spacing: 2px;">${otp}</h2>
+      <p>This code will expire in <b>10 minutes</b>.</p>
+      <p>If you did not attempt to log in, you can safely ignore this email.</p>
+      <p>Regards,<br/>HireXpert Team</p>
+    `
+  };
+
+  await sgMail.send(msg);
+}
+
+
 async function sendInterviewEmail(to, interviewId, title, date, time) {
 
     console.log("📨 sendInterviewEmail CALLED for:", to);
@@ -449,46 +479,61 @@ app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public", "login.
 
 // ========== CORRECTED: /login route to handle multiple departments properly ==========
 app.post("/login", async (req, res) => {
-    const { email, password, department } = req.body;
-    try {
-        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-        const user = result.rows[0];
+  const { email, password, department } = req.body;
 
-        if (user) {
-            if (!user.is_active) {
-                return res.status(403).send("Your account has been disabled. Please contact an administrator.");
-            }
-            const hasDepartmentAccess = user.department.includes(department);
-            if (!hasDepartmentAccess) {
-                 return res.status(401).send("User does not have access to the selected department.");
-            }
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+    const user = result.rows[0];
 
-            const isMatch = await bcrypt.compare(password, user.password_hash);
-            if (isMatch) {
-                req.session.user = {
-                    id: user.id,
-                    email: user.email,
-                    departments: user.department,
-                    activeDepartment: department
-                };
-                console.log('Session user set:', req.session.user); // Logging
-
-                // cookie-session automatically saves on response, so just redirect
-                if (department === 'Admin') {
-                    return res.redirect('/admin_Dashboard.html');
-                }
-                return res.redirect(`/${department}_Dashboard.html`);
-
-            } else { // Added 'else' for clarity if password doesn't match
-                 res.status(401).send("Invalid credentials.");
-            }
-        } else { // Added 'else' for clarity if user not found
-             res.status(401).send("Invalid credentials.");
-        }
-    } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).send("An internal server error occurred.");
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials." });
     }
+
+    if (!user.is_active) {
+      return res.status(403).json({ message: "Your account has been disabled." });
+    }
+
+    const hasDepartmentAccess = user.department.includes(department);
+    if (!hasDepartmentAccess) {
+      return res.status(401).json({ message: "User does not have access to this department." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // Invalidate any previous unused OTPs for this user
+    await pool.query(
+      `UPDATE user_login_otps
+       SET used = true
+       WHERE user_id = $1 AND used = false`,
+      [user.id]
+    );
+
+    // Generate + store OTP
+    const otp = generateOtp();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    await pool.query(
+      `INSERT INTO user_login_otps (user_id, otp_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, otpHash, otpExpiry(10)]
+    );
+
+    // Send OTP email
+    await sendLoginOtpEmail(user.email, otp);
+
+    // Tell frontend to switch to OTP UI
+    return res.json({ status: "OTP_REQUIRED" });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 });
 
 // API endpoint to get current user info and login, logout functions
