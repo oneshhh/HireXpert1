@@ -187,8 +187,8 @@
       loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        loginBtn.classList.add("loading-hidden");
-        loaderBox.classList.remove("hidden");
+      loginBtn.classList.add("loading-hidden");
+      if (loaderBox) loaderBox.classList.remove("hidden");
 
         const formProps = Object.fromEntries(new FormData(loginForm));
         lastLoginPayload = formProps;
@@ -204,20 +204,18 @@
 
           if (data.status === "OTP_REQUIRED") {
             // Switch UI to OTP
-            loaderBox.classList.add("hidden");
+            if (loaderBox) loaderBox.classList.add("hidden");
             document.getElementById("loginFields").classList.add("hidden");
             otpSection.classList.remove("hidden");
             otpInput.focus();
-
-            otpSection.classList.remove("hidden");
             startOtpTimer(30);
           } else {
-            alert(data.message || "Login failed.");
+            showAuthModal("Login Error", data.message || "Login failed.");
             resetLoader();
           }
 
         } catch {
-          alert("Network error.");
+          showAuthModal("Network Error", "Please check your connection and try again.");
           resetLoader();
         }
       });
@@ -225,7 +223,7 @@
       verifyOtpBtn.addEventListener("click", async () => {
         const otp = otpInput.value.trim();
         if (otp.length !== 6) {
-          alert("Enter a valid 6-digit OTP.");
+          showAuthModal("Invalid OTP", "Please enter the 6-digit OTP sent to your email.");
           return;
         }
 
