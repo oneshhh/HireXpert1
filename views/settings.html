@@ -87,43 +87,56 @@
                         </div>
                     </div>
 
-                    <!-- Password Field -->
-                    <div>
-                    <label for="password" class="block text-sm font-medium leading-6 text-gray-900">
-                        New Password (Optional)
-                    </label>
+                <!-- Password Field -->
+                <div>
+                <label for="password" class="block text-sm font-medium leading-6 text-gray-900">
+                    New Password (Optional)
+                </label>
 
-                    <div class="mt-2 relative">
-                        <input
-                        type="password"
-                        name="password"
-                        id="password"
-                        autocomplete="new-password"
-                        maxlength="20"
-                        class="block w-full rounded-md border-0 py-2 px-3 pr-28 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                        placeholder="Leave blank to keep current password"
-                        />
+                <div class="mt-2 relative">
+                    <input
+                    type="password"
+                    name="password"
+                    id="password"
+                    autocomplete="new-password"
+                    maxlength="20"
+                    class="block w-full rounded-md border-0 py-2 px-3 pr-36 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    placeholder="Leave blank to keep current password"
+                    />
 
-                        <button
-                        type="button"
-                        id="generate-password-btn"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-                        >
-                        Generate
-                        </button>
-                    </div>
+                    <!-- View / Hide Password -->
+                    <button
+                    type="button"
+                    id="toggle-password-btn"
+                    class="absolute right-20 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    title="Show / Hide Password"
+                    >
+                    <span class="material-symbols-outlined text-xl">visibility</span>
+                    </button>
 
-                    <ul id="password-rules" class="mt-2 text-xs text-gray-500 space-y-1">
-                        <li data-rule="length">• 8–20 characters</li>
-                        <li data-rule="uppercase">• At least 1 uppercase letter</li>
-                        <li data-rule="number">• At least 1 number</li>
-                        <li data-rule="special">• At least 1 special character</li>
-                    </ul>
+                    <!-- Generate Password -->
+                    <button
+                    type="button"
+                    id="generate-password-btn"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+                    >
+                    Generate
+                    </button>
+                </div>
 
-                    <p id="password-error" class="mt-1 text-xs text-red-600 hidden">
-                        Password does not meet the required complexity.
-                    </p>
-                    </div>
+                <!-- Password Rules -->
+                <ul id="password-rules" class="mt-2 text-xs text-gray-500 space-y-1">
+                    <li data-rule="length">• 8–20 characters</li>
+                    <li data-rule="uppercase">• At least 1 uppercase letter</li>
+                    <li data-rule="number">• At least 1 number</li>
+                    <li data-rule="special">• At least 1 special character</li>
+                </ul>
+
+                <p id="password-error" class="mt-1 text-xs text-red-600 hidden">
+                    Password does not meet the required complexity.
+                </p>
+                </div>
+
 
                 <!-- Form Actions -->
                 <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 bg-gray-50 px-6 py-4">
