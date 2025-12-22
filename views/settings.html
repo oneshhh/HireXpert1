@@ -108,7 +108,7 @@
                     <button
                     type="button"
                     id="toggle-password-btn"
-                    class="absolute right-20 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    class="absolute right-28 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     title="Show / Hide Password"
                     >
                     <span class="material-symbols-outlined text-xl">visibility</span>
@@ -261,6 +261,20 @@
     updatePasswordUI(pwd);
     });
 
+    // ---------------- VIEW / HIDE PASSWORD ----------------
+
+    const togglePasswordBtn = document.getElementById('toggle-password-btn');
+    const passwordField = document.getElementById('password');
+    const toggleIcon = togglePasswordBtn.querySelector('span');
+
+    let isPasswordVisible = false;
+
+    togglePasswordBtn.addEventListener('click', () => {
+    isPasswordVisible = !isPasswordVisible;
+
+    passwordField.type = isPasswordVisible ? 'text' : 'password';
+    toggleIcon.textContent = isPasswordVisible ? 'visibility_off' : 'visibility';
+});
 
     // --- Global variables ---
     let originalUserEmail = ''; // To track if email changes
