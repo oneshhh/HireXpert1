@@ -82,49 +82,18 @@
         <div class="relative z-10 mt-8 bg-white text-gray-900 rounded-2xl shadow-xl px-6 py-7 max-w-md">
           <h2 class="text-lg font-semibold mb-4 text-slate-900">Sign in</h2>
 
-          <form id="loginForm" class="space-y-4">
+        <form id="loginForm" class="space-y-4">
 
+          <!-- LOGIN FIELDS -->
+          <div id="loginFields" class="space-y-4">
             <div>
               <label class="block text-xs font-medium mb-1">Email address</label>
-              <input id="email" name="email" type="email" required class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]" />
+              <input id="email" name="email" type="email" required class="w-full px-3 py-2 text-sm border rounded-lg" />
             </div>
 
             <div>
               <label class="block text-xs font-medium mb-1">Password</label>
-              <input id="password" name="password" type="password" required class="w-full px-3 py-2 text-sm border rounded-lg shadow-sm focus:ring-[var(--primary-color)]" />
-            </div>
-
-            <!-- OTP SECTION (hidden initially) -->
-            <div id="otpSection" class="hidden space-y-3 mt-4">
-              <label class="block text-xs font-medium">Enter OTP</label>
-              <input
-                id="otp"
-                type="text"
-                maxlength="6"
-                class="w-full px-3 py-2 text-sm border rounded-lg"
-                placeholder="6-digit code"
-              />
-
-              <button
-                id="verifyOtpBtn"
-                type="button"
-                class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]"
-              >
-                Verify OTP
-              </button>
-
-              <div class="text-xs text-gray-600 text-center">
-                Resend OTP in <span id="otpTimer">30</span>s
-              </div>
-
-              <button
-                id="resendOtpBtn"
-                type="button"
-                disabled
-                class="w-full py-2 text-xs rounded-lg border text-gray-400 cursor-not-allowed"
-              >
-                Resend OTP
-              </button>
+              <input id="password" name="password" type="password" required class="w-full px-3 py-2 text-sm border rounded-lg" />
             </div>
 
             <div>
@@ -137,14 +106,44 @@
               </select>
             </div>
 
-            <button type="submit" class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">Sign in</button>
-            <div id="loginLoader" class="hidden flex flex-col items-center justify-center mt-4 text-sm text-gray-600">
-            <div id="lottieAnim" class="w-28 h-28"></div>
-            <span class="mt-2 font-medium text-gray-700">
-                Logging you in… Hang in there.
-            </span>
+            <button type="submit"
+              class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">
+              Sign in
+            </button>
+          </div>
+
+          <!-- OTP SECTION (already added earlier) -->
+          <div id="otpSection" class="hidden space-y-3 mt-4">
+            <label class="block text-xs font-medium">Enter OTP</label>
+            <input
+              id="otp"
+              type="text"
+              maxlength="6"
+              class="w-full px-3 py-2 text-sm border rounded-lg"
+              placeholder="6-digit code"
+            />
+
+            <button
+              id="verifyOtpBtn"
+              type="button"
+              class="w-full py-2.5 text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color-hover)]">
+              Verify OTP
+            </button>
+
+            <div class="text-xs text-gray-600 text-center">
+              Resend OTP in <span id="otpTimer">30</span>s
             </div>
-          </form>
+
+            <button
+              id="resendOtpBtn"
+              type="button"
+              disabled
+              class="w-full py-2 text-xs rounded-lg border text-gray-400 cursor-not-allowed">
+              Resend OTP
+            </button>
+          </div>
+
+        </form>
 
           <div class="mt-5 text-center">
             <p class="text-xs text-slate-500">
@@ -206,8 +205,9 @@
           if (data.status === "OTP_REQUIRED") {
             // Switch UI to OTP
             loaderBox.classList.add("hidden");
-            loginForm.querySelectorAll("input, select, button[type='submit']")
-              .forEach(el => el.classList.add("hidden"));
+            document.getElementById("loginFields").classList.add("hidden");
+            otpSection.classList.remove("hidden");
+            otpInput.focus();
 
             otpSection.classList.remove("hidden");
             startOtpTimer(30);
@@ -246,7 +246,7 @@
         if (data.status === "SUCCESS") {
           window.location.href = data.redirect;
         } else {
-          alert(data.message || "OTP verification failed.");
+          showAuthModal("Login Error", data.message || "OTP verification failed.");
         }
       });
 
@@ -284,12 +284,44 @@
         loaderBox.classList.add("hidden");
         loginBtn.classList.remove("loading-hidden");
       }
+      //notification modal logic
+      const authModal = document.getElementById("authModal");
+      const authModalTitle = document.getElementById("authModalTitle");
+      const authModalText = document.getElementById("authModalText");
+      const authModalBtn = document.getElementById("authModalBtn");
+
+      function showAuthModal(title, message) {
+        authModalTitle.textContent = title;
+        authModalText.textContent = message;
+        authModal.classList.remove("hidden");
+        authModal.classList.add("flex");
+      }
+
+      authModalBtn.addEventListener("click", () => {
+        authModal.classList.add("hidden");
+        authModal.classList.remove("flex");
+      });
+
     </script>
 
+<!-- AUTH MODAL -->
+<div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+    <h3 id="authModalTitle" class="text-lg font-semibold text-gray-900">Message</h3>
+    <p id="authModalText" class="mt-2 text-sm text-gray-600"></p>
+    <button
+      id="authModalBtn"
+      class="mt-5 w-full rounded-lg bg-[var(--primary-color)] py-2 text-white font-medium hover:bg-[var(--primary-color-hover)]">
+      OK
+    </button>
+  </div>
+</div>
 
 <div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">
   © GlobalXpert 2025
 </div>
+
+
 
 </body>
 </html>
