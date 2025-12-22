@@ -169,6 +169,19 @@
     </div>
   </div>
 
+  <!-- AUTH MODAL -->
+  <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+      <h3 id="authModalTitle" class="text-lg font-semibold text-gray-900">Message</h3>
+      <p id="authModalText" class="mt-2 text-sm text-gray-600"></p>
+      <button
+        id="authModalBtn"
+        class="mt-5 w-full rounded-lg bg-[var(--primary-color)] py-2 text-white font-medium hover:bg-[var(--primary-color-hover)]">
+        OK
+      </button>
+    </div>
+  </div>
+
   <!-- Backend Logic -->
     <script>
       const loginForm = document.getElementById("loginForm");
@@ -288,32 +301,22 @@
       const authModalText = document.getElementById("authModalText");
       const authModalBtn = document.getElementById("authModalBtn");
 
-      function showAuthModal(title, message) {
-        authModalTitle.textContent = title;
-        authModalText.textContent = message;
-        authModal.classList.remove("hidden");
-        authModal.classList.add("flex");
-      }
+  function showAuthModal(title, message) {
+    const authModal = document.getElementById("authModal");
+    const authModalTitle = document.getElementById("authModalTitle");
+    const authModalText = document.getElementById("authModalText");
 
-      authModalBtn.addEventListener("click", () => {
-        authModal.classList.add("hidden");
-        authModal.classList.remove("flex");
-      });
+    if (!authModal || !authModalTitle || !authModalText) {
+      console.error("Auth modal elements not found");
+      return;
+    }
 
+    authModalTitle.textContent = title;
+    authModalText.textContent = message;
+    authModal.classList.remove("hidden");
+    authModal.classList.add("flex");
+  }
     </script>
-
-<!-- AUTH MODAL -->
-<div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
-    <h3 id="authModalTitle" class="text-lg font-semibold text-gray-900">Message</h3>
-    <p id="authModalText" class="mt-2 text-sm text-gray-600"></p>
-    <button
-      id="authModalBtn"
-      class="mt-5 w-full rounded-lg bg-[var(--primary-color)] py-2 text-white font-medium hover:bg-[var(--primary-color-hover)]">
-      OK
-    </button>
-  </div>
-</div>
 
 <div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">
   © GlobalXpert 2025
