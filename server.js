@@ -536,6 +536,84 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//verify OTP route
+app.post("/verify-login-otp", async (req, res) => {
+  const { email, otp, department } = req.body;
+
+  try {
+    const userRes = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user." });
+    }
+
+    const otpRes = await pool.query(
+      `SELECT * FROM user_login_otps
+       WHERE user_id = $1 AND used = false
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [user.id]
+    );
+
+    const record = otpRes.rows[0];
+    if (!record) {
+      return res.status(400).json({ message: "OTP not found or expired." });
+    }
+
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ message: "OTP has expired." });
+    }
+
+    if (record.attempts >= 5) {
+      await pool.query(
+        "UPDATE user_login_otps SET used = true WHERE id = $1",
+        [record.id]
+      );
+      return res.status(429).json({ message: "Too many attempts. Please login again." });
+    }
+
+    const isOtpValid = await bcrypt.compare(otp, record.otp_hash);
+    if (!isOtpValid) {
+      await pool.query(
+        `UPDATE user_login_otps SET attempts = attempts + 1 WHERE id = $1`,
+        [record.id]
+      );
+      return res.status(401).json({ message: "Invalid OTP." });
+    }
+
+    // Mark OTP as used
+    await pool.query(
+      "UPDATE user_login_otps SET used = true WHERE id = $1",
+      [record.id]
+    );
+
+    // NOW create session
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      departments: user.department,
+      activeDepartment: department
+    };
+
+    // Redirect destination
+    const redirect =
+      department === "Admin"
+        ? "/admin_Dashboard.html"
+        : `/${department}_Dashboard.html`;
+
+    return res.json({ status: "SUCCESS", redirect });
+
+  } catch (error) {
+    console.error("OTP verify error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+
 // API endpoint to get current user info and login, logout functions
 app.get("/api/me", (req, res) => {
   // If internal user is logged in, return the usual minimal user info
