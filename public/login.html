@@ -316,6 +316,19 @@
     authModal.classList.remove("hidden");
     authModal.classList.add("flex");
   }
+
+  authModalBtn.addEventListener("click", () => {
+    const authModal = document.getElementById("authModal");
+
+    authModal.classList.add("hidden");
+    authModal.classList.remove("flex");
+
+    // Allow user to retry OTP
+    if (!otpSection.classList.contains("hidden")) {
+      otpInput.value = "";
+      otpInput.focus();
+    }
+  });
     </script>
 
 <div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">

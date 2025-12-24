@@ -541,6 +541,7 @@ app.post("/verify-login-otp", async (req, res) => {
   const { email, otp, department } = req.body;
 
   try {
+    // 1. Fetch user
     const userRes = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
@@ -551,6 +552,13 @@ app.post("/verify-login-otp", async (req, res) => {
       return res.status(401).json({ message: "Invalid user." });
     }
 
+    if (!user.is_active) {
+      return res.status(403).json({
+        message: "Your account has been disabled. Please contact an administrator."
+      });
+    }
+
+    // 2. Fetch latest unused OTP
     const otpRes = await pool.query(
       `SELECT * FROM user_login_otps
        WHERE user_id = $1 AND used = false
@@ -560,38 +568,63 @@ app.post("/verify-login-otp", async (req, res) => {
     );
 
     const record = otpRes.rows[0];
+
     if (!record) {
       return res.status(400).json({ message: "OTP not found or expired." });
     }
 
+    // 3. Expiry check
     if (new Date(record.expires_at) < new Date()) {
-      return res.status(400).json({ message: "OTP has expired." });
-    }
-
-    if (record.attempts >= 5) {
       await pool.query(
         "UPDATE user_login_otps SET used = true WHERE id = $1",
         [record.id]
       );
-      return res.status(429).json({ message: "Too many attempts. Please login again." });
+      return res.status(400).json({ message: "OTP has expired." });
     }
 
-    const isOtpValid = await bcrypt.compare(otp, record.otp_hash);
-    if (!isOtpValid) {
+    // 4. Attempt limit check (3 attempts max)
+    if (record.attempts >= 2) {
+      // Third failure → disable user
+
       await pool.query(
-        `UPDATE user_login_otps SET attempts = attempts + 1 WHERE id = $1`,
+        "UPDATE user_login_otps SET used = true WHERE id = $1",
         [record.id]
       );
-      return res.status(401).json({ message: "Invalid OTP." });
+
+      await pool.query(
+        "UPDATE users SET is_active = false WHERE id = $1",
+        [user.id]
+      );
+
+      return res.status(403).json({
+        message:
+          "Your account has been disabled due to multiple failed OTP attempts. Please contact an administrator."
+      });
     }
 
-    // Mark OTP as used
+    // 5. Validate OTP
+    const isOtpValid = await bcrypt.compare(otp, record.otp_hash);
+
+    if (!isOtpValid) {
+      await pool.query(
+        `UPDATE user_login_otps
+         SET attempts = attempts + 1
+         WHERE id = $1`,
+        [record.id]
+      );
+
+      return res.status(401).json({
+        message: "Invalid OTP. Please try again."
+      });
+    }
+
+    // 6. Success → mark OTP used
     await pool.query(
       "UPDATE user_login_otps SET used = true WHERE id = $1",
       [record.id]
     );
 
-    // NOW create session
+    // 7. Create session
     req.session.user = {
       id: user.id,
       email: user.email,
@@ -599,7 +632,7 @@ app.post("/verify-login-otp", async (req, res) => {
       activeDepartment: department
     };
 
-    // Redirect destination
+    // 8. Redirect
     const redirect =
       department === "Admin"
         ? "/admin_Dashboard.html"
@@ -607,12 +640,11 @@ app.post("/verify-login-otp", async (req, res) => {
 
     return res.json({ status: "SUCCESS", redirect });
 
-  } catch (error) {
+  } catch (error) { 
     console.error("OTP verify error:", error);
     return res.status(500).json({ message: "Internal server error." });
   }
 });
-
 
 // API endpoint to get current user info and login, logout functions
 app.get("/api/me", (req, res) => {
