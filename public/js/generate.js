@@ -16,14 +16,17 @@ function addQuestion(questionText = '') {
   div.classList.add("flex", "items-start", "gap-4");
   div.innerHTML = `
     <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required>${questionText}</textarea>
-    <select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
-        <option value="0">Untimed</option>
-        <option value="60">60s</option>
-        <option value="90">90s</option>
-        <option value="120">120s</option>
-        <option value="150">150s</option>
-        <option value="180">180s</option>
-    </select>
+        <select name="timeLimits[]"
+                class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm
+                    text-[var(--text-primary)] focus:border-[var(--primary-color)]
+                    focus:ring-1 focus:ring-[var(--primary-color)] h-12"
+                required>
+            <option value="60" selected>60s</option>
+            <option value="90">90s</option>
+            <option value="120">120s</option>
+            <option value="150">150s</option>
+            <option value="180">180s</option>
+        </select>
     <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
       <span class="material-symbols-outlined text-xl">delete</span>
     </button>
