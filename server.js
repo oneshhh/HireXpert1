@@ -177,7 +177,7 @@ app.use(cookieSession({
   keys: ['secret1', 'secret2'],
   sameSite: 'lax',     // ✅ allows same-site requests
   secure: false,  // ✅ safe for both local + live
-  maxAge: 24 * 60 * 60 * 1000                    // 1 day
+  maxAge: 24 * 60 * 60 * 1000 * 7                 // 7 days
 }));
 
 // --- External API Key Middleware ---
@@ -361,7 +361,7 @@ async function sendLoginOtpEmail(to, otp) {
       <p>Your one-time login code is:</p>
       <h2 style="letter-spacing: 2px;">${otp}</h2>
       <p>This code will expire in <b>10 minutes</b>.</p>
-      <p>If you did not attempt to log in, you can safely ignore this email.</p>
+      <p>If you did not attempt to log in, you should contact the Admin team and inform them of this unauthorized access attempt.</p>
       <p>Regards,<br/>HireXpert Team</p>
     `
   };
