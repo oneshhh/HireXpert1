@@ -1519,9 +1519,8 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // DELETE CHILD TABLES FIRST
         await client.query(
-            "DELETE FROM interview_access_tokens WHERE interview_id = ANY($1::uuid[])",
+            "DELETE FROM interview_access_tokens WHERE interview_id = ANY($1)",
             [interviewIds]
         );
 
