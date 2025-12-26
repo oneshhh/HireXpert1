@@ -939,7 +939,23 @@ app.post("/schedule", async (req, res) => {
 
         let { title, questions, timeLimits, date, time, candidates, customIdText, jobDescription, schedulerIds } = req.body;
 
-    if (!customIdText) throw new Error("The custom Interview ID text is required.");
+        // -------------------------------
+        // Custom Interview ID validation
+        // -------------------------------
+        const MAX_CUSTOM_ID_LENGTH = 32;
+
+        if (typeof customIdText !== 'string' || !customIdText.trim()) {
+            throw new Error("The custom Interview ID text is required.");
+        }
+
+        customIdText = customIdText.trim();
+
+        if (customIdText.length > MAX_CUSTOM_ID_LENGTH) {
+            throw new Error(
+                `Custom Interview ID text must be ${MAX_CUSTOM_ID_LENGTH} characters or less.`
+            );
+        }
+
     if (!schedulerIds || schedulerIds.length === 0) throw new Error("At least one reviewer must be assigned.");
 
 

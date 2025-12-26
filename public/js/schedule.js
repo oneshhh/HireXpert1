@@ -233,6 +233,39 @@ document.addEventListener("DOMContentLoaded", () => {
         addCandidateRow();
 };
 
+// ==============================
+// Custom Interview ID (Max 32)
+// ==============================
+const customIdInput = document.getElementById("custom-id-text");
+const customIdCounter = document.getElementById("custom-id-counter");
+const customIdWarning = document.getElementById("custom-id-warning");
+
+const MAX_CUSTOM_ID_LENGTH = 32;
+
+function updateCustomIdUI(value) {
+    const length = value.length;
+    customIdCounter.textContent = `${length} / ${MAX_CUSTOM_ID_LENGTH}`;
+
+    if (length >= MAX_CUSTOM_ID_LENGTH) {
+        customIdCounter.classList.remove("text-[var(--text-secondary)]");
+        customIdCounter.classList.add("text-red-600", "font-medium");
+        customIdWarning.classList.remove("hidden");
+    } else {
+        customIdCounter.classList.remove("text-red-600", "font-medium");
+        customIdCounter.classList.add("text-[var(--text-secondary)]");
+        customIdWarning.classList.add("hidden");
+    }
+}
+
+customIdInput.addEventListener("input", (e) => {
+    if (e.target.value.length > MAX_CUSTOM_ID_LENGTH) {
+        e.target.value = e.target.value.slice(0, MAX_CUSTOM_ID_LENGTH);
+    }
+    updateCustomIdUI(e.target.value);
+});
+
+// Initialize on load (in case of autofill)
+updateCustomIdUI(customIdInput.value);
 
 
 // --- Candidate Table Logic ---
