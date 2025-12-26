@@ -551,19 +551,28 @@
             }
         );
     }
-
     async function deleteInterview(id) {
         try {
-            const response = await fetch(`/api/interview/${id}/delete`, { method: 'DELETE' });
+            const response = await fetch('/api/interviews/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    interviewIds: [id]
+                })
+            });
+
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to delete interview.');
+
             showNotification('Success', 'The interview has been deleted successfully.');
             currentInterviewPage = 1;
             loadInterviews();
+
         } catch (error) {
             showNotification('Error', error.message, { isError: true });
         }
     }
+
 
     // --- Data Loading Functions ---
     async function loadUsers(isBackgroundRefresh = false) {
