@@ -111,7 +111,7 @@
       </div>
 
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-gray-200 table-fixed">
           <thead class="bg-gray-50">
             <tr>
               <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
@@ -255,14 +255,14 @@ function renderTable(searchTerm = '') {
     tr.innerHTML = `
       <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
       <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${interview.custom_interview_id || 'N/A'}</td>
+      <td class="px-6 py-4 text-sm text-gray-500 max-w-[220px] break-all"><span class="block leading-snug cursor-help"title="${interview.custom_interview_id || ''}">${interview.custom_interview_id || 'N/A'}</span></td>
       <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${interview.position_status === 'open' ? 'text-green-600' : 'text-gray-500'}">${interview.position_status === 'open' ? 'Open' : 'Closed'}</td>
       <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">${invitedCount}</span></td>
       <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-800">${toEvaluateCount}</span></td>
       <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-800">${evaluatedCount}</span></td>
       <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-800">${discardedCount}</span></td>
-      <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
+      <td class="whitespace-nowrap px-6 py-4 text-sm font-medium min-w-[120px]">
           <a href="${viewLink}" class="text-primary-600 hover:text-primary-900">View</a>
           <a href="${editLink}" class="ml-4 text-primary-600 hover:text-primary-900">Edit</a>
       </td>
