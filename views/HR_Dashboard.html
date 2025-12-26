@@ -112,6 +112,18 @@
 
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-gray-200 table-fixed">
+          <colgroup>
+            <col class="w-[40px]" />   <!-- checkbox -->
+            <col class="w-[60px]" />   <!-- S.No -->
+            <col class="w-[220px]" />  <!-- ID (LOCKED) -->
+            <col />                    <!-- Title (flex) -->
+            <col class="w-[90px]" />   <!-- Status -->
+            <col class="w-[80px]" />   <!-- Invited -->
+            <col class="w-[110px]" />  <!-- To Evaluate -->
+            <col class="w-[100px]" />  <!-- Evaluated -->
+            <col class="w-[100px]" />  <!-- Discarded -->
+            <col class="w-[140px]" />  <!-- Actions -->
+          </colgroup>
           <thead class="bg-gray-50">
             <tr>
               <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
@@ -255,7 +267,7 @@ function renderTable(searchTerm = '') {
     tr.innerHTML = `
       <td class="relative px-6 py-4"><input type="checkbox" data-id="${interview.id}" class="row-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
       <td class="px-4 py-4 text-sm text-gray-500">${index + 1}</td>
-      <td class="px-6 py-4 text-sm text-gray-500 max-w-[220px] break-all"><span class="block leading-snug cursor-help"title="${interview.custom_interview_id || ''}">${interview.custom_interview_id || 'N/A'}</span></td>
+      <td class="px-6 py-4 text-sm text-gray-500"><div class="max-w-[220px] break-words overflow-wrap-anywhere leading-snug" title="${interview.custom_interview_id || ''}">${interview.custom_interview_id || 'N/A'}</div></td>
       <td class="px-6 py-4"><a href="${viewLink}" class="font-medium text-gray-900 hover:text-primary-600">${interview.title}</a></td>
       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${interview.position_status === 'open' ? 'text-green-600' : 'text-gray-500'}">${interview.position_status === 'open' ? 'Open' : 'Closed'}</td>
       <td class="px-6 py-4"><span class="inline-flex items-center rounded-md bg-yellow-100 px-2.5 py-1 text-sm font-semibold text-yellow-800">${invitedCount}</span></td>
