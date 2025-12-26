@@ -73,9 +73,11 @@
 <div id="questions-container" class="space-y-4">
 <div class="flex items-start gap-4">
 <textarea class="w-full rounded-md border border-gray-300 bg-white p-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] min-h-24 flex-1 resize-y" name="questions[]" placeholder="Enter your question here" required></textarea>
-<select name="timeLimits[]" class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12">
-    <option value="0">Untimed</option>
-    <option value="60">60s</option>
+<select name="timeLimits[]"
+        class="w-28 rounded-md border-gray-300 bg-white p-2 text-sm text-[var(--text-primary)]
+               focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] h-12"
+        required>
+    <option value="60" selected>60s</option>
     <option value="90">90s</option>
     <option value="120">120s</option>
     <option value="150">150s</option>
