@@ -57,7 +57,30 @@
                       <span class="material-symbols-outlined text-gray-700">refresh</span>
                   </button>
               </div>
-                  <select id="schedulerIds" name="schedulerIds" multiple required class="mt-2 w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] h-32"></select>
+                <!-- ASSIGN SCHEDULERS CARD -->
+                <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-4">
+
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Assign Reviewers</h3>
+
+                <!-- SEARCH BAR -->
+                <div class="relative mb-4">
+                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
+                    <input id="scheduler-search"
+                            placeholder="Search team members..."
+                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-sm">
+                </div>
+
+                <!-- CUSTOM LIST (THIS WAS MISSING) -->
+                <div id="scheduler-list"
+                    class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                </div>
+
+                <!-- HIDDEN SELECT (source of truth) -->
+                <select id="schedulerIds" name="schedulerIds" multiple class="hidden"></select>
+
+                <p class="text-xs text-slate-500 mt-3">Select one or more users.</p>
+                </div>
+
               </div>
           </div>
       </div>
@@ -239,23 +262,6 @@ function showNotification(title, text, options = {}) {
   const schedulerSelect = document.getElementById('schedulerIds');
   const candidatesList = document.getElementById('current-candidates-list');
 
-  async function loadSchedulers() {
-      try {
-          const response = await fetch('/api/users-by-dept');
-          if (!response.ok) throw new Error('Failed to load users');
-          const users = await response.json();
-          schedulerSelect.innerHTML = '';
-          users.forEach(user => {
-              const option = document.createElement('option');
-              option.value = user.id;
-              option.textContent = `${user.first_name} ${user.last_name}`;
-              schedulerSelect.appendChild(option);
-          });
-      } catch (error) {
-          console.error('Error loading schedulers:', error);
-          schedulerSelect.innerHTML = '<option disabled>Error loading users.</option>';
-      }
-  }
   async function getActiveDepartment() {
     try {
       const res = await fetch('/api/me');
