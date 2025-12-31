@@ -519,6 +519,26 @@ function processImportedRows(rows) {
             const uniqueNum = Math.floor(1000 + Math.random() * 9000);
             return `${year}/${month}/${uniqueNum}/${initials}`;
         }
+        
+        // ---------------------------
+        const title = formData.get("title")?.trim();
+        const customIdText = formData.get("customIdText")?.trim();
+        const jobDescription = document.getElementById("real-job-description").value.trim();
+
+        if (!title) {
+            showNotification("Missing Field", "Interview title is required.", { isError: true });
+            return;
+        }
+
+        if (!jobDescription) {
+            showNotification("Missing Field", "Job description is required.", { isError: true });
+            return;
+        }
+
+        if (!customIdText) {
+            showNotification("Missing Field", "Custom interview ID is required.", { isError: true });
+            return;
+        }
 
     // ---- NEW CANDIDATE TABLE EXTRACTION ----
     function getCandidatesFromTable() {
@@ -557,18 +577,22 @@ function processImportedRows(rows) {
         const hh = String(now.getHours()).padStart(2, '0');
         const min = String(now.getMinutes()).padStart(2, '0');
 
-        const data = {
-            title: formData.get("title"),
-            customIdText: formData.get("customIdText"),
-            questions: formData.getAll("questions[]"),
-            timeLimits: formData.getAll("timeLimits[]").map(t => parseInt(t, 10) || 0),
-            date: `${yyyy}-${mm}-${dd}`,
-            time: `${hh}:${min}`,
-            candidates: candidates,      // <-- now contains first, last, email
-            candidateCodes: candidateCodes,
-            jobDescription: document.getElementById('real-job-description').value,
-            schedulerIds: visitorReviewerIds
-        };
+    // ---- BUILD FINAL PAYLOAD ----
+    const data = {
+        title: title,
+        customIdText: customIdText,
+        questions: formData.getAll("questions[]").map(q => q.trim()),
+        timeLimits: formData
+            .getAll("timeLimits[]")
+            .map(t => parseInt(t, 10) || 60), // fallback safety, though UI enforces 60+
+        date: `${yyyy}-${mm}-${dd}`,
+        time: `${hh}:${min}`,
+        candidates: candidates,          // [{ first, last, email }]
+        candidateCodes: candidateCodes,  // generated earlier
+        jobDescription: jobDescription,
+        schedulerIds: visitorReviewerIds // reviewer user IDs
+    };
+
 
         try {
             const res = await fetch("/schedule", {

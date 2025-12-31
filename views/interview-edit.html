@@ -57,7 +57,30 @@
                       <span class="material-symbols-outlined text-gray-700">refresh</span>
                   </button>
               </div>
-                  <select id="schedulerIds" name="schedulerIds" multiple required class="mt-2 w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] h-32"></select>
+                <!-- ASSIGN SCHEDULERS CARD -->
+                <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-4">
+
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Assign Reviewers</h3>
+
+                <!-- SEARCH BAR -->
+                <div class="relative mb-4">
+                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
+                    <input id="scheduler-search"
+                            placeholder="Search team members..."
+                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-sm">
+                </div>
+
+                <!-- CUSTOM LIST (THIS WAS MISSING) -->
+                <div id="scheduler-list"
+                    class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                </div>
+
+                <!-- HIDDEN SELECT (source of truth) -->
+                <select id="schedulerIds" name="schedulerIds" multiple class="hidden"></select>
+
+                <p class="text-xs text-slate-500 mt-3">Select one or more users.</p>
+                </div>
+
               </div>
           </div>
       </div>
@@ -239,23 +262,6 @@ function showNotification(title, text, options = {}) {
   const schedulerSelect = document.getElementById('schedulerIds');
   const candidatesList = document.getElementById('current-candidates-list');
 
-  async function loadSchedulers() {
-      try {
-          const response = await fetch('/api/users-by-dept');
-          if (!response.ok) throw new Error('Failed to load users');
-          const users = await response.json();
-          schedulerSelect.innerHTML = '';
-          users.forEach(user => {
-              const option = document.createElement('option');
-              option.value = user.id;
-              option.textContent = `${user.first_name} ${user.last_name}`;
-              schedulerSelect.appendChild(option);
-          });
-      } catch (error) {
-          console.error('Error loading schedulers:', error);
-          schedulerSelect.innerHTML = '<option disabled>Error loading users.</option>';
-      }
-  }
   async function getActiveDepartment() {
     try {
       const res = await fetch('/api/me');
@@ -271,180 +277,177 @@ function showNotification(title, text, options = {}) {
   }
 
   // Load schedulers from the visitors table filtered by department (uses server's /api/visitors/by-dept)
-  async function loadSchedulers(department) {
-      try {
-          const schedulerSelect = document.getElementById('schedulerIds');
-          schedulerSelect.innerHTML = '<option disabled>Loading reviewers...</option>';
+    async function loadSchedulers(department) {
+        const hiddenSelect = document.getElementById("schedulerIds");
+        const list = document.getElementById("scheduler-list");
 
-          if (!department) {
-              schedulerSelect.innerHTML = '<option disabled>Please select an interview department first.</option>';
-              return;
-          }
+        hiddenSelect.innerHTML = "";
+        list.innerHTML = `<p class="text-sm text-slate-500">Loading reviewers...</p>`;
 
-          const response = await fetch(`/api/visitors/by-dept?department=${encodeURIComponent(department)}`);
-          if (!response.ok) {
-              if (response.status === 401) throw new Error('Your session may have expired. Please log in again.');
-              throw new Error('Failed to load reviewers for this department.');
-          }
+        if (!department) return;
 
-          const visitors = await response.json();
-          schedulerSelect.innerHTML = ''; // clear
+        const res = await fetch(`/api/visitors/by-dept?department=${department}`);
+        if (!res.ok) {
+            list.innerHTML = `<p class="text-sm text-red-500">Failed to load reviewers.</p>`;
+            return;
+        }
 
-          if (!Array.isArray(visitors) || visitors.length === 0) {
-              schedulerSelect.innerHTML = `<option disabled>No reviewers found for ${department}.</option>`;
-              return;
-          }
+        const visitors = await res.json();
+        list.innerHTML = "";
 
-          visitors.forEach(visitor => {
-              const option = document.createElement('option');
-              option.value = visitor.id; // visitor id
-              // show name and email so schedulers are easy to pick
-              const name = `${visitor.first_name || ''} ${visitor.last_name || ''}`.trim();
-              option.textContent = name ? `${name} — ${visitor.email}` : visitor.email;
-              schedulerSelect.appendChild(option);
-          });
-      } catch (error) {
-          console.error('Error loading schedulers (visitors):', error);
-          const schedulerSelect = document.getElementById('schedulerIds');
-          if (schedulerSelect) schedulerSelect.innerHTML = '<option disabled>Error loading reviewers.</option>';
-      }
-  }
+        visitors.forEach(visitor => {
+            // hidden select option
+            const option = document.createElement("option");
+            option.value = visitor.id;
+            hiddenSelect.appendChild(option);
+
+            // initials
+            const initials =
+                visitor.first_name.charAt(0).toUpperCase() +
+                visitor.last_name.charAt(0).toUpperCase();
+
+            // row
+            const row = document.createElement("div");
+            row.className =
+                "flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-100 transition";
+
+            row.innerHTML = `
+                <input type="checkbox"
+                    class="scheduler-checkbox h-4 w-4"
+                    data-id="${visitor.id}" />
+
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-semibold">
+                        ${initials}
+                    </div>
+                    <div class="text-sm">
+                        <p class="font-medium">${visitor.first_name} ${visitor.last_name}</p>
+                        <p class="text-xs text-slate-500">${visitor.email}</p>
+                    </div>
+                </div>
+            `;
+
+            const checkbox = row.querySelector("input");
+
+            // checkbox → select sync
+            checkbox.addEventListener("change", () => {
+                option.selected = checkbox.checked;
+            });
+
+            // row click toggle
+            row.addEventListener("click", (e) => {
+                if (e.target.tagName !== "INPUT") {
+                    checkbox.checked = !checkbox.checked;
+                    option.selected = checkbox.checked;
+                }
+            });
+
+            list.appendChild(row);
+        });
+    }
 
   // Modified loadInterview to fetch department first, then load schedulers (visitors), then fetch interview
-  async function loadInterview() {
+async function loadInterview() {
     try {
-      // 1) Get active department and load visitors (schedulers) for it
-      const activeDept = await getActiveDepartment();
-      await loadSchedulers(activeDept);
+        // 1️⃣ Load department & reviewers first
+        const activeDept = await getActiveDepartment();
+        if (!activeDept) throw new Error("No active department found.");
 
-      // 2) Then fetch the interview itself
-      const res = await fetch(`/api/interview/${interviewId}`);
-      if (!res.ok) throw new Error('Interview not found');
-      const interview = await res.json();
+        await loadSchedulers(activeDept);
 
-      // 3) Populate form fields (unchanged)
-      document.getElementById("title").value = interview.title || '';
-      document.getElementById("custom-id-display").textContent = `Editing Interview ID: ${interview.custom_interview_id || ''}`;
-      document.getElementById("created-by-name").textContent = `${interview.first_name || ''} ${interview.last_name || ''}`.trim() || 'N/A';
+        // 2️⃣ Fetch interview
+        const res = await fetch(`/api/interview/${interviewId}`);
+        if (!res.ok) throw new Error("Interview not found");
 
-      // 4) Pre-select assigned schedulers (scheduler_ids should now match visitor IDs)
-      const schedulerIds = new Set(interview.visitor_reviewer_ids || []);
-      Array.from(schedulerSelect.options).forEach(option => {
-          // option.value is a string; ensure types match
-          if (schedulerIds.has(option.value) || schedulerIds.has(option.value.toString())) {
-              option.selected = true;
-          } else {
-              option.selected = false;
-          }
-      });
+        const interview = await res.json();
 
-      // 5) Populate current candidates
-      const tableBody = document.getElementById('current-candidates-body');
-      tableBody.innerHTML = '';
+        // 3️⃣ Populate basic fields
+        document.getElementById("title").value = interview.title || "";
+        document.getElementById("custom-id-display").textContent =
+            `Editing Interview ID: ${interview.custom_interview_id || ""}`;
+        document.getElementById("created-by-name").textContent =
+            `${interview.first_name || ""} ${interview.last_name || ""}`.trim() || "N/A";
 
-      if (interview.candidates && interview.candidates.length > 0) {
-          interview.candidates.forEach(c => {
-              const tr = document.createElement('tr');
+        // 4️⃣ PRE-SELECT ASSIGNED REVIEWERS (correct way)
+        const assignedIds = new Set(interview.visitor_reviewer_ids || []);
 
-              tr.innerHTML = `
-                  <td class="px-4 py-2">${c.candidate_first_name || ''}</td>
-                  <td class="px-4 py-2">${c.candidate_last_name || ''}</td>
-                  <td class="px-4 py-2">${c.candidate_email}</td>
-              `;
-              tableBody.appendChild(tr);
-          });
-      } else {
-          tableBody.innerHTML = `
-              <tr><td colspan="5" class="text-center text-gray-500 py-4">No candidates have been invited yet.</td></tr>
-          `;
-      }
-document.getElementById('add-new-candidate').onclick = async () => {
-    const first = document.getElementById('new-first-name').value.trim();
-    const last = document.getElementById('new-last-name').value.trim();
-    const email = document.getElementById('new-email').value.trim();
+        document.querySelectorAll("#scheduler-list > div").forEach(row => {
+            const checkbox = row.querySelector("input[type='checkbox']");
+            const reviewerId = checkbox.dataset.id;
 
-    if (!first || !last || !email) {
-        showNotification('Invalid Input', 'Please enter First Name, Last Name and Email.', { isError: true });
-        return;
-    }
+            const option = document.querySelector(
+                `#schedulerIds option[value="${reviewerId}"]`
+            );
 
-    try {
-        const payload = {
-            candidates: [{ first, last, email }]
-        };
-
-        const res = await fetch(`/api/interview/${interviewId}/update`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            if (assignedIds.has(reviewerId)) {
+                checkbox.checked = true;
+                option.selected = true;
+            } else {
+                checkbox.checked = false;
+                option.selected = false;
+            }
         });
 
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message);
+        // 5️⃣ Populate candidates
+        const tableBody = document.getElementById("current-candidates-body");
+        tableBody.innerHTML = "";
 
-        showNotification('Success', 'Candidate added and invite sent.', { isError: false });
+        if (interview.candidates?.length) {
+            interview.candidates.forEach(c => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="px-4 py-2">${c.candidate_first_name || ""}</td>
+                    <td class="px-4 py-2">${c.candidate_last_name || ""}</td>
+                    <td class="px-4 py-2">${c.candidate_email}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center text-gray-500 py-4">
+                        No candidates have been invited yet.
+                    </td>
+                </tr>
+            `;
+        }
 
-        document.getElementById('new-first-name').value = '';
-        document.getElementById('new-last-name').value = '';
-        document.getElementById('new-email').value = '';
+        // 6️⃣ Questions
+        questionsContainer.innerHTML = "";
+        interview.questions?.forEach((q, i) =>
+            addQuestion(q, interview.time_limits?.[i] || 0)
+        );
 
-        loadInterview(); // refresh table
+        // 7️⃣ Show page
+        document.getElementById("loading-state").style.display = "none";
+        document.getElementById("content-container").classList.remove("hidden");
 
     } catch (err) {
-        showNotification('Error', err.message, { isError: true });
+        console.error("Error loading interview:", err);
+        document.getElementById("loading-state").innerHTML =
+            `<p class="text-red-500">Failed to load interview.</p>`;
     }
-};
-
-
-      // 6) Populate questions (existing addQuestion function can be used)
-      questionsContainer.innerHTML = "";
-      const questions = interview.questions || [];
-      const timeLimits = interview.time_limits || [];
-      questions.forEach((q, i) => addQuestion(q, timeLimits[i] || 0));
-
-      document.getElementById('loading-state').style.display = 'none';
-      document.getElementById('content-container').classList.remove('hidden');
-
-    } catch (err) {
-      console.error("Error loading interview:", err);
-      document.getElementById('loading-state').innerHTML = `<p class="text-red-500">Failed to load interview. ${err.message}</p>`;
-    }
-  }
+}
 
     // --- Refresh schedulers button ---
-  const refreshBtn = document.getElementById("refresh-schedulers");
-  if (refreshBtn) {
-      refreshBtn.addEventListener("click", async () => {
-          try {
-              refreshBtn.classList.add("animate-spin");
-              refreshBtn.disabled = true;
+    const refreshBtn = document.getElementById("refresh-schedulers");
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", async () => {
+            try {
+                refreshBtn.classList.add("animate-spin");
+                refreshBtn.disabled = true;
 
-              // Get updated department
-              const res = await fetch("/api/me");
-              const user = await res.json();
-              const dept = user.activeDepartment;
+                await loadInterview(); // full reload, safe & consistent
 
-              // Reload visitors list
-              await loadSchedulers(dept);
+            } catch (err) {
+                showNotification("Error", "Failed to refresh schedulers.", { isError: true });
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove("animate-spin");
+            }
+        });
+    }
 
-              // Re-select already assigned reviewers
-              const resInterview = await fetch(`/api/interview/${interviewId}`);
-              const interview = await resInterview.json();
-              const assignedIds = new Set(interview.visitor_reviewer_ids || []);
-
-              Array.from(schedulerSelect.options).forEach(opt => {
-                  opt.selected = assignedIds.has(opt.value);
-              });
-
-          } catch (err) {
-              console.error("Failed to refresh schedulers:", err);
-              alert("Failed to refresh schedulers.");
-          } finally {
-              refreshBtn.disabled = false;
-              refreshBtn.classList.remove("animate-spin");
-          }
-      });
-  }
 
   // Call loadInterview() on page load (it will call the visitors-by-dept route first)
   document.addEventListener('DOMContentLoaded', () => {
@@ -541,27 +544,37 @@ deleteBtn.onclick = () => {
 
 async function actualDeleteInterview() {
     try {
-        const res = await fetch(`/api/interview/${interviewId}/delete`, { method: "DELETE" });
+        const res = await fetch('/api/interviews/bulk-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                interviewIds: [interviewId]
+            })
+        });
+
         const result = await res.json();
-        if (res.ok) {
-            showNotification(
-                'Interview Deleted',
-                'The interview has been removed permanently.',
-                { 
-                    isError: false,
-                    onClose: () => {
-                        window.location.href = document.getElementById('back-to-dashboard-link').href;
-                    }
-                }
-            );
-        } else {
-            throw new Error(result.message);
+
+        if (!res.ok) {
+            throw new Error(result.message || 'Failed to delete interview.');
         }
+
+        showNotification(
+            'Interview Deleted',
+            'The interview has been removed permanently.',
+            {
+                isError: false,
+                onClose: () => {
+                    window.location.href = document.getElementById('back-to-dashboard-link').href;
+                }
+            }
+        );
+
     } catch (err) {
         console.error("Error deleting interview:", err);
         showNotification('Error', err.message, { isError: true });
     }
 }
+
 
   
   // Set the back link dynamically based on the 'from' URL parameter
