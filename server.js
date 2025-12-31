@@ -32,6 +32,7 @@ const allowedOrigins = [
   "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
+  "https://dvar.globalxperts.org/"
 
 ];
 
