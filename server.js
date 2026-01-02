@@ -356,14 +356,14 @@ async function sendLoginOtpEmail(to, otp) {
   const msg = {
     to,
     from: verifiedSenderEmail,
-    subject: "Your HireXpert login code",
+    subject: "Your Dvar login code",
     html: `
       <p>Hello,</p>
       <p>Your one-time login code is:</p>
       <h2 style="letter-spacing: 2px;">${otp}</h2>
       <p>This code will expire in <b>10 minutes</b>.</p>
       <p>If you did not attempt to log in, you should contact the Admin team and inform them of this unauthorized access attempt.</p>
-      <p>Regards,<br/>HireXpert Team</p>
+      <p>Regards,<br/>Dvār Team</p>
     `
   };
 
@@ -408,7 +408,7 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
                 <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
                 <p><a href="${link}">Click here to begin your interview</a></p>
                 <p>This link will expire in 24 hours for security reasons.</p>
-                <p>Regards,<br>HireXpert Team</p>
+                <p>Regards,<br>Dvar Team</p>
             `,
         };
 
