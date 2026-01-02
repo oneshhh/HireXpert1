@@ -331,17 +331,34 @@ function updateBulkActionBar() {
     const countSpan = document.getElementById('selected-count');
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-    
+    const moveToClosedBtn = document.getElementById('move-to-closed-btn');
+    const moveToOpenBtn = document.getElementById('move-to-open-btn');
+
     if (selectedInterviewIds.size > 0) {
         bar.classList.remove('hidden');
         countSpan.textContent = selectedInterviewIds.size;
-        const visibleRowCount = document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
-        selectAllCheckbox.checked = selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
+
+        // ✅ THIS IS WHAT HR WAS MISSING
+        if (currentStatusFilter === 'open') {
+            moveToClosedBtn.classList.remove('hidden');
+            moveToOpenBtn.classList.add('hidden');
+        } else {
+            moveToClosedBtn.classList.add('hidden');
+            moveToOpenBtn.classList.remove('hidden');
+        }
+
+        const visibleRowCount =
+            document.querySelectorAll('#interviews-table-body tr:not([style*="display: none"]) .row-checkbox').length;
+
+        selectAllCheckbox.checked =
+            selectedInterviewIds.size === visibleRowCount && visibleRowCount > 0;
+
     } else {
         bar.classList.add('hidden');
         selectAllCheckbox.checked = false;
     }
 }
+
 
 // Event wiring - keeping behavior same
 document.addEventListener('DOMContentLoaded', () => {
