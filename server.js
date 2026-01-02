@@ -2105,61 +2105,38 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
 });
 
 // NEW ROUTE: Tab Switch Summary
-app.get("/api/candidates/tab-switch-summary", async (req, res) => {
-  const { department } = req.query;
+app.get("/api/candidate/tab-switch-count", async (req, res) => {
+  const { token, interview_id } = req.query;
 
-  if (!department) {
-    return res.status(400).json({ error: "MISSING_DEPARTMENT" });
+  if (!token || !interview_id) {
+    return res.status(400).json({ error: "MISSING_PARAMS" });
   }
 
   try {
-    /**
-     * Step 1: fetch candidate codes for department (DB_A)
-     */
-    const candRes = await pool.query(
-      `
-      SELECT candidate_code
-      FROM candidate_sessions
-      WHERE department = $1
-      AND candidate_code IS NOT NULL
-      `,
-      [department]
-    );
-
-    const codes = candRes.rows.map(r => r.candidate_code);
-    if (codes.length === 0) {
-      return res.json({});
-    }
-
-    /**
-     * Step 2: aggregate tab switches from DB_B
-     */
     const { data, error } = await supabase_second_db
       .from("answers")
-      .select("candidate_token, session_tab_switch_count")
-      .in("candidate_token", codes);
+      .select("session_tab_switch_count")
+      .eq("candidate_token", token)
+      .eq("interview_id", interview_id);
 
     if (error) {
       console.error("Supabase error:", error);
       return res.status(500).json({ error: "SUPABASE_ERROR" });
     }
 
-    /**
-     * Step 3: SUM per candidate_token
-     */
-    const summary = {};
+    // Sum all tab switches across questions
+    const total = (data || []).reduce(
+      (sum, row) => sum + (row.session_tab_switch_count || 0),
+      0
+    );
 
-    for (const row of data) {
-      const token = row.candidate_token;
-      const count = row.session_tab_switch_count || 0;
-
-      summary[token] = (summary[token] || 0) + count;
-    }
-
-    return res.json(summary);
+    return res.json({
+      success: true,
+      tab_switch_count: total
+    });
 
   } catch (err) {
-    console.error("Tab switch summary error:", err);
+    console.error("Tab switch count error:", err);
     return res.status(500).json({ error: "SERVER_ERROR" });
   }
 });
