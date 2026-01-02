@@ -2104,6 +2104,67 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
     }
 });
 
+// NEW ROUTE: Tab Switch Summary
+app.get("/api/candidates/tab-switch-summary", async (req, res) => {
+  const { department } = req.query;
+
+  if (!department) {
+    return res.status(400).json({ error: "MISSING_DEPARTMENT" });
+  }
+
+  try {
+    /**
+     * Step 1: fetch candidate codes for department (DB_A)
+     */
+    const candRes = await pool.query(
+      `
+      SELECT candidate_code
+      FROM candidate_sessions
+      WHERE department = $1
+      AND candidate_code IS NOT NULL
+      `,
+      [department]
+    );
+
+    const codes = candRes.rows.map(r => r.candidate_code);
+    if (codes.length === 0) {
+      return res.json({});
+    }
+
+    /**
+     * Step 2: aggregate tab switches from DB_B
+     */
+    const { data, error } = await supabase_second_db
+      .from("answers")
+      .select("candidate_token, session_tab_switch_count")
+      .in("candidate_token", codes);
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(500).json({ error: "SUPABASE_ERROR" });
+    }
+
+    /**
+     * Step 3: SUM per candidate_token
+     */
+    const summary = {};
+
+    for (const row of data) {
+      const token = row.candidate_token;
+      const count = row.session_tab_switch_count || 0;
+
+      summary[token] = (summary[token] || 0) + count;
+    }
+
+    return res.json(summary);
+
+  } catch (err) {
+    console.error("Tab switch summary error:", err);
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+
 // --- FIXED: Allow BOTH users and viewers to resend invite ---
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;
