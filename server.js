@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const allowedOrigins = [
-  "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
+  "https://Dvar-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
   "https://dvar.globalxperts.org"
@@ -436,7 +436,7 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         start: [year, month, day, hour, minute],
         duration: { hours: 1 },
         status: 'CONFIRMED',
-        organizer: { name: 'HireXpert', email: verifiedSenderEmail },
+        organizer: { name: 'Dvar', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
     const msg = {

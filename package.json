@@ -1,5 +1,5 @@
 {
-  "name": "hirexpert",
+  "name": "Dvar",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -33,13 +33,13 @@
   "description": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oneshhh/HireXpert1.git"
+    "url": "git+https://github.com/oneshhh/Dvar1.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/oneshhh/HireXpert1/issues"
+    "url": "https://github.com/oneshhh/Dvar1/issues"
   },
-  "homepage": "https://github.com/oneshhh/HireXpert1#readme"
+  "homepage": "https://github.com/oneshhh/Dvar1#readme"
 }
