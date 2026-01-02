@@ -927,6 +927,9 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
         const params = new URLSearchParams(window.location.search);
         currentToken = params.get("token");
         currentInterviewId = params.get("interview_id");
+        console.log("token:", token);
+        console.log("interviewId:", interviewId);
+
 
         document.getElementById('back-link').href = `/interview-view.html?id=${currentInterviewId}`;
 
@@ -941,7 +944,8 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
         const myUserId = await getMyUserId();
 
         try {
-            const res = await fetch(`/api/candidate/review/${currentToken}`);
+            const res = await fetch(`/api/candidate/tab-switch-count?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(interviewId)}`);
+
             if (!res.ok) {
                 const errData = await res.json().catch(()=>({message:'Error'}));
                 throw new Error(errData.message || "Could not fetch candidate details.");
