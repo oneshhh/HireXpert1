@@ -2104,44 +2104,6 @@ app.get("/api/interview/:id/candidates", async (req, res) => {
     }
 });
 
-// NEW ROUTE: Tab Switch Summary
-app.get("/api/candidate/tab-switch-count", async (req, res) => {
-  const { token, interview_id } = req.query;
-
-  if (!token || !interview_id) {
-    return res.status(400).json({ error: "MISSING_PARAMS" });
-  }
-
-  try {
-    const { data, error } = await supabase_second_db_service
-      .from("answers")
-      .select("session_tab_switch_count")
-      .eq("candidate_token", token)
-      .eq("interview_id", interview_id);
-
-    if (error) {
-      console.error("Supabase error:", error);
-      return res.status(500).json({ error: "SUPABASE_ERROR" });
-    }
-
-    // Sum all tab switches across questions
-    const total = (data || []).reduce(
-      (sum, row) => sum + (row.session_tab_switch_count || 0),
-      0
-    );
-
-    return res.json({
-      success: true,
-      tab_switch_count: total
-    });
-
-  } catch (err) {
-    console.error("Tab switch count error:", err);
-    return res.status(500).json({ error: "SERVER_ERROR" });
-  }
-});
-
-
 // --- FIXED: Allow BOTH users and viewers to resend invite ---
 app.post("/api/resend-invite", async (req, res) => {
     const { interviewId, candidateEmail } = req.body;

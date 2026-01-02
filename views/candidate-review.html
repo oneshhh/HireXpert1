@@ -211,13 +211,6 @@
         <div class="flex flex-col">
             <div class="brand">HireXpert</div>
             <div id="candidate-name" class="candidate-name mt-1">Candidate</div>
-            <!-- TAB SWITCH BADGE (HIDDEN BY DEFAULT) -->
-            <div
-              id="tab-switch-badge"
-              class="hidden text-xs font-semibold px-3 py-1 rounded-lg bg-blue-100 text-blue-800"
-            >
-              Tab switches: 0
-            </div>
             <div id="candidate-email" class="subtle small-muted mt-1"></div>
             <div id="candidate-code" class="text-sm text-gray-500 mt-1"></div>
         </div>
@@ -927,9 +920,6 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
         const params = new URLSearchParams(window.location.search);
         currentToken = params.get("token");
         currentInterviewId = params.get("interview_id");
-        console.log("token:", token);
-        console.log("interviewId:", interviewId);
-
 
         document.getElementById('back-link').href = `/interview-view.html?id=${currentInterviewId}`;
 
@@ -944,40 +934,12 @@ deleteBtn?.addEventListener('click', () => deleteMyEvaluation());
         const myUserId = await getMyUserId();
 
         try {
-            const res = await fetch(`/api/candidate/tab-switch-count?token=${encodeURIComponent(token)}&interview_id=${encodeURIComponent(interviewId)}`);
-
+            const res = await fetch(`/api/candidate/review/${currentToken}`);
             if (!res.ok) {
                 const errData = await res.json().catch(()=>({message:'Error'}));
                 throw new Error(errData.message || "Could not fetch candidate details.");
             }
             const data = await res.json();
-            // --------------------------------------------------
-            // FETCH TOTAL TAB SWITCH COUNT (NEW)
-            // --------------------------------------------------
-            try {
-              const tsRes = await fetch(
-                `/api/candidate/tab-switch-count?token=${encodeURIComponent(currentToken)}`,
-                { credentials: "include" }
-              );
-
-              if (tsRes.ok) {
-                const tsData = await tsRes.json();
-
-                if (
-                  tsData &&
-                  typeof tsData.total_tab_switch_count === "number"
-                ) {
-                  const badge = document.getElementById("tab-switch-badge");
-                  if (badge) {
-                    badge.textContent = `Tab switches: ${tsData.total_tab_switch_count}`;
-                    badge.classList.remove("hidden");
-                  }
-                }
-              }
-            } catch (e) {
-              console.warn("Could not load tab switch count:", e);
-            }
-
             // =========================================================
             // STORE DATA FOR AI EVALUATION
             // =========================================================
