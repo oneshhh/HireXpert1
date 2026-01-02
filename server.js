@@ -2113,7 +2113,7 @@ app.get("/api/candidate/tab-switch-count", async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase_second_db
+    const { data, error } = await supabase_second_db_service
       .from("answers")
       .select("session_tab_switch_count")
       .eq("candidate_token", token)
