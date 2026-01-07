@@ -884,13 +884,15 @@ app.post("/api/users/bulk-delete", async (req, res) => {
 
 // Debugging and Testing Routes
 app.get("/api/debug/delete-one-video", async (req, res) => {
+    // 🔓 TEMP DEBUG BYPASS
+    // DO NOT rely on req.session for this route
+
     const { interviewId } = req.query;
 
     if (!interviewId) {
         return res.status(400).json({ error: "interviewId required" });
     }
 
-    // 1. Fetch ONE raw_path
     const { data: answers, error } =
         await supabase_second_db_service
             .from("answers")
@@ -904,22 +906,19 @@ app.get("/api/debug/delete-one-video", async (req, res) => {
 
     const rawPath = answers[0].raw_path;
 
-    // rawPath = "raw/3ca6.../q1.webm"
+    // IMPORTANT: normalize path for storage
     const relativePath = rawPath.replace(/^raw\//, "");
 
-    // 2. List BEFORE delete
     const before = await supabase_second_db_service
         .storage
         .from("raw")
         .list(relativePath.split("/").slice(0, -1).join("/"));
 
-    // 3. Delete
     const del = await supabase_second_db_service
         .storage
         .from("raw")
         .remove([relativePath]);
 
-    // 4. List AFTER delete
     const after = await supabase_second_db_service
         .storage
         .from("raw")
