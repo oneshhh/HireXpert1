@@ -1631,7 +1631,7 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
             }
             if (a.transcript_path) {
                 deletes.transcript.push(
-                    a.transcript_path.replace(/^\/+/, "")
+                    a.transcript_path.replace(/^\/?transcripts\//, "")
                 );
             }
         }
