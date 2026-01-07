@@ -390,17 +390,39 @@ function otpExpiry(minutes = 10) {
 async function sendLoginOtpEmail(to, otp) {
   await sendEmail({
     to,
-    subject: "Your Dvar login code",
+    subject: "Your Dvār Login Verification Code",
     html: `
       <p>Hello,</p>
-      <p>Your one-time login code is:</p>
-      <h2 style="letter-spacing: 2px;">${otp}</h2>
-      <p>This code will expire in <b>10 minutes</b>.</p>
-      <p>If you did not attempt to log in, contact the Admin team.</p>
-      <p>Regards,<br/>Dvār Team</p>
+
+      <p>
+        We received a request to sign in to
+        <b>Dvār by GlobalXperts Technology</b>.
+      </p>
+
+      <p>Your one-time verification code is:</p>
+
+      <h2 style="letter-spacing: 3px; margin: 16px 0;">
+        ${otp}
+      </h2>
+
+      <p>
+        This code is valid for <b>10 minutes</b> and can be used only once.
+      </p>
+
+      <p>
+        If you did not attempt to log in, please ignore this email
+        or contact your administrator immediately or Dvar Support Team.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <b>Dvār Team</b><br/>
+        GlobalXperts Technology
+      </p>
     `
   });
 }
+
 
 
 async function sendInterviewEmail(to, interviewId, title, date, time) {
@@ -432,19 +454,49 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
 
         await sendEmail({
         to,
-        subject: `Interview Scheduled: ${title}`,
+        subject: `Interview Invitation: ${title} | Dvār`,
         html: `
             <p>Dear Candidate,</p>
-            <p>Your interview for <b>${title}</b> has been scheduled.</p>
-            <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+
             <p>
-            <a href="${link}">Click here to begin your interview</a>
+            You have been invited to participate in an interview for the position:
             </p>
-            <p>This link will expire in 24 hours for security reasons.</p>
-            <p>Regards,<br/>Dvār Team</p>
+
+            <p><b>${title}</b></p>
+
+            <p>
+            <b>Date:</b> ${date}<br/>
+            <b>Time:</b> ${time}
+            </p>
+
+            <p>
+            Please use the secure link below to begin your interview:
+            </p>
+
+            <p>
+            <a href="${link}" target="_blank">
+                Start Interview
+            </a>
+            </p>
+
+            <p>
+            This link is unique to you and will expire in
+            <b>24 hours</b> for security reasons.
+            Please do not share this link with anyone.
+            </p>
+
+            <p>
+            If you have any questions or experience issues accessing the interview,
+            please contact the hiring team.
+            </p>
+
+            <p>
+            Best regards,<br/>
+            <b>Dvār Team</b><br/>
+            GlobalXperts Technology
+            </p>
         `
         });
-
 
         console.log("📧 Sending email...");
 
