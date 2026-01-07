@@ -3,26 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - HireXpert</title>
+  <title>Login - Dvar</title>
+  <link rel="stylesheet" href="../public/style.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     body {
-      font-family: "Inter", sans-serif;
       background: radial-gradient(circle at top left, #e0f2ff 0, #f9fafb 45%, #e5edff 100%);
       overflow-x: hidden;
       height: 100vh;
     }
 
-    :root {
-      --primary-color: #1173d4;
-      --primary-color-hover: #1d4ed8;
-    }
-
     .curve-bg {
-      background: linear-gradient(135deg, #0c5ec9 0%, #1173d4 50%, #3b82f6 100%);
+      background: linear-gradient(135deg, #1964ac 0%, #1964ac 50%, #4ca6ff 100%);
       clip-path: ellipse(100% 100% at 0% 50%);
     }
 
@@ -64,17 +58,18 @@
         <!-- Floating shapes -->
         <div class="absolute -top-6 right-10 w-16 h-16 rounded-3xl border border-white/40 float-slow opacity-70"></div>
         <div class="absolute bottom-10 -left-4 w-10 h-10 rounded-full bg-white/10 float-slow-delay"></div>
-        <div class="absolute top-24 left-10 w-3 h-3 rounded-full bg-cyan-300 float-slow-delay"></div>
+        <!-- <div class="absolute top-24 left-10 w-3 h-3 rounded-full bg-cyan-300 float-slow-delay"></div> -->
 
-        <div class="relative z-10 space-y-2">
-          <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-blue-100">
-            HireXpert <span class="w-1 h-1 rounded-full bg-blue-100"></span>
-          </span>
+        <div class="relative logincontent z-10 space-y-2">
+          <!-- <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-blue-100">
+            Dvar <span class="w-1 h-1 rounded-full bg-blue-100"></span>
+          </span> -->
 
-          <h1 class="text-3xl md:text-4xl font-bold leading-tight">Welcome to HireXpert</h1>
+          <img class="logo" src="../public/assets/Dvar-ht.png"/><br>
+          <h1 class="text-3xl md:text-4xl font-bold leading-tight">Welcome to Dvār</h1>
 
           <p class="text-sm md:text-base text-blue-100 max-w-md mt-2">
-            Please select your department and enter your credentials.
+            The Intelligent Gateway to Trusted Hiring
           </p>
         </div>
 
@@ -155,15 +150,8 @@
       </div>
 
       <!-- RIGHT PANEL -->
-      <div class="relative hidden md:flex items-center justify-center bg-white h-full">
-
-        <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-100 opacity-40"></div>
-        <div class="absolute bottom-0 left-6 w-32 h-32 rounded-3xl bg-indigo-50 opacity-50"></div>
-
-        <div class="relative w-full h-full flex items-center justify-center p-10">
-          <img src="assets/image.png" alt="HireXpert login illustration" class="w-full h-full object-contain" />
-        </div>
-
+      <div class="login-bg">
+        <p>dfdf</p>
       </div>
 
     </div>
@@ -332,7 +320,7 @@
     </script>
 
 <div class="absolute bottom-3 right-4 text-gray-600 text-xs z-50 select-none">
-  © GlobalXpert 2025
+  © GlobalXperts Technology 2025
 </div>
 
 

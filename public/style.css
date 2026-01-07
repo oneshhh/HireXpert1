@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+
+:root {
+    --primary-color: #1964ac !important; 
+    --primary-600: #4CA6FF !important; 
+    --secondary-color: #4ca6ff !important;
+    --text-primary: #111418;
+    --text-secondary: #617589;
+    --primary-color-hover: #4ca6ff;
+}
+body{
+    font-family: 'Poppins', sans-serif;
+}
+main{
+    background: #F6FAFF !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+header{
+    z-index: 9;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 8%);
+}
+.profile{
+    background: #1964ac !important;
+}
+.hxcard{
+    background: #fff;
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.tab.active {
+    border-bottom: 2px solid #1964ac;
+    border-radius: 0;
+}
+.tab:hover {
+    border-bottom: 2px solid #1964ac;
+    border-radius: 0;
+    background: none !important;
+}
+h2{
+    font-size: 1.5rem !important;
+}
+.gradbtn{
+    background: linear-gradient(#1964AC,#4CA6FF);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+.tab-active{
+    color: #1964ac;
+    border: none;
+    background: #F6FAFF;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+.tabbtn:hover{
+    color: #1964ac !important;
+    border: none;
+    background: #F6FAFF;
+    /* margin-bottom: 0.5rem; */
+    /* padding: 0.5rem 1rem; */
+    border-radius: 0.5rem;
+}
+table thead{
+    background: #1964AC !important;
+}
+table thead th{
+    color: #fff !important;
+    font-weight: 500 !important;
+}
+table .checkr{
+    padding-right: 0;
+}
+table .checkl{
+    padding-left: 0;
+}
+.hxctab{
+    padding: 0 1rem !important;
+}
+.hxctab2{
+    padding-bottom: 0 !important;
+}
+table tr{
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+    margin-bottom: 0.5rem;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+.logo{
+    width: 6rem;
+}
+.login-bg{
+    background: url('./assets/login.png');
+    width: 100%;
+    height: 100vh;
+    background-size: cover;
+    background-position: right;
+}
+.login-bg p{
+    display: none;
+}
+.login-bg h3{
+    font-weight: 500;
+    width: 15rem;
+}
+.login-bg .content{
+    position: absolute;
+    top: 13rem;
+    left: 4rem;
+}
+.login-bg .logo{
+    width: 8rem;
+}
+.logincontent .logo{
+    background: #fff;
+    padding: 0.5rem;
+    border-radius: 0.5rem 0;
+    width: 7rem;
+}
+#main-sidebar{
+    background: linear-gradient(#1964ac, #4ca6ff);
+}
+#main-sidebar a{
+    color: #fff;
+}
+.titledash{
+    text-transform: uppercase;
+    font-weight: 600 !important;
+    padding: 1rem 0 0 1rem;
+    color: #d1d1d1;
+}
+.dash-logo .logo{
+    background: #fff;
+    padding: 0.5rem;
+    border-radius: 0.5rem 0;
+    width: 7rem;
+}
+#main-sidebar a:hover {
+    color: #000000;
+}
+#dark-mode-toggle{
+    color: #fff;
+}
+#dark-mode-toggle:hover{
+    background: #000;
+}
+.dashboard h1{
+    font-size: 1.5rem;
+}
+.dashboard h2{
+    font-size: 1.2rem !important;
+}
+.dashboard h3{
+    font-size: 1rem;
+}
+.bg-gray-100{
+    color: #000 !important;
+}
+.mar0{
+    margin-top: 0 !important;
+}

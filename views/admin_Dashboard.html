@@ -3,12 +3,15 @@
 <html lang="en" class="">
 <head>
     <meta charset="utf-8"/>
-    <title>HireXpert - Admin Panel</title>
+    <title>Dvar - Admin Panel</title>
+    <link rel="stylesheet" href="../public/style.css"/>
     <!-- Added viewport for mobile-friendliness -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <!-- Added Tailwind config to enable 'class' dark mode -->
     <script>
@@ -18,18 +21,6 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style type="text/tailwindcss">
-      :root {
-        --primary-color: #1173d4;
-        --secondary-color: #f0f2f4;
-        --text-primary: #111418;
-        --text-secondary: #617589;
-      }
-      /* Dark mode variables */
-      .dark {
-        --secondary-color: #1f2937; /* gray-800 */
-        --text-primary: #f9fafb; /* gray-50 */
-        --text-secondary: #9ca3af; /* gray-400 */
-      }
       
       .status-badge { @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-medium; }
       /* Added dark mode styles */
@@ -47,7 +38,7 @@
     </style>
 </head>
 <!-- Added dark mode class to body -->
-<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<body class="bg-gray-50 font-sans dark:bg-gray-900">
 <div class="flex h-screen w-full bg-white overflow-x-hidden dark:bg-gray-900">
 <!-- Mobile-only header with dark mode classes -->
 <header class="lg:hidden sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
@@ -64,9 +55,8 @@
     
   <!-- Header -->
   <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-      <div class="flex flex-col items-start">
-          <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
-          <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+      <div class="flex flex-col items-start dash-logo">
+          <img class="logo" src="../public/assets/Dvar-ht.png"/>
       </div>
       <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
           <span class="material-symbols-outlined">close</span>
@@ -74,18 +64,19 @@
   </div>
 
   <!-- NAVIGATION -->
+   <span class="text-xs font-medium titledash">Admin Panel</span>
   <div class="flex flex-1 flex-col justify-between h-full">
     <nav class="space-y-2 p-4">
         <a href="/admin_Dashboard.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">dashboard</span>
+            <i class="fa-solid fa-table-columns"></i>
             Dashboard
         </a>
         <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">visibility</span>
+            <i class="fa-solid fa-user-check"></i>
             Evaluators Management
         </a>
         <a href="settings.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">settings</span>
+            <i class="fa-solid fa-gear"></i>
             Settings
         </a>
     </nav>
@@ -109,13 +100,13 @@
 <div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
 <!-- Main content with dark mode classes -->
-<main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
+<main class="dashboard flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">System Control Panel</h1>
     
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Analytics Overview</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <div class="hxcard">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-semibold text-gray-800 dark:text-gray-200">Interviews Scheduled</h3>
                     <div class="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
@@ -126,7 +117,7 @@
                 </div>
                 <div class="relative h-64"><canvas id="interviewsLineChart"></canvas></div>
             </div>
-            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <div class="hxcard">
                  <h3 class="font-semibold text-gray-800 mb-4 text-center dark:text-gray-200">Candidate Status Distribution</h3>
                 <div class="relative mx-auto h-64" style="max-width: 256px;"><canvas id="statusPieChart"></canvas></div>
             </div>
@@ -152,7 +143,7 @@
             </div>
         </div>
         <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th>  <th id="elapsed-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)] hidden"> Time Elapsed </th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table>
+            <table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Interview Title</th><th id="interview-dept-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Department</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Scheduled By</th>  <th id="elapsed-header" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)] hidden"> Time Elapsed </th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Open/Closed</th><th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th></tr></thead><tbody id="interviews-table-body" class="hxcard divide-y divide-gray-200 dark:divide-gray-700"></tbody></table>
         </div>
         <div id="show-more-interviews-container" class="mt-4 text-center"></div>
     </div>
@@ -175,7 +166,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="users-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                <tbody id="users-table-body" class="hxcard divide-y divide-gray-200 dark:divide-gray-700"></tbody>
             </table>
         </div>
     </div>
@@ -200,7 +191,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">Status</th>
                     </tr>
                 </thead>
-                <tbody id="candidates-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                <tbody id="candidates-table-body" class="hxcard divide-y divide-gray-200 dark:divide-gray-700"></tbody>
             </table>
         </div>
         <div id="show-more-candidates-container" class="mt-4 text-center"></div>

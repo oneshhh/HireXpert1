@@ -4,27 +4,19 @@
 <head>
   <meta charset="utf-8"/>
   <title>Visitor Management - Admin Panel</title>
+  <link rel="stylesheet" href="../public/style.css"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script>
     tailwind.config = { darkMode: 'class' }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style type="text/tailwindcss">
-    :root {
-      --primary-color: #1173d4;
-      --secondary-color: #f0f2f4;
-      --text-primary: #111418;
-      --text-secondary: #617589;
-    }
-    .dark {
-      --secondary-color: #1f2937;
-      --text-primary: #f9fafb;
-      --text-secondary: #9ca3af;
-    }
     .department-checklist {
       max-height: 150px;
       overflow-y: auto;
@@ -55,7 +47,7 @@
   </script>
 </head>
 
-<body class="bg-gray-50 font-sans dark:bg-gray-900" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<body class="bg-gray-50 font-sans dark:bg-gray-900">
 <div class="flex h-screen w-full bg-white overflow-x-hidden dark:bg-gray-900">
 
   <!-- Mobile Header -->
@@ -72,9 +64,8 @@
   <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
     <!-- Sidebar Header -->
     <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-      <div class="flex flex-col items-start">
-        <span class="text-xl font-bold text-[var(--primary-color)]">HireExpert</span>
-        <span class="text-xs font-medium text-[var(--text-secondary)]">Admin Panel</span>
+      <div class="flex flex-col items-start dash-logo">
+        <img class="logo" src="../public/assets/Dvar-ht.png"/>
       </div>
       <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
         <span class="material-symbols-outlined">close</span>
@@ -82,18 +73,19 @@
     </div>
 
     <!-- Sidebar Navigation -->
+     <span class="text-xs font-medium titledash">Admin Panel</span>
     <div class="flex flex-1 flex-col justify-between h-full">
       <nav class="space-y-2 p-4">
         <a href="/admin_Dashboard.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-          <span class="material-symbols-outlined">dashboard</span>
+          <i class="fa-solid fa-table-columns"></i>
           Dashboard
         </a>
         <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium bg-gray-100 text-[var(--primary-color)] dark:bg-gray-700 dark:text-white">
-          <span class="material-symbols-outlined">visibility</span>
+          <i class="fa-solid fa-user-check"></i>
           Evaluators Management
         </a>
         <a href="settings.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
-          <span class="material-symbols-outlined">settings</span>
+          <i class="fa-solid fa-gear"></i>
           Settings
         </a>
       </nav>
@@ -116,7 +108,7 @@
   <div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
   <!-- Main Content -->
-  <main class="flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
+  <main class="dashboard flex-1 overflow-y-auto bg-gray-50 p-6 sm:p-8 dark:bg-gray-900 ml-50">
     <h1 class="text-3xl font-bold text-[var(--text-primary)]">Evaluator Management</h1>
     <p class="mt-1 text-base text-[var(--text-secondary)]">Add or remove users who can access the interview viewer page.</p>
     
@@ -124,8 +116,8 @@
         
         <!-- Add New Visitor Form -->
         <div class="lg:col-span-1">
-            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-                <h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">Add New Evaluator</h2>
+            <div class="hxcard mar0">
+                <h3 class="text-xl font-bold text-[var(--text-primary)] mb-4">Add New Evaluator</h3>
                 <form id="add-visitor-form" class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

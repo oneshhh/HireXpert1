@@ -2,20 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>HireXpert- HR Interviews</title>
-<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
-<link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>Dvar- HR Interviews</title>
+<link rel="stylesheet" href="../public/style.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <style type="text/tailwindcss">
-      :root {
-        --primary-50: #eff6ff;
-        --primary-600: #2563eb; /* Tailwind blue-600 */
-        --primary-color: #2563eb; /* Added for consistency */
-        --gray-500: #6b7280;
-        --info-50: #ecfeff;
-        --info-500: #06b6d4;
-      }
       .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
@@ -34,19 +25,18 @@
       #notification-modal > div { transition: all 0.3s ease-out; }
 </style>
 </head>
-<body class="bg-gray-50" style='font-family: "Inter", "Noto Sans", sans-serif;'>
+<body class="bg-gray-50">
 <div class="flex min-h-screen w-full flex-col">
 
   <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-3 text-gray-800">
-        <svg class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_6_319)"><path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path></g><defs><clipPath id="clip0_6_319"><rect fill="white" height="48" width="48"></rect></clipPath></defs></svg>
-        <h1 class="text-xl font-bold text-gray-900">HireXpert</h1>
+        <img class="logo" src="../public/assets/Dvar-ht.png"/>
       </div>
-      <nav class="hidden md:flex items-center gap-4">
+      <!-- <nav class="hidden md:flex items-center gap-4">
         <a class="rounded-md px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50" href="#">Interviews</a>
         <a class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors" href="/candidates.html?department=HR">Candidates</a>
-      </nav>
+      </nav> -->
     </div>
     <div class="flex items-center gap-4">
       <div class="relative w-full max-w-xs">
@@ -57,7 +47,7 @@
       <div class="relative">
           <button id="profile-menu-button" type="button" class="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
               <span class="sr-only">Open user menu</span>
-              <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+              <div class="h-9 profile w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
                    <span id="profile-initials" class="text-sm font-medium text-gray-600"></span>
               </div>
           </button>
@@ -81,10 +71,19 @@
   </header>
 
   <main class="flex-1 px-8 py-8 md:px-12 lg:px-16">
+    <div class="hxcard hxctab tab-buttons">
+      <nav class="hidden md:flex items-center gap-4">
+        <button class="tab px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50 tab-btn" data-tab="interview-tab">Interviews</button>
+        <button class="tab px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors tab-btn" data-tab="candidate-tab">Candidates</button>
+      </nav>
+    </div>
+
+    <div class="tab-content" id="interview-tab">
+      <div class="hxcard hxctab2">
     <div class="mx-auto max-w-7xl">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold text-gray-900">Main Dashboard - HR</h2>
-        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=HR_Dashboard.html'" class="flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=HR_Dashboard.html'" class="flex gradbtn items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <span class="material-symbols-outlined">add</span>
           <span>Create Interview</span>
         </button>
@@ -92,10 +91,10 @@
 
       <div class="border-b border-gray-200 mb-6">
           <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-              <button id="open-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
+              <button id="open-positions-tab" class="tabbtn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
                   Open Positions <span id="open-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600">0</span>
               </button>
-              <button id="closed-positions-tab" class="whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+              <button id="closed-positions-tab" class="tabbtn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
                   Closed Positions <span id="closed-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
               </button>
           </nav>
@@ -108,6 +107,8 @@
               <button id="move-to-open-btn" class="hidden mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Re-open Positions</button>
               <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
           </div>
+      </div>
+    </div>
       </div>
 
       <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -126,8 +127,8 @@
           </colgroup>
           <thead class="bg-gray-50">
             <tr>
-              <th class="relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
-              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
+              <th class="checkr relative px-6 py-3"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"></th>
+              <th class="checkl px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">S.No.</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 w-[220px] max-w-[220px]"scope="col">ID</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Title</th>
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Status</th>
@@ -138,9 +139,63 @@
               <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500" scope="col">Actions</th>
             </tr>
           </thead>
-          <tbody id="interviews-table-body" class="divide-y divide-gray-200 bg-white"></tbody>
+          <tbody id="interviews-table-body" class="hxcard divide-y divide-gray-200 bg-white"></tbody>
         </table>
       </div>
+    </div>
+        <div class="tab-content" id="candidate-tab">
+    <div class="hxcard hxctab2">
+      <div class="mx-auto max-w-7xl">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 class="text-3xl font-bold text-gray-900">Main Dashboard - HR</h2>
+        <button id="create-interview-btn" onclick="window.location.href='/schedule.html?from=HR_Dashboard.html'" class="flex gradbtn items-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined">add</span>
+          <span>Create Interview</span>
+        </button>
+      </div>
+      </div>
+
+      <div class="border-b border-gray-200 mb-6">
+          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button id="open-positions-tab" class="tabbtn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm tab-active">
+                  Open Positions <span id="open-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600">0</span>
+              </button>
+              <button id="closed-positions-tab" class="tabbtn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                  Closed Positions <span id="closed-count" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">0</span>
+              </button>
+          </nav>
+      </div>
+
+      <div id="bulk-actions-bar" class="hidden mb-4 rounded-md bg-primary-50 p-3 flex items-center justify-between">
+          <p class="text-sm font-medium text-primary-700"><span id="selected-count">0</span> interviews selected</p>
+          <div>
+              <button id="move-to-closed-btn" class="mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Move to Closed</button>
+              <button id="move-to-open-btn" class="hidden mr-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Re-open Positions</button>
+              <button id="delete-selected-btn" class="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
+          </div>
+      </div>
+    </div>
+
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-neutral-50 text-xs text-neutral-600 uppercase font-medium">
+                            <tr>
+                                <th class="px-6 py-3" scope="col">Name</th>
+                                <th class="px-6 py-3" scope="col">Email</th>
+                                <th class="px-6 py-3" scope="col">Code</th>
+                                <th class="px-6 py-3" scope="col">Interview Title</th>
+                                <th class="px-6 py-3" scope="col">Status</th>
+                                <th class="px-6 py-3" scope="col">Invited On</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidate-table-body">
+                            <!-- Rows will be injected here by the script -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
     </div>
   </main>
 </div>
@@ -489,6 +544,65 @@ closedTab.addEventListener('click', () => switchTab('closed'));
         fetchAndRenderInterviews();
     }, 15000);
 });
+
+    const tabs = document.querySelectorAll("#nav .tab");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", (e) => {
+      // Remove active styles from all tabs
+      tabs.forEach(t => {
+        t.classList.remove("text-primary-600", "bg-primary-50", "border-b-2", "border-primary-600");
+        t.classList.add("text-gray-600");
+      });
+
+      // Add active styles to clicked tab
+      e.currentTarget.classList.add("text-primary-600", "bg-primary-50", "border-b-2", "border-primary-600");
+      e.currentTarget.classList.remove("text-gray-600");
+    });
+  });
+
+//main tab
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabContents = document.querySelectorAll(".tab-content");
+
+  function activateTab(btn) {
+    // Reset all buttons
+    tabButtons.forEach(b => {
+      b.classList.remove(
+        "text-primary-600",
+        "bg-primary-50",
+        "border-b-2",
+        "border-[#1964ac]"
+      );
+      b.classList.add("text-gray-600");
+    });
+
+    // Reset all contents
+    tabContents.forEach(c => c.classList.remove("active"));
+
+    // Activate clicked button
+    btn.classList.add(
+      "text-primary-600",
+      "bg-primary-50",
+      "border-b-2",
+      "border-[#1964ac]"
+    );
+    btn.classList.remove("text-gray-600");
+
+    // Show matching content
+    const target = btn.getAttribute("data-tab");
+    document.getElementById(target).classList.add("active");
+  }
+
+  // Attach click handlers
+  tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => activateTab(btn));
+  });
+
+  // ✅ Activate first tab ONLY ONCE (on load)
+  if (tabButtons.length) {
+    activateTab(tabButtons[0]);
+  }
 </script>
 
 </body>
