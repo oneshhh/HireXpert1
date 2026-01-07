@@ -882,6 +882,58 @@ app.post("/api/users/bulk-delete", async (req, res) => {
     }
 });
 
+// Debugging and Testing Routes
+app.get("/api/debug/delete-one-video", async (req, res) => {
+    const { interviewId } = req.query;
+
+    if (!interviewId) {
+        return res.status(400).json({ error: "interviewId required" });
+    }
+
+    // 1. Fetch ONE raw_path
+    const { data: answers, error } =
+        await supabase_second_db_service
+            .from("answers")
+            .select("raw_path")
+            .eq("interview_id", interviewId)
+            .limit(1);
+
+    if (error || !answers || answers.length === 0) {
+        return res.status(404).json({ error: "No raw_path found" });
+    }
+
+    const rawPath = answers[0].raw_path;
+
+    // rawPath = "raw/3ca6.../q1.webm"
+    const relativePath = rawPath.replace(/^raw\//, "");
+
+    // 2. List BEFORE delete
+    const before = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .list(relativePath.split("/").slice(0, -1).join("/"));
+
+    // 3. Delete
+    const del = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .remove([relativePath]);
+
+    // 4. List AFTER delete
+    const after = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .list(relativePath.split("/").slice(0, -1).join("/"));
+
+    res.json({
+        rawPath,
+        relativePath,
+        listBefore: before,
+        deleteResult: del,
+        listAfter: after
+    });
+});
+
 // Analytics API Routes
 app.get("/api/analytics/status-counts", async (req, res) => {
     try {
