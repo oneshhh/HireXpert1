@@ -3,8 +3,7 @@ const cookieSession = require('cookie-session');
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 require('dotenv').config();
-const sgMail = require('@sendgrid/mail');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const nodemailer = require("nodemailer");
 const cors = require("cors");
 const pool = require('./db');
 const fetch = (...args) =>import('node-fetch').then(({ default: fetch }) => fetch(...args));
@@ -17,6 +16,25 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
+
+const mailTransporter = nodemailer.createTransport({
+  host: process.env.ZEPTO_SMTP_HOST,
+  port: Number(process.env.ZEPTO_SMTP_PORT),
+  secure: false, // STARTTLS
+  auth: {
+    user: process.env.ZEPTO_SMTP_USER, // MUST be 'emailapikey'
+    pass: process.env.ZEPTO_SMTP_PASS
+  }
+});
+
+mailTransporter.verify((err) => {
+  if (err) {
+    console.error("❌ ZeptoMail SMTP failed:", err);
+  } else {
+    console.log("✅ ZeptoMail SMTP ready");
+  }
+});
+
 
 // PDF parsing library
 const mammoth = require("mammoth");
@@ -35,6 +53,25 @@ const allowedOrigins = [
   "https://dvar.globalxperts.org"
 
 ];
+
+// 2. Email Sending Function
+async function sendEmail({ to, subject, html }) {
+  const mailOptions = {
+    from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM}>`,
+    to,
+    subject,
+    html
+  };
+
+  try {
+    await mailTransporter.sendMail(mailOptions);
+    console.log("✉️ Email sent to:", to);
+    return true;
+  } catch (err) {
+    console.error("❌ Email send failed:", err);
+    throw err;
+  }
+}
 
 
 // 3. Token-Based Interview Setup Route
@@ -351,23 +388,18 @@ function otpExpiry(minutes = 10) {
 }
 
 async function sendLoginOtpEmail(to, otp) {
-  const verifiedSenderEmail = process.env.EMAIL_USER;
-
-  const msg = {
+  await sendEmail({
     to,
-    from: verifiedSenderEmail,
     subject: "Your Dvar login code",
     html: `
       <p>Hello,</p>
       <p>Your one-time login code is:</p>
       <h2 style="letter-spacing: 2px;">${otp}</h2>
       <p>This code will expire in <b>10 minutes</b>.</p>
-      <p>If you did not attempt to log in, you should contact the Admin team and inform them of this unauthorized access attempt.</p>
+      <p>If you did not attempt to log in, contact the Admin team.</p>
       <p>Regards,<br/>Dvār Team</p>
     `
-  };
-
-  await sgMail.send(msg);
+  });
 }
 
 
@@ -398,22 +430,23 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
         const link = `https://candidateportal1.onrender.com/setup?token=${token}`;
         console.log("🔗 Link generated:", link);
 
-        const msg = {
-            to: to,
-            from: verifiedSenderEmail,
-            subject: `Interview Scheduled: ${title}`,
-            html: `
-                <p>Dear Candidate,</p>
-                <p>Your interview for <b>${title}</b> has been scheduled.</p>
-                <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-                <p><a href="${link}">Click here to begin your interview</a></p>
-                <p>This link will expire in 24 hours for security reasons.</p>
-                <p>Regards,<br>Dvar Team</p>
-            `,
-        };
+        await sendEmail({
+        to,
+        subject: `Interview Scheduled: ${title}`,
+        html: `
+            <p>Dear Candidate,</p>
+            <p>Your interview for <b>${title}</b> has been scheduled.</p>
+            <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+            <p>
+            <a href="${link}">Click here to begin your interview</a>
+            </p>
+            <p>This link will expire in 24 hours for security reasons.</p>
+            <p>Regards,<br/>Dvār Team</p>
+        `
+        });
+
 
         console.log("📧 Sending email...");
-        await sgMail.send(msg);
 
         console.log("✉️ Email sent successfully to:", to);
         return { success: true };
@@ -439,15 +472,19 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         organizer: { name: 'Dvar', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
-    const msg = {
-        to: to,
-        from: verifiedSenderEmail,
-        subject: `CONFIRMATION: Interview Scheduled for ${title}`,
-        html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>`,
-    };
+
+    await sendEmail({
+    to,
+    subject: `CONFIRMATION: Interview Scheduled for ${title}`,
+    html: `
+        <p>This is a confirmation that you have successfully scheduled the interview.</p>
+        <p><b>Title:</b> ${title}</p>
+        <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+        <p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>
+    `
+    });
     
     try {
-        await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
         return { success: true };
     } catch (err) {
