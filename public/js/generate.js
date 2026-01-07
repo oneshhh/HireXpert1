@@ -27,7 +27,7 @@ function addQuestion(questionText = '') {
             <option value="150">150s</option>
             <option value="180">180s</option>
         </select>
-    <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
+    <button type="button" onclick="this.parentElement.remove(); manageAddQuestionButton();" class="delbtn flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal tracking-wide bg-[var(--secondary-color)] text-[var(--text-primary)] hover:bg-gray-200 !p-0">
       <span class="material-symbols-outlined text-xl">delete</span>
     </button>
   `;

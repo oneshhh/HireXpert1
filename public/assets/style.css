@@ -48,6 +48,7 @@ h2{
     background: linear-gradient(#1964AC,#4CA6FF);
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
+    color: #fff !important;
 }
 .tab-active{
     color: #1964ac;
@@ -169,4 +170,108 @@ table tr{
 }
 .mar0{
     margin-top: 0 !important;
+}
+.form-head{
+    display: flex;
+    align-items: center;
+}
+.form-head i{
+    color: #1964ac;
+    padding-right: 0.5rem;
+}
+.form-head h3{
+    font-weight: 600;
+}
+.schforms{
+    background: #F6FAFF;
+    border-radius: 1rem;
+    border-left: 0.3rem solid #1964ac;
+    margin-bottom: 1rem;
+}
+.schforms input {
+    border: 0.1rem solid #579EE2;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+.schforms textarea{
+    border: 0.1rem solid #579EE2;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+.schforms input::placeholder {
+    font-size: 0.8rem;
+}
+.schforms span {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 0.5rem 0 0 0.5rem;
+    margin-top: 0.5rem;
+}
+.schforms select{
+    border: 0.1rem solid #579ee2;
+}
+.schforms .delbtn{
+    background: #D31E1E;
+    color: #fff;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+}
+.schforms .delbtn span{
+    margin: 0;
+    font-size: 1rem;
+    padding: 0;
+}
+.schforms .gradbtn span {
+    color: #fff;
+    font-size: 1rem;
+    padding: 0;
+    margin: 0;
+}
+.schforms .delbtn:hover {
+    border: 0.1rem solid #d31e1e;
+    background: #fff;
+    color: #d31e1e;
+}
+#drop-zone{
+    border: 0.1rem dashed #1964ac;
+}
+#drop-zone button{
+    background: #1964ac;
+}
+.aibox{
+    border-left: 0.3rem solid #1964ac;
+}
+.aibox span{
+    color: #1964ac;
+}
+.aibox h3{
+    color: #1964ac;
+}
+.aibox p{
+    color: #1964ac;
+}
+.aibox textarea{
+    border: 0.1rem solid #579EE2;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+.aibox select{
+    border: 0.1rem solid #579ee2;
+}
+.aibox .gradbtn span{
+    color: #fff;
+}
+#profile-initials{
+    color: #fff !important;
+}
+#user-form input {
+    border: 0.1rem solid #579EE2;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+#user-form input::placeholder {
+    font-size: 0.8rem;
 }
