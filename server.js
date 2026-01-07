@@ -1585,8 +1585,82 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     const client = await pool.connect();
 
     try {
-        await client.query('BEGIN');
+        await client.query("BEGIN");
 
+        // ===============================
+        // 1️⃣ FETCH STORAGE PATHS (DB-B)
+        // ===============================
+        const { data: candidates, error: candErr } =
+            await supabase_second_db_service
+                .from("candidates")
+                .select("resume_path")
+                .in("interview_id", interviewIds);
+
+        if (candErr) throw candErr;
+
+        const { data: answers, error: ansErr } =
+            await supabase_second_db_service
+                .from("answers")
+                .select("raw_path, transcript_path")
+                .in("interview_id", interviewIds);
+
+        if (ansErr) throw ansErr;
+
+        // ===============================
+        // 2️⃣ NORMALIZE PATHS (INLINE)
+        // ===============================
+        const deletes = {
+            resumes: [],
+            raw: [],
+            transcript: []
+        };
+
+        for (const c of candidates || []) {
+            if (c.resume_path) {
+                deletes.resumes.push(
+                    c.resume_path.replace(/^\/?resumes\//, "")
+                );
+            }
+        }
+
+        for (const a of answers || []) {
+            if (a.raw_path) {
+                deletes.raw.push(
+                    a.raw_path.replace(/^\/?raw\//, "")
+                );
+            }
+            if (a.transcript_path) {
+                deletes.transcript.push(
+                    a.transcript_path.replace(/^\/+/, "")
+                );
+            }
+        }
+
+        // ===============================
+        // 3️⃣ DELETE STORAGE OBJECTS
+        // ===============================
+        for (const bucket of Object.keys(deletes)) {
+            if (deletes[bucket].length === 0) continue;
+
+            const { error } =
+                await supabase_second_db_service
+                    .storage
+                    .from(bucket)
+                    .remove(deletes[bucket]);
+
+            if (error) {
+                console.error(`[Storage Delete Failed] bucket=${bucket}`, error);
+                throw error;
+            }
+        }
+
+        console.log(
+            `[Storage Deleted] resumes=${deletes.resumes.length}, raw=${deletes.raw.length}, transcript=${deletes.transcript.length}`
+        );
+
+        // ===============================
+        // 4️⃣ DELETE DB-A ROWS
+        // ===============================
         await client.query(
             "DELETE FROM interview_access_tokens WHERE interview_id = ANY($1)",
             [interviewIds]
@@ -1597,13 +1671,12 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
             [interviewIds]
         );
 
-        // NOW SAFE TO DELETE INTERVIEWS
         await client.query(
             "DELETE FROM interviews WHERE id = ANY($1::uuid[])",
             [interviewIds]
         );
 
-        await client.query('COMMIT');
+        await client.query("COMMIT");
 
         res.json({
             success: true,
@@ -1611,8 +1684,8 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
         });
 
     } catch (err) {
+        await client.query("ROLLBACK");
         console.error("Bulk Delete Error:", err);
-        await client.query('ROLLBACK');
         res.status(500).json({
             error: "Failed to delete interviews.",
             details: err.message
