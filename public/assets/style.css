@@ -275,3 +275,11 @@ table tr{
 #user-form input::placeholder {
     font-size: 0.8rem;
 }
+#profileForm input {
+    border: 0.1rem solid #579EE2;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+#profileForm input::placeholder {
+    font-size: 0.8rem;
+}

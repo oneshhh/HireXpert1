@@ -20,38 +20,57 @@
       #notification-modal > div { transition: all 0.3s ease-out; }
     </style>
 </head>
-<body class="bg-gray-100">
-<div class="flex min-h-screen w-full flex-col">
+<body class="bg-gray-50 font-sans dark:bg-gray-900">
+<div class="flex h-screen w-full bg-white overflow-x-hidden dark:bg-gray-900">
 
-    <!-- Header -->
-    <header class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3 text-gray-800">
-            <img class="logo" src="/assets/images/Dvar-ht.png"/>
-          </div>
-          <!-- Simple Back Link (Update dynamically if needed) -->
-          <a id="back-link" href="#" class="text-sm font-medium text-gray-600 hover:text-primary-600">&larr; Back to Dashboard</a>
-        </div>
-        <div class="flex items-center gap-4">
-          <button class="relative rounded-full p-2 hover:bg-gray-100">
-            <span class="material-symbols-outlined text-gray-600">notifications</span>
-          </button>
-          <!-- Profile Picture Dropdown -->
-          <div class="relative">
-              <button id="profile-menu-button" type="button" class="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                  <span class="sr-only">Open user menu</span>
-                  <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-                       <span id="profile-initials" class="text-sm font-medium text-gray-600"></span>
-                  </div>
-              </button>
-              <div id="profile-menu-dropdown" class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profile-menu-button" tabindex="-1">
-                   <div class="border-b border-gray-200 px-4 py-3 text-sm"> <p class="font-medium text-gray-900">Signed in as</p> <p id="user-email-display" class="truncate text-gray-500">Loading...</p> </div>
-                   <div class="py-1" role="none"> <a href="/settings.html" class="block px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50" role="menuitem" tabindex="-1" id="user-menu-item-profile">Edit Profile</a> </div>
-                   <div class="py-1" role="none"> <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem" tabindex="-1" id="user-menu-item-logout">Sign out</a> </div>
-              </div>
-          </div>
-        </div>
-      </header>
+      <!-- Sidebar with dark mode classes -->
+<aside id="main-sidebar" class="fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 -translate-x-full lg:static lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700">
+    
+  <!-- Header -->
+  <div class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
+      <div class="flex flex-col items-start dash-logo">
+          <img class="logo" src="/assets/images/dvar-ht.png"/>
+      </div>
+      <button id="mobile-menu-close" type="button" class="lg:hidden rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
+          <span class="material-symbols-outlined">close</span>
+      </button>
+  </div>
+
+  <!-- NAVIGATION -->
+   <span class="text-xs font-medium titledash">Admin Panel</span>
+  <div class="flex flex-1 flex-col justify-between h-full">
+    <nav class="space-y-2 p-4">
+        <a href="/admin_Dashboard.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="fa-solid fa-table-columns"></i>
+            Dashboard
+        </a>
+        <a href="/add_visitors.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="fa-solid fa-user-check"></i>
+            Evaluators Management
+        </a>
+        <a href="settings.html" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="fa-solid fa-gear"></i>
+            Settings
+        </a>
+    </nav>
+
+    <!-- Bottom buttons -->
+    <div class="border-t border-gray-200 p-4 dark:border-gray-700 space-y-2">
+        <button id="dark-mode-toggle" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined">dark_mode</span>
+            <span>Toggle Theme</span>
+        </button>
+    <button id="logout-btn"
+        onclick="console.log('Logging out...')"
+        class="flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">
+        <span class="material-symbols-outlined">logout</span>
+        Logout
+    </button>
+    </div>
+</aside>
+
+<!-- Sidebar Overlay for mobile (hidden by default) -->
+<div id="sidebar-overlay" class="lg:hidden fixed inset-0 z-20 bg-gray-900/50 hidden" aria-hidden="true"></div>
 
     <!-- Main Content Area -->
     <main class="flex-1 px-4 py-10 lg:px-6">
@@ -61,7 +80,7 @@
             <div id="loading-state" class="text-center p-10"><p class="text-gray-500">Loading profile...</p></div>
             <div id="error-state" class="hidden text-center p-10 bg-red-50 rounded-lg"><p class="text-red-600 font-medium">Could not load profile.</p><p id="error-message" class="text-red-500 text-sm mt-2"></p></div>
 
-            <form id="profileForm" class="hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <form id="profileForm" class="hxcard">
                 <div class="space-y-6 p-6 md:p-8">
                     <!-- Name Fields -->
                     <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
@@ -139,9 +158,9 @@
 
 
                 <!-- Form Actions -->
-                <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 bg-gray-50 px-6 py-4">
+                <div class="flex items-center justify-end px-6 py-4">
                     <button type="button" id="cancelButton" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>
-                    <button type="submit" id="saveButton" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50">
+                    <button type="submit" id="saveButton" class="gradbtn rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50">
                         Save Profile
                     </button>
                 </div>
