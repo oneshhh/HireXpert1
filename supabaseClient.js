@@ -2,50 +2,70 @@
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
+/**
+ * STEP 3: CLIENT REPOINT
+ *
+ * We intentionally KEEP the exported variable names:
+ *   - supabase_second_db
+ *   - supabase_second_db_service
+ *
+ * But we point them to DATABASE A.
+ *
+ * This allows server.js to remain unchanged.
+ */
+
 // --------------------------------------
-// DB_B (Supabase Second Database)
+// DATABASE A (PRIMARY SUPABASE PROJECT)
 // --------------------------------------
 
-// URL (same for both anon + service)
-const secondSupabaseUrl = process.env.SECOND_SUPABASE_URL;
-
-// ANON KEY (read-only) — your existing key
-const secondSupabaseAnonKey = process.env.SECOND_SUPABASE_KEY;
-
-// SERVICE ROLE KEY (full write access — must bypass RLS)
-const secondSupabaseServiceKey = process.env.SECOND_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // --------------------------------------
 // WARNINGS IF KEYS ARE MISSING
 // --------------------------------------
-if (!secondSupabaseUrl) {
-  console.warn("WARNING: SECOND_SUPABASE_URL is not set.");
+
+if (!supabaseUrl) {
+  console.warn("WARNING: SUPABASE_URL is not set.");
 }
-if (!secondSupabaseAnonKey) {
-  console.warn("WARNING: SECOND_SUPABASE_KEY (anon key) is not set.");
+if (!supabaseAnonKey) {
+  console.warn("WARNING: SUPABASE_ANON_KEY is not set.");
 }
-if (!secondSupabaseServiceKey) {
-  console.warn("WARNING: SECOND_SUPABASE_SERVICE_ROLE_KEY is not set. Writes will FAIL.");
+if (!supabaseServiceRoleKey) {
+  console.warn("WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Writes will FAIL.");
 }
 
 // --------------------------------------
-// CREATE BOTH CLIENTS
+// CREATE CLIENTS (NAMES KEPT FOR COMPATIBILITY)
 // --------------------------------------
 
-// 1) ANON client (READ-ONLY) — KEEP THIS NAME AS REQUESTED
+// 1) READ-ONLY (ANON) CLIENT
 const supabase_second_db = createClient(
-  secondSupabaseUrl,
-  secondSupabaseAnonKey
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
 );
 
-// 2) SERVICE ROLE client (FULL ACCESS FOR WRITES)
+// 2) SERVICE ROLE CLIENT (FULL ACCESS)
 const supabase_second_db_service = createClient(
-  secondSupabaseUrl,
-  secondSupabaseServiceKey
+  supabaseUrl,
+  supabaseServiceRoleKey,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
 );
 
 // --------------------------------------
 module.exports = {
-  supabase_second_db,          // READ client (anonymously)
+  supabase_second_db,          // READ client (anon)
   supabase_second_db_service   // WRITE client (service role)
 };
