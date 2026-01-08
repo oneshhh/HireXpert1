@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db'); // <-- Your pg Pool from db.js
-const { supabase_second_db } = require('./supabaseClient'); // <-- Client for 2nd DB
+const { supabase_second_db_service: supabase } = require('./supabaseClient');
 
 // Allow both user and viewer for GETs.
 // For POSTs, allow user, but also allow viewer only for /api/evaluations.
@@ -17,7 +17,6 @@ function allowViewerForGets(req, res, next) {
 
 
 router.use(allowViewerForGets);
-
 
 /**
  * Endpoint 1: GET /api/interview/:id/submissions
@@ -42,7 +41,7 @@ router.get("/interview/:id/submissions", async (req, res) => {
     const emails = sessions.map(s => s.candidate_email);
 
     // 2) Fetch DB_B candidates for THIS interview (gives us candidate_token + name)
-    const { data: candidatesMeta, error: metaErr } = await supabase_second_db
+    const { data: candidatesMeta, error: metaErr } = await supabase
       .from("candidates")
       .select("email, interview_id, name, candidate_token")
       .eq("interview_id", interview_id)
@@ -59,7 +58,7 @@ router.get("/interview/:id/submissions", async (req, res) => {
     // 3) Fetch DB_B answers by candidate_token
     let answers = [];
     if (tokens.length > 0) {
-      const { data: answerRows, error: ansErr } = await supabase_second_db
+      const { data: answerRows, error: ansErr } = await supabase
         .from("answers")
         .select("candidate_token, interview_id, status")
         .eq("interview_id", interview_id)
@@ -198,7 +197,7 @@ router.get('/candidate/review/:token', async (req, res) => {
 
     try {
         // 1. Get Candidate details from SECOND database (DB_B)
-        const { data: candidate, error: candidateError } = await supabase_second_db
+        const { data: candidate, error: candidateError } = await supabase
             .from('candidates')
             .select('name, email, interview_id')
             .eq('candidate_token', token)
@@ -218,7 +217,7 @@ router.get('/candidate/review/:token', async (req, res) => {
         const interview = interviews[0];
 
         // 3. Get all Answers from SECOND database (DB_B)
-        const { data: answers, error: answersError } = await supabase_second_db
+        const { data: answers, error: answersError } = await supabase
             .from('answers')
             .select('*')
             .eq('candidate_token', token)
@@ -245,7 +244,7 @@ router.get('/candidate/review/:token', async (req, res) => {
                 let videoUrl = null;
                 if (answer.raw_path && answer.status === 'ready') {
                     let path = answer.raw_path.replace(/^raw\//, "");
-                    const { data, error } = await supabase_second_db.storage
+                    const { data, error } = await supabase.storage
                         .from("raw")
                         .createSignedUrl(path, 3600);
                     if (error) console.error('Error creating signed URL:', error.message);
@@ -266,7 +265,7 @@ router.get('/candidate/review/:token', async (req, res) => {
                         const finalPath = cleanPath;
 
                         const { data: signed, error: signedError } =
-                            await supabase_second_db.storage
+                            await supabase.storage
                                 .from('transcripts')       // correct bucket
                                 .createSignedUrl(finalPath, 3600);
 
@@ -315,7 +314,7 @@ router.post('/answer/review', async (req, res) => {
 
     try {
         // Update the 'answers' table in your SECOND database
-        const { error } = await supabase_second_db
+        const { error } = await supabase
             .from('answers')
             .update({ rating: rating, notes: notes })
             .eq('id', answer_id);
