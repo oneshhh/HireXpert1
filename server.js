@@ -16,6 +16,31 @@ const { supabase_second_db_service } = require('./supabaseClient');
 const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // TLS
+  auth: {
+    user: "gxt.dvar@gmail.com",
+    pass: "Aks@@2026"  // or App Password if 2FA is on
+  }
+});
+
+async function sendMail(to, subject, html) {
+  try {
+    let info = await transporter.sendMail({
+      from: `"Dvar Test" <gxt.dvar@gmail.com>`,
+      to,
+      subject,
+      html
+    });
+    console.log("Email sent:", info.messageId);
+  } catch (err) {
+    console.error("❌ SMTP failed:", err);
+  }
+}
 
 const mailTransporter = nodemailer.createTransport({
   host: process.env.ZEPTO_SMTP_HOST,
