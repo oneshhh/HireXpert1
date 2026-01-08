@@ -3,8 +3,7 @@ const cookieSession = require('cookie-session');
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 require('dotenv').config();
-const sgMail = require('@sendgrid/mail');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const nodemailer = require("nodemailer");
 const cors = require("cors");
 const pool = require('./db');
 const fetch = (...args) =>import('node-fetch').then(({ default: fetch }) => fetch(...args));
@@ -18,6 +17,25 @@ const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
 
+const mailTransporter = nodemailer.createTransport({
+  host: process.env.ZEPTO_SMTP_HOST,
+  port: Number(process.env.ZEPTO_SMTP_PORT),
+  secure: false, // STARTTLS
+  auth: {
+    user: process.env.ZEPTO_SMTP_USER, // MUST be 'emailapikey'
+    pass: process.env.ZEPTO_SMTP_PASS
+  }
+});
+
+mailTransporter.verify((err) => {
+  if (err) {
+    console.error("❌ ZeptoMail SMTP failed:", err);
+  } else {
+    console.log("✅ ZeptoMail SMTP ready");
+  }
+});
+
+
 // PDF parsing library
 const mammoth = require("mammoth");
 const pdfParse = require("pdf-parse");
@@ -29,12 +47,31 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const allowedOrigins = [
-  "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
+  "https://Dvar-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
   "https://dvar.globalxperts.org"
 
 ];
+
+// 2. Email Sending Function
+async function sendEmail({ to, subject, html }) {
+  const mailOptions = {
+    from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM}>`,
+    to,
+    subject,
+    html
+  };
+
+  try {
+    await mailTransporter.sendMail(mailOptions);
+    console.log("✉️ Email sent to:", to);
+    return true;
+  } catch (err) {
+    console.error("❌ Email send failed:", err);
+    throw err;
+  }
+}
 
 
 // 3. Token-Based Interview Setup Route
@@ -351,24 +388,41 @@ function otpExpiry(minutes = 10) {
 }
 
 async function sendLoginOtpEmail(to, otp) {
-  const verifiedSenderEmail = process.env.EMAIL_USER;
-
-  const msg = {
+  await sendEmail({
     to,
-    from: verifiedSenderEmail,
-    subject: "Your HireXpert login code",
+    subject: "Your Dvār Login Verification Code",
     html: `
       <p>Hello,</p>
-      <p>Your one-time login code is:</p>
-      <h2 style="letter-spacing: 2px;">${otp}</h2>
-      <p>This code will expire in <b>10 minutes</b>.</p>
-      <p>If you did not attempt to log in, you should contact the Admin team and inform them of this unauthorized access attempt.</p>
-      <p>Regards,<br/>HireXpert Team</p>
-    `
-  };
 
-  await sgMail.send(msg);
+      <p>
+        We received a request to sign in to
+        <b>Dvār by GlobalXperts Technology</b>.
+      </p>
+
+      <p>Your one-time verification code is:</p>
+
+      <h2 style="letter-spacing: 3px; margin: 16px 0;">
+        ${otp}
+      </h2>
+
+      <p>
+        This code is valid for <b>10 minutes</b> and can be used only once.
+      </p>
+
+      <p>
+        If you did not attempt to log in, please ignore this email
+        or contact your administrator immediately or Dvar Support Team.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <b>Dvār Team</b><br/>
+        GlobalXperts Technology
+      </p>
+    `
+  });
 }
+
 
 
 async function sendInterviewEmail(to, interviewId, title, date, time) {
@@ -398,22 +452,53 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
         const link = `https://candidateportal1.onrender.com/setup?token=${token}`;
         console.log("🔗 Link generated:", link);
 
-        const msg = {
-            to: to,
-            from: verifiedSenderEmail,
-            subject: `Interview Scheduled: ${title}`,
-            html: `
-                <p>Dear Candidate,</p>
-                <p>Your interview for <b>${title}</b> has been scheduled.</p>
-                <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
-                <p><a href="${link}">Click here to begin your interview</a></p>
-                <p>This link will expire in 24 hours for security reasons.</p>
-                <p>Regards,<br>HireXpert Team</p>
-            `,
-        };
+        await sendEmail({
+        to,
+        subject: `Interview Invitation: ${title} | Dvār`,
+        html: `
+            <p>Dear Candidate,</p>
+
+            <p>
+            You have been invited to participate in an interview for the position:
+            </p>
+
+            <p><b>${title}</b></p>
+
+            <p>
+            <b>Date:</b> ${date}<br/>
+            <b>Time:</b> ${time}
+            </p>
+
+            <p>
+            Please use the secure link below to begin your interview:
+            </p>
+
+            <p>
+            <a href="${link}" target="_blank">
+                Start Interview
+            </a>
+            </p>
+
+            <p>
+            This link is unique to you and will expire in
+            <b>24 hours</b> for security reasons.
+            Please do not share this link with anyone.
+            </p>
+
+            <p>
+            If you have any questions or experience issues accessing the interview,
+            please contact the hiring team.
+            </p>
+
+            <p>
+            Best regards,<br/>
+            <b>Dvār Team</b><br/>
+            GlobalXperts Technology
+            </p>
+        `
+        });
 
         console.log("📧 Sending email...");
-        await sgMail.send(msg);
 
         console.log("✉️ Email sent successfully to:", to);
         return { success: true };
@@ -436,18 +521,22 @@ async function sendSchedulerConfirmationEmail(to, title, date, time, candidates)
         start: [year, month, day, hour, minute],
         duration: { hours: 1 },
         status: 'CONFIRMED',
-        organizer: { name: 'HireXpert', email: verifiedSenderEmail },
+        organizer: { name: 'Dvar', email: verifiedSenderEmail },
         attendees: [{ name: 'Scheduler', email: to, rsvp: true, partstat: 'NEEDS-ACTION', role: 'REQ-PARTICIPANT' }]
     };
-    const msg = {
-        to: to,
-        from: verifiedSenderEmail,
-        subject: `CONFIRMATION: Interview Scheduled for ${title}`,
-        html: `<p>This is a confirmation that you have successfully scheduled the interview: <b>${title}</b>.</p><p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p><p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>`,
-    };
+
+    await sendEmail({
+    to,
+    subject: `CONFIRMATION: Interview Scheduled for ${title}`,
+    html: `
+        <p>This is a confirmation that you have successfully scheduled the interview.</p>
+        <p><b>Title:</b> ${title}</p>
+        <p><b>Date:</b> ${date}<br><b>Time:</b> ${time}</p>
+        <p><b>Candidates Invited:</b> ${candidates.join(', ')}</p>
+    `
+    });
     
     try {
-        await sgMail.send(msg);
         console.log(`✅ Scheduler confirmation sent successfully to: ${to}`);
         return { success: true };
     } catch (err) {
@@ -880,6 +969,57 @@ app.post("/api/users/bulk-delete", async (req, res) => {
         console.error("Failed to delete users:", err);
         res.status(500).json({ error: "Failed to delete users." });
     }
+});
+
+// Debugging and Testing Routes
+app.get("/api/debug/delete-one-video", async (req, res) => {
+    // 🔓 TEMP DEBUG BYPASS
+    // DO NOT rely on req.session for this route
+
+    const { interviewId } = req.query;
+
+    if (!interviewId) {
+        return res.status(400).json({ error: "interviewId required" });
+    }
+
+    const { data: answers, error } =
+        await supabase_second_db_service
+            .from("answers")
+            .select("raw_path")
+            .eq("interview_id", interviewId)
+            .limit(1);
+
+    if (error || !answers || answers.length === 0) {
+        return res.status(404).json({ error: "No raw_path found" });
+    }
+
+    const rawPath = answers[0].raw_path;
+
+    // IMPORTANT: normalize path for storage
+    const relativePath = rawPath.replace(/^raw\//, "");
+
+    const before = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .list(relativePath.split("/").slice(0, -1).join("/"));
+
+    const del = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .remove([relativePath]);
+
+    const after = await supabase_second_db_service
+        .storage
+        .from("raw")
+        .list(relativePath.split("/").slice(0, -1).join("/"));
+
+    res.json({
+        rawPath,
+        relativePath,
+        listBefore: before,
+        deleteResult: del,
+        listAfter: after
+    });
 });
 
 // Analytics API Routes
@@ -1534,8 +1674,82 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
     const client = await pool.connect();
 
     try {
-        await client.query('BEGIN');
+        await client.query("BEGIN");
 
+        // ===============================
+        // 1️⃣ FETCH STORAGE PATHS (DB-B)
+        // ===============================
+        const { data: candidates, error: candErr } =
+            await supabase_second_db_service
+                .from("candidates")
+                .select("resume_path")
+                .in("interview_id", interviewIds);
+
+        if (candErr) throw candErr;
+
+        const { data: answers, error: ansErr } =
+            await supabase_second_db_service
+                .from("answers")
+                .select("raw_path, transcript_path")
+                .in("interview_id", interviewIds);
+
+        if (ansErr) throw ansErr;
+
+        // ===============================
+        // 2️⃣ NORMALIZE PATHS (INLINE)
+        // ===============================
+        const deletes = {
+            resumes: [],
+            raw: [],
+            transcript: []
+        };
+
+        for (const c of candidates || []) {
+            if (c.resume_path) {
+                deletes.resumes.push(
+                    c.resume_path.replace(/^\/?resumes\//, "")
+                );
+            }
+        }
+
+        for (const a of answers || []) {
+            if (a.raw_path) {
+                deletes.raw.push(
+                    a.raw_path.replace(/^\/?raw\//, "")
+                );
+            }
+            if (a.transcript_path) {
+                deletes.transcript.push(
+                    a.transcript_path.replace(/^\/?transcripts\//, "")
+                );
+            }
+        }
+
+        // ===============================
+        // 3️⃣ DELETE STORAGE OBJECTS
+        // ===============================
+        for (const bucket of Object.keys(deletes)) {
+            if (deletes[bucket].length === 0) continue;
+
+            const { error } =
+                await supabase_second_db_service
+                    .storage
+                    .from(bucket)
+                    .remove(deletes[bucket]);
+
+            if (error) {
+                console.error(`[Storage Delete Failed] bucket=${bucket}`, error);
+                throw error;
+            }
+        }
+
+        console.log(
+            `[Storage Deleted] resumes=${deletes.resumes.length}, raw=${deletes.raw.length}, transcript=${deletes.transcript.length}`
+        );
+
+        // ===============================
+        // 4️⃣ DELETE DB-A ROWS
+        // ===============================
         await client.query(
             "DELETE FROM interview_access_tokens WHERE interview_id = ANY($1)",
             [interviewIds]
@@ -1546,13 +1760,12 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
             [interviewIds]
         );
 
-        // NOW SAFE TO DELETE INTERVIEWS
         await client.query(
             "DELETE FROM interviews WHERE id = ANY($1::uuid[])",
             [interviewIds]
         );
 
-        await client.query('COMMIT');
+        await client.query("COMMIT");
 
         res.json({
             success: true,
@@ -1560,8 +1773,8 @@ app.post("/api/interviews/bulk-delete", async (req, res) => {
         });
 
     } catch (err) {
+        await client.query("ROLLBACK");
         console.error("Bulk Delete Error:", err);
-        await client.query('ROLLBACK');
         res.status(500).json({
             error: "Failed to delete interviews.",
             details: err.message
