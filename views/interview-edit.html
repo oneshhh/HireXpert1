@@ -107,6 +107,7 @@
                               <th class="px-4 py-2 text-left font-medium">First Name</th>
                               <th class="px-4 py-2 text-left font-medium">Last Name</th>
                               <th class="px-4 py-2 text-left font-medium">Email</th>
+                              <th class="px-4 py-2 text-left font-medium">Actions</th>
                           </tr>
                       </thead>
                       <tbody id="current-candidates-body"></tbody>
@@ -396,9 +397,17 @@ async function loadInterview() {
             interview.candidates.forEach(c => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td class="px-4 py-2">${c.candidate_first_name || ""}</td>
-                    <td class="px-4 py-2">${c.candidate_last_name || ""}</td>
-                    <td class="px-4 py-2">${c.candidate_email}</td>
+                <td class="px-4 py-2">${c.candidate_first_name || ""}</td>
+                <td class="px-4 py-2">${c.candidate_last_name || ""}</td>
+                <td class="px-4 py-2">${c.candidate_email}</td>
+                <td class="px-4 py-2">
+                    <button
+                    type="button"
+                    class="resend-invite-btn text-sm font-medium text-blue-600 hover:underline"
+                    data-email="${c.candidate_email}">
+                    Resend
+                    </button>
+                </td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -575,6 +584,60 @@ async function actualDeleteInterview() {
     }
 }
 
+// --- Resend Invite Button Handler (Event Delegation) ---
+document.addEventListener("click", async (e) => {
+    const resendBtn = e.target.closest(".resend-invite-btn");
+    if (!resendBtn) return;
+
+    const candidateEmail = resendBtn.dataset.email;
+    if (!candidateEmail) return;
+
+    showNotification(
+        "Resend Invite?",
+        `Resend interview invite to ${candidateEmail}?`,
+        {
+            confirmText: "Resend",
+            cancelText: "Cancel",
+            onConfirm: async () => {
+                try {
+                    resendBtn.disabled = true;
+                    resendBtn.textContent = "Sending...";
+
+                    const res = await fetch("/api/resend-invite", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            interviewId,
+                            candidateEmail
+                        })
+                    });
+
+                    const result = await res.json();
+
+                    if (!res.ok) {
+                        throw new Error(result.message || "Failed to resend invite.");
+                    }
+
+                    showNotification(
+                        "Invite Sent",
+                        `Invitation resent successfully to ${candidateEmail}.`
+                    );
+
+                } catch (err) {
+                    console.error("Resend invite failed:", err);
+                    showNotification(
+                        "Resend Failed",
+                        err.message || "Could not resend invite.",
+                        { isError: true }
+                    );
+                } finally {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = "Resend";
+                }
+            }
+        }
+    );
+});
 
   
   // Set the back link dynamically based on the 'from' URL parameter
