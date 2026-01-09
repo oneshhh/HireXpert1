@@ -17,30 +17,15 @@ const crypto = require("crypto");
 const { Parser } = require('json2csv');
 const ExcelJS = require("exceljs");
 
-async function sendMail(to, subject, html) {
-  try {
-    let info = await transporter.sendMail({
-      from: `"Dvar Test" <gxt.dvar@gmail.com>`,
-      to,
-      subject,
-      html
-    });
-    console.log("Email sent:", info.messageId);
-  } catch (err) {
-    console.error("❌ SMTP failed:", err);
-  }
-}
-
 const mailTransporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  host: process.env.ZEPTO_SMTP_HOST,
+  port: Number(process.env.ZEPTO_SMTP_PORT),
+  secure: false, // STARTTLS
   auth: {
-    user: "gxt.dvar@gmail.com",
-    pass: "Aks@@2026"
+    user: process.env.ZEPTO_SMTP_USER, // MUST be 'emailapikey'
+    pass: process.env.ZEPTO_SMTP_PASS
   }
 });
-
 
 mailTransporter.verify((err) => {
   if (err) {
@@ -65,8 +50,7 @@ const allowedOrigins = [
   "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
-  "https://dvar.globalxperts.org",
-  "https://hirexpert1.onrender.com"
+  "https://dvar.globalxperts.org"
 
 ];
 
@@ -528,7 +512,7 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
 
 
 async function sendSchedulerConfirmationEmail(to, title, date, time, candidates) {
-    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+    const verifiedSenderEmail = process.env.EMAIL_USER;
     const [year, month, day] = date.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
     const event = {
