@@ -51,7 +51,7 @@ const allowedOrigins = [
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
   "https://dvar.globalxperts.org",
-  "http://62.72.29.77"
+  "http://62.72.29.77:3000"                     // local testing on VPS
 ];
 
 // 2. Email Sending Function
