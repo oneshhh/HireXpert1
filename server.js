@@ -50,8 +50,8 @@ const allowedOrigins = [
   "https://hirexpert-1ecv.onrender.com",       // admin dashboard   vansh
   "https://candidateportal1.onrender.com",     // external application   abhishek 
   "http://62.72.29.77:3010",                    // local testing on VPS
-  "https://dvar.globalxperts.org"
-
+  "https://dvar.globalxperts.org",
+  "http://62.72.29.77"
 ];
 
 // 2. Email Sending Function
@@ -512,7 +512,7 @@ async function sendInterviewEmail(to, interviewId, title, date, time) {
 
 
 async function sendSchedulerConfirmationEmail(to, title, date, time, candidates) {
-    const verifiedSenderEmail = process.env.EMAIL_USER || "vanshu2004sabharwal@gmail.com";
+    const verifiedSenderEmail = process.env.EMAIL_USER;
     const [year, month, day] = date.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
     const event = {

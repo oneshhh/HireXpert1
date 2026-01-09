@@ -43,8 +43,6 @@ function normalizeJson(value) {
   }
 }
 
-
-
 // ---------- migrate candidates ----------
 
 async function migrateCandidates() {
