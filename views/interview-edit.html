@@ -588,6 +588,8 @@ async function actualDeleteInterview() {
 document.addEventListener("click", async (e) => {
     const resendBtn = e.target.closest(".resend-invite-btn");
     if (!resendBtn) return;
+    console.log("clicked resend");
+
 
     const candidateEmail = resendBtn.dataset.email;
     if (!candidateEmail) return;
@@ -615,7 +617,12 @@ document.addEventListener("click", async (e) => {
                     const result = await res.json();
 
                     if (!res.ok) {
-                        throw new Error(result.message || "Failed to resend invite.");
+                    showNotification(
+                        "Cannot Resend",
+                        result.message || "Candidate session does not exist.",
+                        { isError: true }
+                    );
+                    return;
                     }
 
                     showNotification(
@@ -638,6 +645,40 @@ document.addEventListener("click", async (e) => {
         }
     );
 });
+
+document.getElementById("add-new-candidate")?.addEventListener("click", async () => {
+  const firstName = document.getElementById("new-first-name").value.trim();
+  const lastName = document.getElementById("new-last-name").value.trim();
+  const email = document.getElementById("new-email").value.trim();
+
+  if (!email) {
+    showNotification("Error", "Email is required.", { isError: true });
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/interview/${interviewId}/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email
+      })
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message);
+
+    showNotification("Invite Sent", `Invitation sent to ${email}.`, {
+      onClose: loadInterview
+    });
+
+  } catch (err) {
+    showNotification("Invite Failed", err.message, { isError: true });
+  }
+});
+
 
   
   // Set the back link dynamically based on the 'from' URL parameter
