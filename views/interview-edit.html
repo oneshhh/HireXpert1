@@ -4,7 +4,6 @@
 <head>
 <meta charset="utf-8"/>
 <title>Edit Interview</title>
-<link rel="icon" type="image/png" href="/LoginTest/public/assets/favicon.png">
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700;900&family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -22,7 +21,7 @@
       <path d="M24 18.4L42 11.5V34.4c0 .4-.3.8-.6.9L24 42V18.4Z" fill="currentColor"/>
       <path d="M24 8.2 33.4 11.6 24 15.2 14.6 11.6 24 8.2ZM9 15.8l12 4.6v17.1L9 33V15.8Zm18 21.8V20.5l12-4.6V33l-12 4.6Z" fill="currentColor"/>
     </svg>
-    <h2 class="text-lg font-bold">Dvar</h2>
+    <h2 class="text-lg font-bold">HireXpert</h2>
   </div>
   <a id="back-to-dashboard-link" class="text-sm font-medium text-gray-600 hover:text-[var(--primary-color)]" href="/admin_Dashboard.html">&larr; Back to Dashboard</a>
 </header>
@@ -48,6 +47,7 @@
               </div>
               <div>
               <div class="flex justify-between items-center">
+                  <label class="text-sm font-medium text-gray-900" for="schedulerIds">Assign Schedulers / Interviewers</label>
 
                   <!-- 🔄 Refresh Button -->
                   <button id="refresh-schedulers" 
@@ -107,7 +107,6 @@
                               <th class="px-4 py-2 text-left font-medium">First Name</th>
                               <th class="px-4 py-2 text-left font-medium">Last Name</th>
                               <th class="px-4 py-2 text-left font-medium">Email</th>
-                              <th class="px-4 py-2 text-left font-medium">Actions</th>
                           </tr>
                       </thead>
                       <tbody id="current-candidates-body"></tbody>
@@ -397,17 +396,9 @@ async function loadInterview() {
             interview.candidates.forEach(c => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                <td class="px-4 py-2">${c.candidate_first_name || ""}</td>
-                <td class="px-4 py-2">${c.candidate_last_name || ""}</td>
-                <td class="px-4 py-2">${c.candidate_email}</td>
-                <td class="px-4 py-2">
-                    <button
-                    type="button"
-                    class="resend-invite-btn text-sm font-medium text-blue-600 hover:underline"
-                    data-email="${c.candidate_email}">
-                    Resend
-                    </button>
-                </td>
+                    <td class="px-4 py-2">${c.candidate_first_name || ""}</td>
+                    <td class="px-4 py-2">${c.candidate_last_name || ""}</td>
+                    <td class="px-4 py-2">${c.candidate_email}</td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -584,101 +575,63 @@ async function actualDeleteInterview() {
     }
 }
 
-// --- Resend Invite Button Handler (Event Delegation) ---
-document.addEventListener("click", async (e) => {
-    const resendBtn = e.target.closest(".resend-invite-btn");
-    if (!resendBtn) return;
-    console.log("clicked resend");
+// --- Add & Send Invite (uses /api/interview/:id/update) ---
+document.getElementById("add-new-candidate")?.addEventListener("click", async () => {
+    const first = document.getElementById("new-first-name").value.trim();
+    const last  = document.getElementById("new-last-name").value.trim();
+    const email = document.getElementById("new-email").value.trim();
 
+    if (!first || !last || !email) {
+        showNotification(
+            "Missing Information",
+            "First name, last name, and email are required.",
+            { isError: true }
+        );
+        return;
+    }
 
-    const candidateEmail = resendBtn.dataset.email;
-    if (!candidateEmail) return;
+    try {
+        const res = await fetch(`/api/interview/${interviewId}/update`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                candidates: [
+                    { first, last, email }
+                ]
+            })
+        });
 
-    showNotification(
-        "Resend Invite?",
-        `Resend interview invite to ${candidateEmail}?`,
-        {
-            confirmText: "Resend",
-            cancelText: "Cancel",
-            onConfirm: async () => {
-                try {
-                    resendBtn.disabled = true;
-                    resendBtn.textContent = "Sending...";
+        const result = await res.json();
 
-                    const res = await fetch("/api/resend-invite", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            interviewId,
-                            candidateEmail
-                        })
-                    });
+        if (!res.ok) {
+            throw new Error(result.message || "Failed to add candidate.");
+        }
 
-                    const result = await res.json();
+        showNotification(
+            "Invite Sent",
+            `Invitation sent successfully to ${email}.`,
+            {
+                onClose: () => {
+                    // clear inputs
+                    document.getElementById("new-first-name").value = "";
+                    document.getElementById("new-last-name").value = "";
+                    document.getElementById("new-email").value = "";
 
-                    if (!res.ok) {
-                    showNotification(
-                        "Cannot Resend",
-                        result.message || "Candidate session does not exist.",
-                        { isError: true }
-                    );
-                    return;
-                    }
-
-                    showNotification(
-                        "Invite Sent",
-                        `Invitation resent successfully to ${candidateEmail}.`
-                    );
-
-                } catch (err) {
-                    console.error("Resend invite failed:", err);
-                    showNotification(
-                        "Resend Failed",
-                        err.message || "Could not resend invite.",
-                        { isError: true }
-                    );
-                } finally {
-                    resendBtn.disabled = false;
-                    resendBtn.textContent = "Resend";
+                    // reload interview data
+                    loadInterview();
                 }
             }
-        }
-    );
+        );
+
+    } catch (err) {
+        console.error("Add candidate failed:", err);
+        showNotification(
+            "Invite Failed",
+            err.message || "Could not send invitation.",
+            { isError: true }
+        );
+    }
 });
-
-document.getElementById("add-new-candidate")?.addEventListener("click", async () => {
-  const firstName = document.getElementById("new-first-name").value.trim();
-  const lastName = document.getElementById("new-last-name").value.trim();
-  const email = document.getElementById("new-email").value.trim();
-
-  if (!email) {
-    showNotification("Error", "Email is required.", { isError: true });
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/interview/${interviewId}/invite`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firstName,
-        lastName,
-        email
-      })
-    });
-
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message);
-
-    showNotification("Invite Sent", `Invitation sent to ${email}.`, {
-      onClose: loadInterview
-    });
-
-  } catch (err) {
-    showNotification("Invite Failed", err.message, { isError: true });
-  }
-});
-
 
   
   // Set the back link dynamically based on the 'from' URL parameter
